@@ -1,0 +1,72 @@
+# === Java & IntelliJ IDEA ===
+*.class
+*.log
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+
+# === VSCode ===
+.vscode/
+
+# === Gradle ===
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+**/build/
+
+# === OS-specific ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+
+# === IDEs ===
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# === Distribution & Archives ===
+*.zip
+*.tar.gz
+*.rar
+
+# === Test Reports ===
+test-output/
+test-results/
+reports/
+
+# === Kotlin specific (if applicable) ===
+*.kts~
+out/
+
+# === Misc ===
+*.swp
+*.swo
+*~
+
+# === JavaFX Cache or Runtime Specific ===
+fxbuild/
+
+# === Generated Scripts / Artifacts ===
+*.class
+*.exe
+*.dll
+*.so
+*.dylib
+
+# === Backup Files ===
+*.bak
+*.tmp
+
+# === Local Environment Configs ===
+.env
+.env.*
+
+# === Custom ===
+new_features.txt

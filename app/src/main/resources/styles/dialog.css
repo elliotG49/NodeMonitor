@@ -1,0 +1,22 @@
+.my-dialog-root {
+    -fx-background-color: rgba(18,26,47,0.95);
+    -fx-background-radius: 20;
+    -fx-border-size: 2px;
+    -fx-border-color: white;
+    -fx-border-radius: 20;
+}
+
+.my-dialog-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 13px;
+}
+.my-dialog-button {
+    -fx-background-color: #13213F;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #89AEFF;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+.my-dialog-button:hover {
+    -fx-background-color: #1F2E5C;
+}
