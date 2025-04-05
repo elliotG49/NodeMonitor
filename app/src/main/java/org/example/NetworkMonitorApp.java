@@ -16,6 +16,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -62,6 +63,9 @@ public class NetworkMonitorApp extends Application {
     private static NetworkMonitorApp instance;
     private Stage primaryStage;
 
+    // New inline filter dropdown pane.
+    private FilterDropdownPane filterDropdownPane;
+
     @Override
     public void start(Stage primaryStage) {
         instance = this;
@@ -98,16 +102,52 @@ public class NetworkMonitorApp extends Application {
         StackPane.setAlignment(plusButton, Pos.BOTTOM_CENTER);
         StackPane.setMargin(plusButton, new Insets(0, 0, 20, 0));
 
+        // Updated Filter button setup:
         Button filterButton = new Button("Filter");
         filterButton.getStyleClass().add("floating-button");
-        filterButton.setOnAction(event -> showFilterDialog());
         StackPane.setAlignment(filterButton, Pos.TOP_RIGHT);
         StackPane.setMargin(filterButton, new Insets(20, 20, 0, 0));
+        
+        // Create the inline dropdown pane and add it to the center stack.
+        filterDropdownPane = new FilterDropdownPane(persistentNodes);
+        filterDropdownPane.setVisible(false);
+        // Position the dropdown pane below the filter button.
+        StackPane.setAlignment(filterDropdownPane, Pos.TOP_RIGHT);
+        StackPane.setMargin(filterDropdownPane, new Insets(60, 20, 0, 0));
+        
+        // Set callbacks for the dropdown pane.
+        filterDropdownPane.setOnApply(options -> {
+            applyFilter(options);
+            filterDropdownPane.hideDropdown();
+        });
+        filterDropdownPane.setOnCancel(() -> {
+            // Clear filters when canceled.
+            for (NetworkNode node : persistentNodes) {
+                node.setVisible(true);
+            }
+            for (javafx.scene.Node n : spiderMapPane.getChildren()) {
+                if (n instanceof ConnectionLine) {
+                    ConnectionLine cl = (ConnectionLine) n;
+                    cl.setVisible(cl.getFrom().isVisible() && cl.getTo().isVisible());
+                }
+            }
+            filterDropdownPane.hideDropdown();
+        });
+        
+        centerStack.getChildren().addAll(plusButton, filterButton, filterDropdownPane);
 
-        centerStack.getChildren().addAll(plusButton, filterButton);
+        // Toggle dropdown on filter button click.
+        filterButton.setOnAction(event -> {
+            if (filterDropdownPane.isVisible()) {
+                filterDropdownPane.hideDropdown();
+            } else {
+                filterDropdownPane.showDropdown();
+            }
+        });
+
         root.setCenter(centerStack);
 
-        // Load window size first.
+        // Load window size.
         if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
             loadWindowSize();
         } else {
@@ -115,7 +155,7 @@ public class NetworkMonitorApp extends Application {
             primaryStage.setHeight(1080);
         }
 
-        // Now load nodes and zones after the stage size is set.
+        // Load nodes and zones.
         if (!Files.exists(Paths.get(CONFIG_FILE))) {
             createDefaultMainNodes();
         } else {
@@ -127,10 +167,21 @@ public class NetworkMonitorApp extends Application {
         scene.getStylesheets().add(getClass().getResource("/styles/style.css").toExternalForm());
         primaryStage.setTitle("Network Device Monitor");
         primaryStage.setScene(scene);
-        // Do not force maximized to honor the saved window size.
         primaryStage.show();
 
-        // Listen for window resize to ensure nodes remain in bounds.
+        // Hide dropdown if click outside.
+        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+            if (filterDropdownPane.isVisible()) {
+                Bounds dropdownBounds = filterDropdownPane.localToScene(filterDropdownPane.getBoundsInLocal());
+                Bounds buttonBounds = filterButton.localToScene(filterButton.getBoundsInLocal());
+                if (!dropdownBounds.contains(e.getSceneX(), e.getSceneY()) &&
+                    !buttonBounds.contains(e.getSceneX(), e.getSceneY())) {
+                    filterDropdownPane.hideDropdown();
+                }
+            }
+        });
+
+        // Ensure nodes remain in bounds on window resize.
         scene.widthProperty().addListener((obs, oldVal, newVal) -> {
             double newWidth = newVal.doubleValue();
             for (NetworkNode node : persistentNodes) {
@@ -390,24 +441,6 @@ public class NetworkMonitorApp extends Application {
     }
     // --- End Zone Drawing Logic ---
     
-    private void showFilterDialog() {
-        FilterStage filterStage = new FilterStage(persistentNodes);
-        FilterOptions options = filterStage.showAndGetResult();
-        if (options != null) {
-            applyFilter(options);
-        } else {
-            for (NetworkNode node : persistentNodes) {
-                node.setVisible(true);
-            }
-            for (javafx.scene.Node n : spiderMapPane.getChildren()) {
-                if (n instanceof ConnectionLine) {
-                    ConnectionLine cl = (ConnectionLine) n;
-                    cl.setVisible(cl.getFrom().isVisible() && cl.getTo().isVisible());
-                }
-            }
-        }
-    }
-    
     private void applyFilter(FilterOptions options) {
         if (options == null) {
             for (NetworkNode node : persistentNodes) {
@@ -518,7 +551,6 @@ public class NetworkMonitorApp extends Application {
                 List<NodeConfig> configs = gson.fromJson(json, listType);
                 double paneWidth = spiderMapPane.getWidth();
                 double paneHeight = spiderMapPane.getHeight();
-                // Fallback to primaryStage dimensions if pane dimensions are not available.
                 if (paneWidth == 0) paneWidth = primaryStage.getWidth();
                 if (paneHeight == 0) paneHeight = primaryStage.getHeight();
                 for (NodeConfig config : configs) {
@@ -660,7 +692,6 @@ public class NetworkMonitorApp extends Application {
         }
     }
     
-    // Static method to remove a zone.
     public static void removeZone(DrawableZone zone) {
         instance.zones.remove(zone);
         instance.saveZonesToFile();

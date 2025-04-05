@@ -1,30 +1,19 @@
 package org.example;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.util.Enumeration;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Cursor;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label; // no longer used in advanced overlay
-import javafx.scene.image.Image;      // no longer used in advanced overlay
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.util.Duration;
 
 public class NetworkNode extends Pane {
     private String ipOrHostname;
@@ -49,11 +38,6 @@ public class NetworkNode extends Pane {
     private ImageView connectionIcon;
     // Resize icon (visible handle) for resizing the node.
     private ImageView resizeIcon;
-    // Advanced options overlay icon container.
-    private StackPane advButtonContainer;
-    
-    // Advanced overlay.
-    private AdvancedOptionsPane advancedOptionsPane;
     
     // For dragging.
     private double dragDeltaX;
@@ -126,28 +110,6 @@ public class NetworkNode extends Pane {
         if (networkType == NetworkType.INTERNAL && !mainNode) {
             getChildren().add(connectionIcon);
         }
-        
-        // --- Advanced Options Icon Container ---
-        advButtonContainer = new StackPane();
-        advButtonContainer.setPrefSize(16, 16);
-        advButtonContainer.setMaxSize(16, 16);
-        advButtonContainer.setStyle("-fx-background-color: #080E1B; -fx-background-radius: 8; -fx-border-color: white; -fx-border-width: 1;");
-        Label infoLabel = new Label("i");
-        infoLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10px;");
-        advButtonContainer.getChildren().add(infoLabel);
-        // Position so that its center is at the very top left (half outside).
-        advButtonContainer.setLayoutX(-advButtonContainer.getPrefWidth() / 2);
-        advButtonContainer.setLayoutY(-advButtonContainer.getPrefHeight() / 2);
-        advButtonContainer.setCursor(Cursor.HAND);
-        advButtonContainer.setOnMouseClicked(e -> {
-            if (advancedOptionsPane == null) {
-                advancedOptionsPane = new AdvancedOptionsPane();
-                getChildren().add(advancedOptionsPane);
-            }
-            advancedOptionsPane.setVisible(!advancedOptionsPane.isVisible());
-        });
-        getChildren().add(advButtonContainer);
-        // --- End Advanced Options Icon Container ---
         
         // --- Resize Hit Area and Icon Setup ---
         resizeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/resize.png")));
@@ -375,173 +337,4 @@ public class NetworkNode extends Pane {
             getChildren().remove(connectionIcon);
         }
     }
-    
-    // --- Advanced Options Overlay ---
-    private class AdvancedOptionsPane extends Pane {
-        // For non-host nodes.
-        private Label uptimeLabel;
-        private Label macLabel;
-        private Label hopsLabel;
-        // For host nodes.
-        private Label hostInfoLabel;
-        private Button closeButton;
-        private Timeline updateTimeline;
-        
-        public AdvancedOptionsPane() {
-            boolean isHost = ipOrHostname.equals("127.0.0.1") || (resolvedIp != null && resolvedIp.equals("127.0.0.1"));
-            if (isHost) {
-                double advWidth = getPrefWidth() * 0.6;
-                double advHeight = getPrefHeight() * 0.6;
-                setPrefSize(advWidth, advHeight);
-                setStyle("-fx-background-color: rgba(0,0,0,0.7); -fx-background-radius: 5;");
-                // Position above the node (aligned to left).
-                setLayoutX(0);
-                setLayoutY(-advHeight - 5);
-                
-                hostInfoLabel = new Label("Loading host info...");
-                hostInfoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-                VBox vbox = new VBox(5, hostInfoLabel, createCloseButton());
-                vbox.setAlignment(Pos.CENTER);
-                vbox.setPadding(new Insets(5));
-                getChildren().add(vbox);
-                
-                updateHostInfo();
-            } else {
-                double advWidth = getPrefWidth() * 0.6;
-                double advHeight = getPrefHeight() * 0.6;
-                setPrefSize(advWidth, advHeight);
-                setStyle("-fx-background-color: rgba(0,0,0,0.7); -fx-background-radius: 5;");
-                // Position above the node.
-                setLayoutX(0);
-                setLayoutY(-advHeight - 5);
-                
-                uptimeLabel = new Label("Uptime: N/A");
-                uptimeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-                VBox vbox;
-                if (networkType == NetworkType.INTERNAL) {
-                    macLabel = new Label("MAC: N/A");
-                    macLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-                    hopsLabel = new Label("Hops: N/A");
-                    hopsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-                    vbox = new VBox(5, uptimeLabel, macLabel, hopsLabel, createCloseButton());
-                } else { // External node.
-                    hopsLabel = new Label("Hops: N/A");
-                    hopsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-                    vbox = new VBox(5, uptimeLabel, hopsLabel, createCloseButton());
-                }
-                vbox.setAlignment(Pos.CENTER);
-                vbox.setPadding(new Insets(5));
-                getChildren().add(vbox);
-                
-                updateTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateMetrics()));
-                updateTimeline.setCycleCount(Timeline.INDEFINITE);
-                updateTimeline.play();
-                
-                updateHops();
-                if (networkType == NetworkType.INTERNAL) {
-                    updateMacAddress();
-                }
-            }
-        }
-        
-        private Button createCloseButton() {
-            closeButton = new Button("Close");
-            closeButton.setOnAction(e -> setVisible(false));
-            return closeButton;
-        }
-        
-        private void updateMetrics() {
-            long uptimeSeconds = (System.currentTimeMillis() - startTime) / 1000;
-            Platform.runLater(() -> uptimeLabel.setText("Uptime: " + uptimeSeconds + " s"));
-        }
-        
-        private void updateMacAddress() {
-            new Thread(() -> {
-                try {
-                    String targetIP = ipOrHostname;
-                    if (!ipOrHostname.matches("\\d+\\.\\d+\\.\\d+\\.\\d+") && resolvedIp != null) {
-                        targetIP = resolvedIp;
-                    }
-                    ProcessBuilder pb = new ProcessBuilder("arp", "-a");
-                    Process process = pb.start();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    String line;
-                    String foundMac = "N/A";
-                    while ((line = reader.readLine()) != null) {
-                        if (line.contains(targetIP)) {
-                            String[] parts = line.trim().split("\\s+");
-                            if (parts.length >= 2) {
-                                foundMac = parts[1];
-                            }
-                            break;
-                        }
-                    }
-                    reader.close();
-                    final String mac = foundMac;
-                    Platform.runLater(() -> macLabel.setText("MAC: " + mac));
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    Platform.runLater(() -> macLabel.setText("MAC: Error"));
-                }
-            }).start();
-        }
-        
-        private void updateHops() {
-            new Thread(() -> {
-                try {
-                    String targetIP = ipOrHostname;
-                    if (!ipOrHostname.matches("\\d+\\.\\d+\\.\\d+\\.\\d+") && resolvedIp != null) {
-                        targetIP = resolvedIp;
-                    }
-                    ProcessBuilder pb = new ProcessBuilder("tracert", "-d", targetIP);
-                    Process process = pb.start();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    String line;
-                    int hops = 0;
-                    while ((line = reader.readLine()) != null) {
-                        line = line.trim();
-                        if (line.matches("^\\d+\\s+.*")) {
-                            hops++;
-                        }
-                    }
-                    reader.close();
-                    final int finalHops = hops;
-                    Platform.runLater(() -> hopsLabel.setText("Hops: " + finalHops));
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    Platform.runLater(() -> hopsLabel.setText("Hops: Error"));
-                }
-            }).start();
-        }
-        
-        private void updateHostInfo() {
-            new Thread(() -> {
-                StringBuilder sb = new StringBuilder();
-                try {
-                    for (Enumeration<java.net.NetworkInterface> en = java.net.NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-                        java.net.NetworkInterface intf = en.nextElement();
-                        sb.append("Adapter: ").append(intf.getDisplayName()).append("\n");
-                        byte[] mac = intf.getHardwareAddress();
-                        if (mac != null) {
-                            for (int i = 0; i < mac.length; i++) {
-                                sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
-                            }
-                            sb.append("\n");
-                        }
-                        for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-                            InetAddress inetAddress = enumIpAddr.nextElement();
-                            sb.append("IP: ").append(inetAddress.getHostAddress()).append("\n");
-                        }
-                        sb.append("\n");
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    sb.append("Error retrieving host info");
-                }
-                final String info = sb.toString();
-                Platform.runLater(() -> hostInfoLabel.setText(info));
-            }).start();
-        }
-    }
-    // --- End Advanced Options Overlay ---
 }
