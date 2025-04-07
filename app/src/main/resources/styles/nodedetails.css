@@ -1,0 +1,54 @@
+.nodedetail-panel {
+    -fx-background-color: rgba(19, 33, 63, 0.9); /* #13213F with opacity */
+    -fx-border-color: white;
+    -fx-border-width: 2px;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+}
+
+.nodedetail-header {
+    -fx-font-size: 16px;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 10px
+}
+
+.nodedetail-grid {
+    /* Additional grid styling can be added here if needed */
+}
+
+.nodedetail-label {
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+}
+
+.nodedetail-textfield {
+    -fx-font-size: 10px;
+    -fx-pref-width: 100px;
+}
+
+.nodedetail-combobox {
+    -fx-font-size: 10px;
+    -fx-pref-width: 100px;
+}
+
+.nodedetail-colorpicker {
+    -fx-pref-width: 100px;
+}
+
+.nodedetail-uptime {
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+}
+
+.nodedetail-update-button {
+    -fx-background-color: rgb(196, 247, 180);
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-padding: 5px 20px;
+}
+
+/* When update button is enabled, you can add a pseudo-class styling, e.g., */
+/* .nodedetail-update-button:enabled { */
+/*     -fx-background-color: green; */
+/* } */

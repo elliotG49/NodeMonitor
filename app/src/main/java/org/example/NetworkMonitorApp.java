@@ -16,16 +16,10 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.geometry.Side;
-import javafx.scene.Cursor;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -34,8 +28,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -62,15 +54,20 @@ public class NetworkMonitorApp extends Application {
     // Static instance reference.
     private static NetworkMonitorApp instance;
     private Stage primaryStage;
-
-    // New inline filter dropdown pane.
-    private FilterDropdownPane filterDropdownPane;
+    
+    // Variables to store previous scene dimensions for scaling.
+    private double prevSceneWidth = 0;
+    private double prevSceneHeight = 0;
 
     @Override
     public void start(Stage primaryStage) {
         instance = this;
         this.primaryStage = primaryStage;
-        
+
+        // Set a minimum window size.
+        primaryStage.setMinWidth(1024);
+        primaryStage.setMinHeight(768);
+
         // Ensure config directory exists.
         File configDir = new File(CONFIG_DIR);
         if (!configDir.exists()) {
@@ -81,87 +78,17 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane = createSpiderMapPane();
         statusPanel = createStatusPanel();
 
+        // Plus button and add-node/zone UI removed.
         StackPane centerStack = new StackPane();
         centerStack.getChildren().addAll(spiderMapPane, statusPanel);
-
-        Button plusButton = new Button("+");
-        plusButton.getStyleClass().add("floating-button");
-        ContextMenu addMenu = new ContextMenu();
-        MenuItem addNodeItem = new MenuItem("Add Node");
-        MenuItem addZoneItem = new MenuItem("Add Zone");
-        addMenu.getItems().addAll(addNodeItem, addZoneItem);
-        plusButton.setOnAction(e -> {
-            if (!addMenu.isShowing()) {
-                addMenu.show(plusButton, Side.TOP, 0, 0);
-            } else {
-                addMenu.hide();
-            }
-        });
-        addNodeItem.setOnAction(e -> addNewNode());
-        addZoneItem.setOnAction(e -> enterZoneDrawingMode());
-        StackPane.setAlignment(plusButton, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(plusButton, new Insets(0, 0, 20, 0));
-
-        // Updated Filter button setup:
-        Button filterButton = new Button("Filter");
-        filterButton.getStyleClass().add("floating-button");
-        StackPane.setAlignment(filterButton, Pos.TOP_RIGHT);
-        StackPane.setMargin(filterButton, new Insets(20, 20, 0, 0));
-        
-        // Create the inline dropdown pane and add it to the center stack.
-        filterDropdownPane = new FilterDropdownPane(persistentNodes);
-        filterDropdownPane.setVisible(false);
-        // Position the dropdown pane below the filter button.
-        StackPane.setAlignment(filterDropdownPane, Pos.TOP_RIGHT);
-        StackPane.setMargin(filterDropdownPane, new Insets(60, 20, 0, 0));
-        
-        // Set callbacks for the dropdown pane.
-        filterDropdownPane.setOnApply(options -> {
-            applyFilter(options);
-            filterDropdownPane.hideDropdown();
-        });
-        filterDropdownPane.setOnCancel(() -> {
-            // Clear filters when canceled.
-            for (NetworkNode node : persistentNodes) {
-                node.setVisible(true);
-            }
-            for (javafx.scene.Node n : spiderMapPane.getChildren()) {
-                if (n instanceof ConnectionLine) {
-                    ConnectionLine cl = (ConnectionLine) n;
-                    cl.setVisible(cl.getFrom().isVisible() && cl.getTo().isVisible());
-                }
-            }
-            filterDropdownPane.hideDropdown();
-        });
-        
-        centerStack.getChildren().addAll(plusButton, filterButton, filterDropdownPane);
-
-        // Toggle dropdown on filter button click.
-        filterButton.setOnAction(event -> {
-            if (filterDropdownPane.isVisible()) {
-                filterDropdownPane.hideDropdown();
-            } else {
-                filterDropdownPane.showDropdown();
-            }
-        });
-
         root.setCenter(centerStack);
 
-        // Load window size.
+        // Load window size if available; otherwise, maximize the window.
         if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
             loadWindowSize();
         } else {
-            primaryStage.setWidth(1920);
-            primaryStage.setHeight(1080);
+            primaryStage.setMaximized(true);
         }
-
-        // Load nodes and zones.
-        if (!Files.exists(Paths.get(CONFIG_FILE))) {
-            createDefaultMainNodes();
-        } else {
-            loadNodesFromFile();
-        }
-        loadZonesFromFile();
 
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/styles/style.css").toExternalForm());
@@ -169,19 +96,48 @@ public class NetworkMonitorApp extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        // Hide dropdown if click outside.
-        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
-            if (filterDropdownPane.isVisible()) {
-                Bounds dropdownBounds = filterDropdownPane.localToScene(filterDropdownPane.getBoundsInLocal());
-                Bounds buttonBounds = filterButton.localToScene(filterButton.getBoundsInLocal());
-                if (!dropdownBounds.contains(e.getSceneX(), e.getSceneY()) &&
-                    !buttonBounds.contains(e.getSceneX(), e.getSceneY())) {
-                    filterDropdownPane.hideDropdown();
-                }
+        // Store initial scene dimensions for responsive scaling.
+        prevSceneWidth = scene.getWidth();
+        prevSceneHeight = scene.getHeight();
+
+        // Defer loading nodes and zones until after the scene is set.
+        Platform.runLater(() -> {
+            if (!Files.exists(Paths.get(CONFIG_FILE))) {
+                createDefaultMainNodes();
+            } else {
+                loadNodesFromFile();
             }
+            loadZonesFromFile();
         });
 
-        // Ensure nodes remain in bounds on window resize.
+        // Responsive scaling: Adjust positions based on scene resize.
+        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
+            double newWidth = newVal.doubleValue();
+            double ratio = newWidth / prevSceneWidth;
+            for (NetworkNode node : persistentNodes) {
+                double newX = node.getLayoutX() * ratio;
+                node.setLayoutX(newX);
+                if (newX + node.getWidth() > newWidth) {
+                    node.setLayoutX(newWidth - node.getWidth());
+                }
+            }
+            prevSceneWidth = newWidth;
+        });
+
+        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
+            double newHeight = newVal.doubleValue();
+            double ratio = newHeight / prevSceneHeight;
+            for (NetworkNode node : persistentNodes) {
+                double newY = node.getLayoutY() * ratio;
+                node.setLayoutY(newY);
+                if (newY + node.getHeight() > newHeight) {
+                    node.setLayoutY(newHeight - node.getHeight());
+                }
+            }
+            prevSceneHeight = newHeight;
+        });
+
+        // Additional listeners to keep nodes within bounds.
         scene.widthProperty().addListener((obs, oldVal, newVal) -> {
             double newWidth = newVal.doubleValue();
             for (NetworkNode node : persistentNodes) {
@@ -235,7 +191,7 @@ public class NetworkMonitorApp extends Application {
             e.printStackTrace();
         }
     }
-    
+
     private void saveWindowSize() {
         try {
             WindowConfig wc = new WindowConfig(primaryStage.getWidth(), primaryStage.getHeight());
@@ -246,7 +202,8 @@ public class NetworkMonitorApp extends Application {
             e.printStackTrace();
         }
     }
-    
+
+    // spiderMapPane fills its parent.
     private Pane createSpiderMapPane() {
         Pane pane = new Pane();
         pane.setStyle("-fx-background-color: #080E1B;");
@@ -280,9 +237,10 @@ public class NetworkMonitorApp extends Application {
 
         VBox vbox = new VBox(5, totalBox, upBox, downBox);
         vbox.setPadding(new Insets(5));
-        vbox.setStyle("-fx-background-color: #1A2B57; -fx-background-radius: 15; -fx-border-width: 1px; -fx-border-color: rgb(255,255,255); -fx-border-style: solid; -fx-border-radius: 15;");
-        vbox.setPrefWidth(50);
-        vbox.setMaxWidth(50);
+        vbox.setStyle("-fx-background-color: #1A2B57; -fx-background-radius: 15; -fx-border-width: 1px; " +
+                      "-fx-border-color: rgb(255,255,255); -fx-border-style: solid; -fx-border-radius: 15;");
+        vbox.setPrefWidth(30);
+        vbox.setMaxWidth(30);
         vbox.setPrefHeight(70);
         vbox.setMaxHeight(70);
         StackPane.setAlignment(vbox, Pos.TOP_LEFT);
@@ -320,36 +278,37 @@ public class NetworkMonitorApp extends Application {
         }).start();
     }
 
+    // Create default main nodes positioned so their centers are on the horizontal center line.
+    // Also increased vertical spacing to 200.
     private void createDefaultMainNodes() {
-        double defaultWidth = 1920;
-        double defaultHeight = 1080;
-        double centerX = (defaultWidth - 100) / 2;
-        double centerY = defaultHeight / 2;
-        double spacing = 150;
+        double centerX = primaryStage.getWidth() / 2;
+        double centerY = primaryStage.getHeight() / 2;
+        double spacing = 300;
 
         NetworkNode hostNode = new NetworkNode("127.0.0.1", "Host", DeviceType.COMPUTER, NetworkType.INTERNAL);
-        hostNode.setLayoutX(centerX);
-        hostNode.setLayoutY(centerY - spacing);
+        // Center the node horizontally and vertically adjust by subtracting half its dimensions.
+        hostNode.setLayoutX(centerX - hostNode.getPrefWidth() / 2);
+        hostNode.setLayoutY(centerY - spacing - hostNode.getPrefHeight() / 2);
         hostNode.setMainNode(true);
-        setupContextMenu(hostNode);
+        addDetailPanelHandler(hostNode);
         persistentNodes.add(hostNode);
         persistentNodesStatic.add(hostNode);
         spiderMapPane.getChildren().add(hostNode);
 
         NetworkNode gatewayNode = new NetworkNode("192.168.1.254", "Gateway", DeviceType.GATEWAY, NetworkType.INTERNAL);
-        gatewayNode.setLayoutX(centerX);
-        gatewayNode.setLayoutY(centerY);
+        gatewayNode.setLayoutX(centerX - gatewayNode.getPrefWidth() / 2);
+        gatewayNode.setLayoutY(centerY - gatewayNode.getPrefHeight() / 2);
         gatewayNode.setMainNode(true);
-        setupContextMenu(gatewayNode);
+        addDetailPanelHandler(gatewayNode);
         persistentNodes.add(gatewayNode);
         persistentNodesStatic.add(gatewayNode);
         spiderMapPane.getChildren().add(gatewayNode);
 
         NetworkNode internetNode = new NetworkNode("8.8.8.8", "Internet", DeviceType.ROUTER, NetworkType.EXTERNAL);
-        internetNode.setLayoutX(centerX);
-        internetNode.setLayoutY(centerY + spacing);
+        internetNode.setLayoutX(centerX - internetNode.getPrefWidth() / 2);
+        internetNode.setLayoutY(centerY + spacing - internetNode.getPrefHeight() / 2);
         internetNode.setMainNode(true);
-        setupContextMenu(internetNode);
+        addDetailPanelHandler(internetNode);
         persistentNodes.add(internetNode);
         persistentNodesStatic.add(internetNode);
         spiderMapPane.getChildren().add(internetNode);
@@ -360,188 +319,6 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane.getChildren().add(0, line2);
     }
 
-    private void addNewNode() {
-        NewNodeStage newNodeStage = new NewNodeStage();
-        NetworkNode newNode = newNodeStage.showAndGetResult();
-        if (newNode != null) {
-            double paneWidth = spiderMapPane.getWidth();
-            double paneHeight = spiderMapPane.getHeight();
-            if (paneWidth == 0) paneWidth = primaryStage.getWidth();
-            if (paneHeight == 0) paneHeight = primaryStage.getHeight();
-            newNode.setLayoutX(Math.random() * (paneWidth - 100) + 50);
-            newNode.setLayoutY(Math.random() * (paneHeight - 100) + 50);
-            spiderMapPane.getChildren().add(newNode);
-            persistentNodes.add(newNode);
-            persistentNodesStatic.add(newNode);
-            setupContextMenu(newNode);
-
-            newNode.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {
-                // No additional action required.
-            });
-
-            ConnectionLine connection;
-            if (newNode.getConnectionType() == ConnectionType.VIRTUAL) {
-                NetworkNode host = getMainNodeByDisplayName("Host");
-                connection = new ConnectionLine(host, newNode);
-            } else if (newNode.getNetworkType() == NetworkType.INTERNAL) {
-                NetworkNode gateway = getMainNodeByDisplayName("Gateway");
-                connection = new ConnectionLine(gateway, newNode);
-            } else {
-                NetworkNode internet = getMainNodeByDisplayName("Internet");
-                connection = new ConnectionLine(internet, newNode);
-            }
-            spiderMapPane.getChildren().add(0, connection);
-            saveNodesToFile();
-        }
-    }
-    
-    // --- Zone Drawing Logic ---
-    private void enterZoneDrawingMode() {
-        spiderMapPane.setCursor(Cursor.CROSSHAIR);
-        final Rectangle tempZone = new Rectangle();
-        tempZone.setStroke(Color.WHITE);
-        tempZone.getStrokeDashArray().addAll(5.0, 5.0);
-        tempZone.setFill(Color.TRANSPARENT);
-        spiderMapPane.getChildren().add(tempZone);
-        
-        spiderMapPane.setOnMousePressed(me -> {
-            tempZone.setX(me.getX());
-            tempZone.setY(me.getY());
-            tempZone.setWidth(0);
-            tempZone.setHeight(0);
-        });
-        spiderMapPane.setOnMouseDragged(me -> {
-            double width = me.getX() - tempZone.getX();
-            double height = me.getY() - tempZone.getY();
-            tempZone.setWidth(width);
-            tempZone.setHeight(height);
-        });
-        spiderMapPane.setOnMouseReleased(me -> {
-            double x = tempZone.getX();
-            double y = tempZone.getY();
-            double w = tempZone.getWidth();
-            double h = tempZone.getHeight();
-            x = Math.round(x / 10) * 10;
-            y = Math.round(y / 10) * 10;
-            w = Math.round(w / 10) * 10;
-            h = Math.round(h / 10) * 10;
-            if (w < 50) w = 50;
-            if (h < 50) h = 50;
-            
-            DrawableZone zone = new DrawableZone(x, y, w, h);
-            zones.add(zone);
-            spiderMapPane.getChildren().add(zone);
-            
-            spiderMapPane.setCursor(Cursor.DEFAULT);
-            spiderMapPane.setOnMousePressed(null);
-            spiderMapPane.setOnMouseDragged(null);
-            spiderMapPane.setOnMouseReleased(null);
-            spiderMapPane.getChildren().remove(tempZone);
-        });
-    }
-    // --- End Zone Drawing Logic ---
-    
-    private void applyFilter(FilterOptions options) {
-        if (options == null) {
-            for (NetworkNode node : persistentNodes) {
-                node.setVisible(true);
-            }
-        } else if (options.getFilterMode() == FilterOptions.FilterMode.SUBNET) {
-            List<String> subnets = options.getSelectedFilters();
-            boolean clearFilter = subnets.isEmpty();
-            for (NetworkNode node : persistentNodes) {
-                if (node.getNetworkType() != NetworkType.INTERNAL) {
-                    node.setVisible(true);
-                } else if ("Host".equalsIgnoreCase(node.getDisplayName())) {
-                    node.setVisible(true);
-                } else if (clearFilter) {
-                    node.setVisible(true);
-                } else {
-                    boolean match = false;
-                    for (String subnet : subnets) {
-                        if (node.getIpOrHostname().startsWith(subnet) ||
-                            (node.getResolvedIp() != null && node.getResolvedIp().startsWith(subnet))) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    node.setVisible(match);
-                }
-            }
-        } else if (options.getFilterMode() == FilterOptions.FilterMode.COLOUR) {
-            List<String> colours = options.getSelectedFilters();
-            boolean clearFilter = colours.isEmpty();
-            for (NetworkNode node : persistentNodes) {
-                if (node.getNetworkType() != NetworkType.INTERNAL) {
-                    node.setVisible(true);
-                } else if ("Host".equalsIgnoreCase(node.getDisplayName())) {
-                    node.setVisible(true);
-                } else if (clearFilter) {
-                    node.setVisible(true);
-                } else {
-                    boolean match = false;
-                    for (String col : colours) {
-                        if (node.getOutlineColor().equalsIgnoreCase(col)) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    node.setVisible(match);
-                }
-            }
-        } else if (options.getFilterMode() == FilterOptions.FilterMode.CONNECTION) {
-            List<String> connections = options.getSelectedFilters();
-            boolean clearFilter = connections.isEmpty();
-            for (NetworkNode node : persistentNodes) {
-                if (node.getNetworkType() != NetworkType.INTERNAL) {
-                    node.setVisible(true);
-                } else if ("Host".equalsIgnoreCase(node.getDisplayName())) {
-                    node.setVisible(true);
-                } else if (clearFilter) {
-                    node.setVisible(true);
-                } else {
-                    boolean match = false;
-                    String connType = node.getConnectionType().toString();
-                    for (String conn : connections) {
-                        if (connType.equalsIgnoreCase(conn)) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    node.setVisible(match);
-                }
-            }
-        } else if (options.getFilterMode() == FilterOptions.FilterMode.DEVICE_TYPE) {
-            List<String> deviceTypes = options.getSelectedFilters();
-            boolean clearFilter = deviceTypes.isEmpty();
-            for (NetworkNode node : persistentNodes) {
-                if (node.getNetworkType() != NetworkType.INTERNAL) {
-                    node.setVisible(true);
-                } else if ("Host".equalsIgnoreCase(node.getDisplayName())) {
-                    node.setVisible(true);
-                } else if (clearFilter) {
-                    node.setVisible(true);
-                } else {
-                    boolean match = false;
-                    String devType = node.getDeviceType().toString();
-                    for (String dt : deviceTypes) {
-                        if (devType.equalsIgnoreCase(dt)) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    node.setVisible(match);
-                }
-            }
-        }
-        for (javafx.scene.Node n : spiderMapPane.getChildren()) {
-            if (n instanceof ConnectionLine) {
-                ConnectionLine cl = (ConnectionLine) n;
-                cl.setVisible(cl.getFrom().isVisible() && cl.getTo().isVisible());
-            }
-        }
-    }
-    
     private void loadNodesFromFile() {
         Platform.runLater(() -> {
             try {
@@ -551,12 +328,13 @@ public class NetworkMonitorApp extends Application {
                 List<NodeConfig> configs = gson.fromJson(json, listType);
                 double paneWidth = spiderMapPane.getWidth();
                 double paneHeight = spiderMapPane.getHeight();
-                if (paneWidth == 0) paneWidth = primaryStage.getWidth();
-                if (paneHeight == 0) paneHeight = primaryStage.getHeight();
+                if (paneWidth < 100) paneWidth = primaryStage.getScene().getWidth();
+                if (paneHeight < 100) paneHeight = primaryStage.getScene().getHeight();
                 for (NodeConfig config : configs) {
                     double absoluteX = config.getRelativeX() * paneWidth;
                     double absoluteY = config.getRelativeY() * paneHeight;
-                    System.out.println("Loading node: relativeX=" + config.getRelativeX() + ", paneWidth=" + paneWidth + ", computed X=" + absoluteX);
+                    System.out.println("Loading node: relativeX=" + config.getRelativeX() +
+                                       ", paneWidth=" + paneWidth + ", computed X=" + absoluteX);
                     NetworkNode node = new NetworkNode(
                             config.getIpOrHostname(),
                             config.getDisplayName(),
@@ -572,11 +350,11 @@ public class NetworkMonitorApp extends Application {
                     if (config.getConnectionType() != null) {
                         node.setConnectionType(config.getConnectionType());
                     }
-                    setupContextMenu(node);
+                    addDetailPanelHandler(node);
                     persistentNodes.add(node);
                     persistentNodesStatic.add(node);
                     spiderMapPane.getChildren().add(node);
-                    
+
                     if (!node.isMainNode()) {
                         ConnectionLine connection;
                         if (node.getConnectionType() == ConnectionType.VIRTUAL) {
@@ -611,18 +389,54 @@ public class NetworkMonitorApp extends Application {
             }
         });
     }
+
+        // Adds a mouse-click handler to the node to show the detail panel.
+        private void addDetailPanelHandler(NetworkNode node) {
+            node.setOnMouseClicked(e -> {
+                // Get the center (StackPane) from the BorderPane's center.
+                StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+                // Remove any existing detail panels.
+                rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
+        
+                // Create and show the detail panel for this node.
+                NodeDetailPanel detailPanel = new NodeDetailPanel(node);
+                // Add the stylesheet to the scene.
+                primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
+                detailPanel.showPanel();
+        
+                // Position the panel in the bottom-right corner.
+                StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
+                StackPane.setMargin(detailPanel, new Insets(20));
+                rootStack.getChildren().add(detailPanel);
+        
+                // Create an event filter to hide the panel when clicking outside.
+                javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent ev) {
+                        if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
+                            detailPanel.hidePanel();
+                            rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
+                        }
+                    }
+                };
+                rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
+            });
+        }
+        
     
+
     private void saveNodesToFile() {
         try {
             List<NodeConfig> configs = new ArrayList<>();
             double paneWidth = spiderMapPane.getWidth();
             double paneHeight = spiderMapPane.getHeight();
-            if (paneWidth == 0) paneWidth = primaryStage.getWidth();
-            if (paneHeight == 0) paneHeight = primaryStage.getHeight();
+            if (paneWidth < 100) paneWidth = primaryStage.getScene().getWidth();
+            if (paneHeight < 100) paneHeight = primaryStage.getScene().getHeight();
             for (NetworkNode node : persistentNodes) {
                 double relativeX = node.getLayoutX() / paneWidth;
                 double relativeY = node.getLayoutY() / paneHeight;
-                System.out.println("Saving node: layoutX=" + node.getLayoutX() + ", paneWidth=" + paneWidth + ", relativeX=" + relativeX);
+                System.out.println("Saving node: layoutX=" + node.getLayoutX() +
+                                   ", paneWidth=" + paneWidth + ", relativeX=" + relativeX);
                 NodeConfig config = new NodeConfig(
                         node.getIpOrHostname(),
                         node.getDisplayName(),
@@ -645,19 +459,21 @@ public class NetworkMonitorApp extends Application {
             e.printStackTrace();
         }
     }
-    
+
     // Zone saving and loading.
     private void saveZonesToFile() {
         try {
             List<ZoneConfig> zoneConfigs = new ArrayList<>();
             double paneWidth = spiderMapPane.getWidth();
             double paneHeight = spiderMapPane.getHeight();
-            if (paneWidth == 0) paneWidth = primaryStage.getWidth();
-            if (paneHeight == 0) paneHeight = primaryStage.getHeight();
+            if (paneWidth < 100) paneWidth = primaryStage.getScene().getWidth();
+            if (paneHeight < 100) paneHeight = primaryStage.getScene().getHeight();
             for (DrawableZone zone : zones) {
                 double relativeX = zone.getLayoutX() / paneWidth;
                 double relativeY = zone.getLayoutY() / paneHeight;
-                ZoneConfig zc = new ZoneConfig(zone.getZoneName(), zone.getLayoutX(), zone.getLayoutY(), zone.getPrefWidth(), zone.getPrefHeight(), relativeX, relativeY);
+                ZoneConfig zc = new ZoneConfig(zone.getZoneName(), zone.getLayoutX(),
+                                               zone.getLayoutY(), zone.getPrefWidth(),
+                                               zone.getPrefHeight(), relativeX, relativeY);
                 zoneConfigs.add(zc);
             }
             Gson gson = new Gson();
@@ -667,36 +483,33 @@ public class NetworkMonitorApp extends Application {
             e.printStackTrace();
         }
     }
-    
+
     private void loadZonesFromFile() {
-        try {
-            if (!Files.exists(Paths.get(ZONES_FILE))) return;
-            String json = new String(Files.readAllBytes(Paths.get(ZONES_FILE)));
-            Gson gson = new Gson();
-            Type listType = new TypeToken<List<ZoneConfig>>() {}.getType();
-            List<ZoneConfig> zoneConfigs = gson.fromJson(json, listType);
-            double paneWidth = spiderMapPane.getWidth();
-            double paneHeight = spiderMapPane.getHeight();
-            if (paneWidth == 0) paneWidth = primaryStage.getWidth();
-            if (paneHeight == 0) paneHeight = primaryStage.getHeight();
-            for (ZoneConfig zc : zoneConfigs) {
-                double absoluteX = zc.getRelativeX() * paneWidth;
-                double absoluteY = zc.getRelativeY() * paneHeight;
-                DrawableZone zone = new DrawableZone(absoluteX, absoluteY, zc.getWidth(), zc.getHeight());
-                zone.setZoneName(zc.getZoneName());
-                zones.add(zone);
-                spiderMapPane.getChildren().add(zone);
+        Platform.runLater(() -> {
+            try {
+                if (!Files.exists(Paths.get(ZONES_FILE))) return;
+                String json = new String(Files.readAllBytes(Paths.get(ZONES_FILE)));
+                Gson gson = new Gson();
+                Type listType = new TypeToken<List<ZoneConfig>>() {}.getType();
+                List<ZoneConfig> zoneConfigs = gson.fromJson(json, listType);
+                double paneWidth = spiderMapPane.getWidth();
+                double paneHeight = spiderMapPane.getHeight();
+                if (paneWidth < 100) paneWidth = primaryStage.getScene().getWidth();
+                if (paneHeight < 100) paneHeight = primaryStage.getScene().getHeight();
+                for (ZoneConfig zc : zoneConfigs) {
+                    double absoluteX = zc.getRelativeX() * paneWidth;
+                    double absoluteY = zc.getRelativeY() * paneHeight;
+                    DrawableZone zone = new DrawableZone(absoluteX, absoluteY, zc.getWidth(), zc.getHeight());
+                    zone.setZoneName(zc.getZoneName());
+                    zones.add(zone);
+                    spiderMapPane.getChildren().add(zone);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
-    
-    public static void removeZone(DrawableZone zone) {
-        instance.zones.remove(zone);
-        instance.saveZonesToFile();
-    }
-    
+
     @Override
     public void stop() throws Exception {
         saveNodesToFile();
@@ -704,50 +517,7 @@ public class NetworkMonitorApp extends Application {
         saveWindowSize();
         super.stop();
     }
-    
-    private void setupContextMenu(NetworkNode node) {
-        javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
-        MenuItem editItem = new MenuItem("Edit");
-        MenuItem deleteItem = new MenuItem("Delete");
-        if (node.isMainNode()) {
-            deleteItem.setDisable(true);
-            if ("Host".equalsIgnoreCase(node.getDisplayName())) {
-                editItem.setDisable(true);
-            }
-        }
-        editItem.setOnAction(e -> {
-            EditNodeStage editStage = new EditNodeStage(node);
-            NetworkNode updatedNode = editStage.showAndGetResult();
-            if (updatedNode != null) {
-                node.updateFrom(updatedNode);
-            }
-        });
-        deleteItem.setOnAction(e -> {
-            spiderMapPane.getChildren().remove(node);
-            persistentNodes.remove(node);
-            persistentNodesStatic.remove(node);
-            removeConnectionsForNode(node);
-            saveNodesToFile();
-        });
-        contextMenu.getItems().addAll(editItem, deleteItem);
-        node.setOnContextMenuRequested(event ->
-            contextMenu.show(node, event.getScreenX(), event.getScreenY())
-        );
-    }
-    
-    private void removeConnectionsForNode(NetworkNode node) {
-        List<javafx.scene.Node> toRemove = new ArrayList<>();
-        for (javafx.scene.Node n : spiderMapPane.getChildren()) {
-            if (n instanceof ConnectionLine) {
-                ConnectionLine cl = (ConnectionLine) n;
-                if (cl.fromEquals(node) || cl.toEquals(node)) {
-                    toRemove.add(n);
-                }
-            }
-        }
-        spiderMapPane.getChildren().removeAll(toRemove);
-    }
-    
+
     private NetworkNode getMainNodeByDisplayName(String name) {
         for (NetworkNode node : persistentNodes) {
             if (node.isMainNode() && node.getDisplayName().equalsIgnoreCase(name)) {
@@ -756,11 +526,17 @@ public class NetworkMonitorApp extends Application {
         }
         return null;
     }
-    
+
     public static List<NetworkNode> getPersistentNodesStatic() {
         return persistentNodesStatic;
     }
-    
+
+    // Reintroduced static method for zone removal.
+    public static void removeZone(DrawableZone zone) {
+        instance.zones.remove(zone);
+        instance.saveZonesToFile();
+    }
+
     public static void main(String[] args) {
         launch(args);
     }

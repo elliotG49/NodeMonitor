@@ -68,16 +68,16 @@ public class NetworkNode extends Pane {
     
     private void initialize() {
         setPrefSize(BASE_SIZE, BASE_SIZE);
+        // Apply the container style via CSS.
         getStyleClass().add("node-container");
         
         // Background rectangle.
         background = new Rectangle(BASE_SIZE, BASE_SIZE);
-        background.setArcWidth(10);
-        background.setArcHeight(10);
-        background.setFill(Color.web("#13213F"));
-        background.setStroke(outlineColorProperty.get());
+        // Remove inline fill/stroke/arc settings and apply a CSS style class instead.
+        background.getStyleClass().add("node-background");
+        // Still update the stroke on outline color changes if needed.
         outlineColorProperty.addListener((obs, oldVal, newVal) -> background.setStroke(newVal));
-        background.setStrokeWidth(2);
+        // (Optionally, you can update your CSS dynamically via a CSS variable if desired.)
         
         // Device icon.
         iconView = new ImageView(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
@@ -212,6 +212,39 @@ public class NetworkNode extends Pane {
             case SECURITY_CAMERA: return "security_camera.png";
             case VIRTUAL_MACHINE: return "virtual_machine.png";
             default: return "host.png";
+        }
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+    
+    public void setIpOrHostname(String ip) {
+        this.ipOrHostname = ip;
+        ipLabel.setText(ip);
+    }
+    
+    public void setDisplayName(String name) {
+        this.displayName = name;
+        nameLabel.setText(name);
+    }
+    
+    public void setDeviceType(DeviceType deviceType) {
+        this.deviceType = deviceType;
+        // Optionally update the icon if needed.
+        iconView.setImage(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
+    }
+    
+    public void setNetworkType(NetworkType networkType) {
+        this.networkType = networkType;
+        // Optionally update the connection icon if needed.
+        if (networkType == NetworkType.INTERNAL && !mainNode) {
+            if (!getChildren().contains(connectionIcon)) {
+                getChildren().add(connectionIcon);
+            }
+            connectionIcon.setImage(new Image(getClass().getResourceAsStream("/icons/" + getConnectionIconFileName())));
+        } else {
+            getChildren().remove(connectionIcon);
         }
     }
     

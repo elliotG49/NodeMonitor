@@ -4,13 +4,16 @@
 
 /* Node container styling */
 .node-container {
-    -fx-pref-width: 100px;
-    -fx-pref-height: 100px;
-    -fx-background-color: #13213F;
-    -fx-border-width: 1px;
     -fx-padding: 5px;
-    -fx-background-radius: 5;
-    -fx-border-radius: 5;
+
+}
+
+.node-background {
+    -fx-fill: #1d2638;           /* desired background color */
+    -fx-stroke: white;           /* desired border color */
+    -fx-stroke-width: 2px;
+    -fx-arc-width: 20px;
+    -fx-arc-height: 20px;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 4, 0.5, 0, 0);
 }
 
@@ -28,29 +31,12 @@
 /* Latency label styling */
 .latency-label {
     -fx-text-fill: white;
-    -fx-font-size: 12px;
-}
-
-/* Floating button style */
-.floating-button {
-    -fx-background-color: transparent;
-    -fx-border-color: #89AEFF;
-    -fx-border-width: 2;
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 16px;
-    -fx-background-radius: 25;
-    -fx-border-radius: 25;
-    -fx-padding: 10 20 10 20;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 4, 0.5, 0, 2);
-}
-
-.floating-button:hover {
-    -fx-border-color: #ffffff;
-    -fx-text-fill: #89AEFF;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
 }
 
 /* Hover effect for nodes */
-.node-container:hover {
+.node-background:hover {
     -fx-cursor: hand;
     -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.1), 6, 0.5, 0, 0);
     -fx-background-color: #2e206b;
