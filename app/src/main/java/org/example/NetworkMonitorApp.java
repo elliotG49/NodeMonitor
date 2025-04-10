@@ -104,8 +104,14 @@ public class NetworkMonitorApp extends Application {
         NewNodeBox newNodeBox = new NewNodeBox();
         spiderMapPane.getChildren().add(newNodeBox);
         newNodeBox.setLayoutX(10);
-        newNodeBox.layoutYProperty().bind(spiderMapPane.heightProperty().subtract(newNodeBox.prefHeightProperty()).subtract(10));
+        // NewNodeBox handles its own vertical anchoring internally.
 
+        // Add the Filter Box to the right of the NewNodeBox.
+        FilterBox filterBox = new FilterBox();
+        spiderMapPane.getChildren().add(filterBox);
+        // Bind the filter box's X position to newNodeBox's X plus its current width plus a 10px gap.
+        filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
+        // Do not bind layoutY here; FilterBox now anchors its own vertical position.
 
         // Defer loading nodes and zones until after the scene is set.
         Platform.runLater(() -> {
@@ -334,7 +340,6 @@ public class NetworkMonitorApp extends Application {
         double spacing = 300;
 
         NetworkNode hostNode = new NetworkNode("127.0.0.1", "Host", DeviceType.COMPUTER, NetworkType.INTERNAL);
-        // Center the node horizontally and vertically adjust by subtracting half its dimensions.
         hostNode.setLayoutX(centerX - hostNode.getPrefWidth() / 2);
         hostNode.setLayoutY(centerY - spacing - hostNode.getPrefHeight() / 2);
         hostNode.setMainNode(true);
@@ -441,23 +446,14 @@ public class NetworkMonitorApp extends Application {
     // Adds a mouse-click handler to the node to show the detail panel.
     private void addDetailPanelHandler(NetworkNode node) {
         node.setOnMouseClicked(e -> {
-            // Get the center (StackPane) from the BorderPane's center.
             StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
-            // Remove any existing detail panels.
             rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
-
-            // Create and show the detail panel for this node.
             NodeDetailPanel detailPanel = new NodeDetailPanel(node);
-            // Add the stylesheet to the scene.
             primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
             detailPanel.showPanel();
-
-            // Position the panel in the bottom-right corner.
             StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
             StackPane.setMargin(detailPanel, new Insets(20));
             rootStack.getChildren().add(detailPanel);
-
-            // Create an event filter to hide the panel when clicking outside.
             javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent ev) {

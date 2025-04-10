@@ -6,11 +6,12 @@ import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -60,7 +61,7 @@ public class FilterBox extends StackPane {
         setMinWidth(WIDTH);
         setStyle(normalStyle);
 
-        // Hover behavior.
+        // Add hover behavior.
         setOnMouseEntered(e -> {
             if (!expanded) {
                 setStyle(hoverStyle);
@@ -144,6 +145,16 @@ public class FilterBox extends StackPane {
 
         // Assemble all controls.
         contentBox.getChildren().addAll(subnetSection, deviceSection, connectionSection, colorSection, buttonSection);
+
+        // Add the scene listener to anchor the bottom (similar to NewNodeBox fix).
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null && getParent() != null) {
+                // Bind layoutY so that the bottom is anchored: parent's height - prefHeight - margin.
+                layoutYProperty().bind(((Region)getParent()).heightProperty()
+                        .subtract(prefHeightProperty())
+                        .subtract(15));
+            }
+        });
     }
 
     private void applyFilters() {
@@ -212,7 +223,7 @@ public class FilterBox extends StackPane {
     }
 
     {
-        // Toggle the expansion state when clicking on the box (if not clicking on inner controls).
+        // Toggle expansion state when clicking the box (unless an inner control is the target).
         setOnMouseClicked(e -> {
             if (!expanded || e.getTarget().equals(this)) {
                 toggle();
