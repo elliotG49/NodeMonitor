@@ -8,13 +8,19 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
-public class NodeDetailPanel extends VBox {
+public class NodeDetailPanel extends BorderPane {
+    private final double FIELD_WIDTH = 200; // Or any value you want
     private Label headerLabel;
     private TextField ipField;
     private TextField displayNameField;
@@ -28,60 +34,113 @@ public class NodeDetailPanel extends VBox {
 
     private NetworkNode node;
 
+    // Top part: contains header and grid.
+    private VBox topContent;
+    // Bottom container using BorderPane.
+    private BorderPane bottomContainer;
+
     public NodeDetailPanel(NetworkNode node) {
         this.node = node;
         createUI();
         populateFields();
         setupListeners();
-        // Apply the style class for the detail panel.
-        getStyleClass().add("nodedetail-panel");
-        // Set preferred dimensions.
+        // Set fixed dimensions.
         setPrefWidth(250);
         setMaxWidth(250);
         setPrefHeight(250);
         setMaxHeight(250);
         setPadding(new Insets(10));
-        setSpacing(10);
+        // Apply style.
+        getStyleClass().add("nodedetail-panel");
+        setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0.5, 0, 0);");
     }
 
     private void createUI() {
+        // --- Top Content ---
+        topContent = new VBox(10);
+        topContent.setAlignment(Pos.TOP_CENTER);
+
         // Header with large node name.
         headerLabel = new Label(node.getDisplayName());
         headerLabel.getStyleClass().add("nodedetail-header");
 
-        // Create a grid for the fields.
+        // Create a container for the header aligned to the left.
+        HBox headerContainer = new HBox(headerLabel);
+        headerContainer.setAlignment(Pos.CENTER_LEFT);
+        headerContainer.setPadding(new Insets(0, 0, 5, 0));
+
+        // Create a grid for node fields.
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
+        grid.setHgap(15);
+        grid.setVgap(15);
         grid.getStyleClass().add("nodedetail-grid");
 
         Label ipLabel = new Label("IP/Hostname:");
         ipLabel.getStyleClass().add("nodedetail-label");
         ipField = new TextField();
-        ipField.getStyleClass().add("nodedetail-textfield");
+        ipField.setPrefWidth(FIELD_WIDTH);
+        ipField.setPromptText("");
+        ipField.setStyle("-fx-font-size: 14px; " +
+                         "-fx-background-color: #1b2433; " +
+                         "-fx-border-color: #3B3B3B; " +
+                         "-fx-border-width: 1px; " +
+                         "-fx-background-radius: 5; " +
+                         "-fx-border-radius: 5; " +
+                         "-fx-text-fill: white;");
 
         Label displayNameLabel = new Label("Display Name:");
         displayNameLabel.getStyleClass().add("nodedetail-label");
         displayNameField = new TextField();
-        displayNameField.getStyleClass().add("nodedetail-textfield");
+        displayNameField.setPrefWidth(FIELD_WIDTH);
+        displayNameField.setStyle("-fx-font-size: 14px; " +
+                                  "-fx-background-color: #1b2433; " +
+                                  "-fx-border-color: #3B3B3B; " +
+                                  "-fx-border-width: 1px; " +
+                                  "-fx-background-radius: 5; " +
+                                  "-fx-border-radius: 5; " +
+                                  "-fx-text-fill: white;");
 
         Label deviceTypeLabel = new Label("Device Type:");
         deviceTypeLabel.getStyleClass().add("nodedetail-label");
         deviceTypeBox = new ComboBox<>();
         deviceTypeBox.getItems().addAll(DeviceType.values());
-        deviceTypeBox.getStyleClass().add("nodedetail-combobox");
+        deviceTypeBox.setPrefWidth(FIELD_WIDTH);
+        deviceTypeBox.setValue(DeviceType.COMPUTER);
+        deviceTypeBox.setStyle("-fx-font-size: 14px; " +
+                               "-fx-background-color: #1b2433; " +
+                               "-fx-border-color: #3B3B3B; " +
+                               "-fx-border-width: 1px; " +
+                               "-fx-background-radius: 5; " +
+                               "-fx-border-radius: 5; " +
+                               "-fx-text-fill: white;");
 
         Label networkTypeLabel = new Label("Network Type:");
         networkTypeLabel.getStyleClass().add("nodedetail-label");
         networkTypeBox = new ComboBox<>();
+        networkTypeBox.setPrefWidth(FIELD_WIDTH);
         networkTypeBox.getItems().addAll(NetworkType.values());
-        networkTypeBox.getStyleClass().add("nodedetail-combobox");
+        networkTypeBox.setValue(NetworkType.INTERNAL);
+        networkTypeBox.setStyle("-fx-font-size: 14px; " +
+                                "-fx-background-color: #1b2433; " +
+                                "-fx-border-color: #3B3B3B; " +
+                                "-fx-border-width: 1px; " +
+                                "-fx-background-radius: 5; " +
+                                "-fx-border-radius: 5; " +
+                                "-fx-text-fill: white;");
 
         Label connectionTypeLabel = new Label("Connection Type:");
         connectionTypeLabel.getStyleClass().add("nodedetail-label");
         connectionTypeBox = new ComboBox<>();
+        connectionTypeBox.setPrefWidth(FIELD_WIDTH);
         connectionTypeBox.getItems().addAll(ConnectionType.values());
-        connectionTypeBox.getStyleClass().add("nodedetail-combobox");
+        connectionTypeBox.setValue(ConnectionType.ETHERNET);
+        connectionTypeBox.setStyle("-fx-font-size: 14px; " +
+                                   "-fx-background-color: #1b2433; " +
+                                   "-fx-border-color: #3B3B3B; " +
+                                   "-fx-border-width: 1px; " +
+                                   "-fx-background-radius: 5; " +
+                                   "-fx-border-radius: 5; " +
+                                   "-fx-text-fill: white;");
 
         Label nodeColorLabel = new Label("Node Colour:");
         nodeColorLabel.getStyleClass().add("nodedetail-label");
@@ -116,15 +175,45 @@ public class NodeDetailPanel extends VBox {
         grid.add(uptimeStaticLabel, 0, 7);
         grid.add(uptimeLabel, 1, 7);
 
+        topContent.getChildren().clear();
+        topContent.getChildren().addAll(headerContainer, grid);
+        setCenter(topContent);
+
+        // --- Bottom Container using BorderPane ---
+        bottomContainer = new BorderPane();
+        bottomContainer.setPrefHeight(50);
+        bottomContainer.setPadding(new Insets(10));
+
+        // Create the update button.
         updateButton = new Button("Update");
         updateButton.getStyleClass().add("nodedetail-update-button");
         updateButton.setDisable(true);
+        updateButton.setMaxWidth(Region.USE_PREF_SIZE);
+        updateButton.setMinWidth(100);
+        updateButton.setMinHeight(35);
+        updateButton.setStyle("-fx-background-color: #2E8B57; -fx-text-fill: white; -fx-font-size: 16px;");
+        BorderPane.setAlignment(updateButton, Pos.CENTER);
+        bottomContainer.setCenter(updateButton);
 
-        setAlignment(Pos.TOP_CENTER);
-        getChildren().addAll(headerLabel, grid, updateButton);
+        // Create the delete button.
+        Button deleteButton = new Button();
+        ImageView binIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/bin.png")));
+        binIcon.setFitWidth(25);
+        binIcon.setFitHeight(25);
+        deleteButton.setGraphic(binIcon);
+        deleteButton.setStyle("-fx-background-color: red; -fx-cursor: hand;");
+        deleteButton.setPrefSize(35, 35);
+        BorderPane.setAlignment(deleteButton, Pos.CENTER_RIGHT);
+        bottomContainer.setRight(deleteButton);
+
+        setBottom(bottomContainer);
+
+        // Delete button action.
+        deleteButton.setOnAction(e -> {
+            NetworkMonitorApp.removeNode(node);
+            hidePanel();
+        });
     }
-
-    
 
     private void populateFields() {
         ipField.setText(node.getIpOrHostname());
@@ -160,13 +249,11 @@ public class NodeDetailPanel extends VBox {
                     (int)(nodeColorPicker.getValue().getGreen()*255),
                     (int)(nodeColorPicker.getValue().getBlue()*255)));
             updateButton.setDisable(true);
-            // The update button style will be set in the stylesheet.
         });
     }
 
     private void enableUpdate() {
         updateButton.setDisable(false);
-        // The enabled style is controlled by CSS.
     }
 
     public void hidePanel() {
@@ -174,13 +261,12 @@ public class NodeDetailPanel extends VBox {
         ft.setFromValue(getOpacity());
         ft.setToValue(0);
         ft.setOnFinished(e -> {
-            if (getParent() != null) {
+            if (getParent() != null && getParent() instanceof Pane) {
                 ((Pane)getParent()).getChildren().remove(this);
             }
         });
         ft.play();
     }
-    
 
     public void showPanel() {
         setOpacity(0);

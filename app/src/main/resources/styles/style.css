@@ -1,5 +1,5 @@
 .root {
-    -fx-font-family: "FiraCode Nerd Font Mono";
+    -fx-font-family: "Open Sans";
 }
 
 /* Node container styling */
@@ -9,36 +9,34 @@
 }
 
 .node-background {
-    -fx-fill: #1d2638;           /* desired background color */
-    -fx-stroke: white;           /* desired border color */
-    -fx-stroke-width: 2px;
+    -fx-fill: #182030;           /* desired background color */      /* desired border color */
+    -fx-stroke-width: 1px;
     -fx-arc-width: 20px;
     -fx-arc-height: 20px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 4, 0.5, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
 }
 
 /* Node label styling */
 .node-label {
     -fx-text-fill: white;
-    -fx-font-size: 12px;
-}
-
-.node-ip-label {
-    -fx-text-fill: rgb(163, 163, 163);
-    -fx-font-size: 10px;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
 }
 
 /* Latency label styling */
 .latency-label {
     -fx-text-fill: white;
-    -fx-font-size: 14px;
+    -fx-font-size: 10px;
     -fx-font-weight: bold;
 }
 
-/* Hover effect for nodes */
-.node-background:hover {
-    -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.1), 6, 0.5, 0, 0);
-    -fx-background-color: #2e206b;
+.latency-container {
+    -fx-background-color: #182030;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 1px;
+    -fx-padding: 4px;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
 }
+
 

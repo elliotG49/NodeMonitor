@@ -5,11 +5,13 @@ import java.net.InetAddress;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
@@ -21,8 +23,8 @@ public class NetworkNode extends Pane {
     private DeviceType deviceType;
     private NetworkType networkType;
     private boolean mainNode = false;
-    private ObjectProperty<Color> outlineColorProperty = new SimpleObjectProperty<>(Color.web("#555"));
-    
+    private ObjectProperty<Color> outlineColorProperty = new SimpleObjectProperty<>(Color.web("#3B3B3B"));
+
     // Field for connection type; default to Ethernet.
     private ConnectionType connectionType = ConnectionType.ETHERNET;
     
@@ -32,10 +34,10 @@ public class NetworkNode extends Pane {
     // Visual components.
     private Rectangle background;
     private ImageView iconView;
+    private HBox nameContainer;  // Container for the display name label (for centering)
     private Label nameLabel;
-    private Label ipLabel;
-    // Connection type icon – will only be added for internal, non‑main nodes.
-    private ImageView connectionIcon;
+    private Label ipLabel; // still created but not added
+    // Connection icon has been removed.
     // Resize icon (visible handle) for resizing the node.
     private ImageView resizeIcon;
     
@@ -73,48 +75,44 @@ public class NetworkNode extends Pane {
         
         // Background rectangle.
         background = new Rectangle(BASE_SIZE, BASE_SIZE);
-        // Remove inline fill/stroke/arc settings and apply a CSS style class instead.
         background.getStyleClass().add("node-background");
-        // Still update the stroke on outline color changes if needed.
         outlineColorProperty.addListener((obs, oldVal, newVal) -> background.setStroke(newVal));
-        // (Optionally, you can update your CSS dynamically via a CSS variable if desired.)
+        background.setStroke(outlineColorProperty.get());
         
-        // Device icon.
+        // Device icon: Increase the size from 48 to 56.
         iconView = new ImageView(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
-        iconView.setFitWidth(48);
-        iconView.setFitHeight(48);
+        iconView.setFitWidth(60);
+        iconView.setFitHeight(60);
         iconView.setLayoutX((BASE_SIZE - iconView.getFitWidth()) / 2);
         iconView.setLayoutY(10);
         
-        // Labels.
+        // Display name label, with increased text size.
         nameLabel = new Label(displayName);
-        nameLabel.getStyleClass().add("node-label");
-        nameLabel.setLayoutX(5);
-        nameLabel.setLayoutY(65);
+        nameLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: 600;");
+        // Instead of manually setting layoutX, we wrap the label in an HBox.
+        nameContainer = new HBox(nameLabel);
+        nameContainer.setAlignment(Pos.CENTER);
+        nameContainer.setPrefWidth(BASE_SIZE);
+        // Position the name container below the icon.
+        // For instance, set its Y so that it appears below the icon:
+        nameContainer.setLayoutY(10 + iconView.getFitHeight() + 5);
+        // No need to set layoutX (0 means it will start at the left but the HBox centers its content).
         
+        // IP label is still used by the node details but not added to the node.
         ipLabel = new Label(ipOrHostname);
         ipLabel.getStyleClass().add("node-ip-label");
         ipLabel.setLayoutX(5);
         ipLabel.setLayoutY(80);
         
-        // Connection icon.
-        connectionIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/" + getConnectionIconFileName())));
-        connectionIcon.setFitWidth(14);
-        connectionIcon.setFitHeight(14);
-        connectionIcon.setLayoutX(BASE_SIZE - connectionIcon.getFitWidth() - 5);
-        connectionIcon.setLayoutY(5);
-        
-        // Add background and components.
+        // Add background, the device icon, and the name container.
         getChildren().add(background);
-        getChildren().addAll(iconView, nameLabel, ipLabel);
-        if (networkType == NetworkType.INTERNAL && !mainNode) {
-            getChildren().add(connectionIcon);
-        }
+        getChildren().addAll(iconView, nameContainer);
+        // The ipLabel and connection icon are not added.
         
         // --- Resize Hit Area and Icon Setup ---
         resizeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/resize.png")));
-        resizeIcon.setFitWidth(10);
-        resizeIcon.setFitHeight(10);
+        resizeIcon.setFitWidth(8);
+        resizeIcon.setFitHeight(8);
         resizeIcon.setMouseTransparent(true);
         resizeIcon.layoutXProperty().bind(widthProperty().subtract(12));
         resizeIcon.layoutYProperty().bind(heightProperty().subtract(12));
@@ -144,22 +142,15 @@ public class NetworkNode extends Pane {
             background.setWidth(newSize);
             background.setHeight(newSize);
             double scale = newSize / BASE_SIZE;
-            iconView.setFitWidth(48 * scale);
-            iconView.setFitHeight(48 * scale);
+            iconView.setFitWidth(56 * scale);
+            iconView.setFitHeight(56 * scale);
             iconView.setLayoutX((newSize - iconView.getFitWidth()) / 2);
             iconView.setLayoutY(10 * scale);
-            nameLabel.setLayoutX(5 * scale);
-            nameLabel.setLayoutY(65 * scale);
-            nameLabel.setStyle("-fx-font-size: " + (12 * scale) + "px;");
-            ipLabel.setLayoutX(5 * scale);
-            ipLabel.setLayoutY(80 * scale);
-            ipLabel.setStyle("-fx-font-size: " + (10 * scale) + "px;");
-            if (networkType == NetworkType.INTERNAL && !mainNode && getChildren().contains(connectionIcon)) {
-                connectionIcon.setFitWidth(14 * scale);
-                connectionIcon.setFitHeight(14 * scale);
-                connectionIcon.setLayoutX(newSize - connectionIcon.getFitWidth() - 5 * scale);
-                connectionIcon.setLayoutY(5 * scale);
-            }
+            // Re-center the name container.
+            nameContainer.setPrefWidth(newSize);
+            nameContainer.setLayoutY(10 * scale + iconView.getFitHeight() + 5 * scale);
+            // Update font size based on scale.
+            nameLabel.setStyle("-fx-font-size: " + (16 * scale) + "px; -fx-text-fill: white;");
         });
         // --- End Resize Hit Area and Icon Setup ---
         
@@ -182,8 +173,8 @@ public class NetworkNode extends Pane {
         });
         
         // Hover effects.
-        setOnMouseEntered(e -> background.setFill(Color.web("#1A2B57")));
-        setOnMouseExited(e -> background.setFill(Color.web("#13213F")));
+        setOnMouseEntered(e -> background.setFill(Color.web("#2c384a")));
+        setOnMouseExited(e -> background.setFill(Color.web("#182030")));
         
         // Resolve hostname if necessary.
         if (!ipOrHostname.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
@@ -221,39 +212,23 @@ public class NetworkNode extends Pane {
     
     public void setIpOrHostname(String ip) {
         this.ipOrHostname = ip;
-        ipLabel.setText(ip);
+        // Not updating ipLabel since it isn’t shown on the node.
     }
     
     public void setDisplayName(String name) {
         this.displayName = name;
         nameLabel.setText(name);
+        // The nameContainer will center the label automatically.
     }
     
     public void setDeviceType(DeviceType deviceType) {
         this.deviceType = deviceType;
-        // Optionally update the icon if needed.
         iconView.setImage(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
     }
     
     public void setNetworkType(NetworkType networkType) {
         this.networkType = networkType;
-        // Optionally update the connection icon if needed.
-        if (networkType == NetworkType.INTERNAL && !mainNode) {
-            if (!getChildren().contains(connectionIcon)) {
-                getChildren().add(connectionIcon);
-            }
-            connectionIcon.setImage(new Image(getClass().getResourceAsStream("/icons/" + getConnectionIconFileName())));
-        } else {
-            getChildren().remove(connectionIcon);
-        }
-    }
-    
-    private String getConnectionIconFileName() {
-        switch (connectionType) {
-            case ETHERNET: return "ethernet.png";
-            case WIRELESS: return "wireless.png";
-            default: return "ethernet.png";
-        }
+        // No connection icon is used.
     }
     
     public String getIpOrHostname() {
@@ -278,18 +253,7 @@ public class NetworkNode extends Pane {
     
     public void setMainNode(boolean mainNode) {
         this.mainNode = mainNode;
-        if (mainNode) {
-            getChildren().remove(connectionIcon);
-        } else if (networkType == NetworkType.INTERNAL) {
-            if (!getChildren().contains(connectionIcon)) {
-                getChildren().add(connectionIcon);
-                double scale = getPrefWidth() / BASE_SIZE;
-                connectionIcon.setFitWidth(14 * scale);
-                connectionIcon.setFitHeight(14 * scale);
-                connectionIcon.setLayoutX(getPrefWidth() - connectionIcon.getFitWidth() - 5 * scale);
-                connectionIcon.setLayoutY(5 * scale);
-            }
-        }
+        // If main node, nothing additional to do (no connection icon).
     }
     
     public String getOutlineColor() {
@@ -307,21 +271,7 @@ public class NetworkNode extends Pane {
     
     public void setConnectionType(ConnectionType connectionType) {
         this.connectionType = connectionType;
-        if (networkType == NetworkType.INTERNAL && !mainNode) {
-            if (connectionIcon != null) {
-                connectionIcon.setImage(new Image(getClass().getResourceAsStream("/icons/" + getConnectionIconFileName())));
-                double scale = getPrefWidth() / BASE_SIZE;
-                connectionIcon.setFitWidth(14 * scale);
-                connectionIcon.setFitHeight(14 * scale);
-                connectionIcon.setLayoutX(getPrefWidth() - connectionIcon.getFitWidth() - 5 * scale);
-                connectionIcon.setLayoutY(5 * scale);
-                if (!getChildren().contains(connectionIcon)) {
-                    getChildren().add(connectionIcon);
-                }
-            }
-        } else {
-            getChildren().remove(connectionIcon);
-        }
+        // No connection icon updated.
     }
     
     public String getResolvedIp() {
@@ -343,31 +293,6 @@ public class NetworkNode extends Pane {
         }
         iconView.setImage(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
         nameLabel.setText(displayName);
-        ipLabel.setText(ipOrHostname);
-        if (!ipOrHostname.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
-            new Thread(() -> {
-                try {
-                    InetAddress addr = InetAddress.getByName(ipOrHostname);
-                    String resolved = addr.getHostAddress();
-                    resolvedIp = resolved;
-                    Platform.runLater(() -> ipLabel.setText(resolved));
-                } catch (Exception e) {
-                    // If resolution fails, do nothing.
-                }
-            }).start();
-        }
-        if (networkType == NetworkType.INTERNAL && !isMainNode()) {
-            if (!getChildren().contains(connectionIcon)) {
-                getChildren().add(connectionIcon);
-            }
-            connectionIcon.setImage(new Image(getClass().getResourceAsStream("/icons/" + getConnectionIconFileName())));
-            double scale = getPrefWidth() / BASE_SIZE;
-            connectionIcon.setFitWidth(14 * scale);
-            connectionIcon.setFitHeight(14 * scale);
-            connectionIcon.setLayoutX(getPrefWidth() - connectionIcon.getFitWidth() - 5 * scale);
-            connectionIcon.setLayoutY(5 * scale);
-        } else {
-            getChildren().remove(connectionIcon);
-        }
+        // The name container keeps the label centered.
     }
 }

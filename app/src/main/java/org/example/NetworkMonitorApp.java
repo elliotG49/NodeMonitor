@@ -34,7 +34,7 @@ import javafx.util.Duration;
 public class NetworkMonitorApp extends Application {
 
     // Main map pane.
-    private Pane spiderMapPane;
+    Pane spiderMapPane;
     // List of nodes.
     private List<NetworkNode> persistentNodes = new ArrayList<>();
     private static List<NetworkNode> persistentNodesStatic = new ArrayList<>();
@@ -99,6 +99,13 @@ public class NetworkMonitorApp extends Application {
         // Store initial scene dimensions for responsive scaling.
         prevSceneWidth = scene.getWidth();
         prevSceneHeight = scene.getHeight();
+
+        // Add the New Node Box to the bottom left of the spiderMapPane.
+        NewNodeBox newNodeBox = new NewNodeBox();
+        spiderMapPane.getChildren().add(newNodeBox);
+        newNodeBox.setLayoutX(10);
+        newNodeBox.layoutYProperty().bind(spiderMapPane.heightProperty().subtract(newNodeBox.prefHeightProperty()).subtract(10));
+
 
         // Defer loading nodes and zones until after the scene is set.
         Platform.runLater(() -> {
@@ -176,6 +183,47 @@ public class NetworkMonitorApp extends Application {
         connectionTimeline.play();
     }
 
+    public static void removeNode(NetworkNode node) {
+        // Remove the node from persistent lists.
+        instance.persistentNodes.remove(node);
+        instance.persistentNodesStatic.remove(node);
+        // Remove the node from the spiderMapPane.
+        instance.spiderMapPane.getChildren().remove(node);
+        // Remove any connection lines linked to the node.
+        instance.spiderMapPane.getChildren().removeIf(child ->
+            child instanceof ConnectionLine &&
+            (((ConnectionLine) child).getFrom() == node || ((ConnectionLine) child).getTo() == node)
+        );
+        // Save the updated node list to persistent storage.
+        instance.saveNodesToFile();
+    }
+    
+
+    // New static helper to add a newly created node to the application.
+    public static void addNewNode(NetworkNode node) {
+        instance.persistentNodes.add(node);
+        instance.persistentNodesStatic.add(node);
+        instance.addDetailPanelHandler(node);
+        instance.spiderMapPane.getChildren().add(node);
+    
+        // Create a connection line if the node is not a main node.
+        if (!node.isMainNode()) {
+            ConnectionLine connection;
+            if (node.getConnectionType() == ConnectionType.VIRTUAL) {
+                NetworkNode host = instance.getMainNodeByDisplayName("Host");
+                connection = new ConnectionLine(host, node);
+            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+                NetworkNode gateway = instance.getMainNodeByDisplayName("Gateway");
+                connection = new ConnectionLine(gateway, node);
+            } else {
+                NetworkNode internet = instance.getMainNodeByDisplayName("Internet");
+                connection = new ConnectionLine(internet, node);
+            }
+            instance.spiderMapPane.getChildren().add(0, connection);
+        }
+    }
+    
+
     private void loadWindowSize() {
         try {
             if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
@@ -206,7 +254,7 @@ public class NetworkMonitorApp extends Application {
     // spiderMapPane fills its parent.
     private Pane createSpiderMapPane() {
         Pane pane = new Pane();
-        pane.setStyle("-fx-background-color: #080E1B;");
+        pane.setStyle("-fx-background-color: #182030;");
         return pane;
     }
 
@@ -237,7 +285,7 @@ public class NetworkMonitorApp extends Application {
 
         VBox vbox = new VBox(5, totalBox, upBox, downBox);
         vbox.setPadding(new Insets(5));
-        vbox.setStyle("-fx-background-color: #1A2B57; -fx-background-radius: 15; -fx-border-width: 1px; " +
+        vbox.setStyle("-fx-background-color: #182030; -fx-background-radius: 15; -fx-border-width: 1px; " +
                       "-fx-border-color: rgb(255,255,255); -fx-border-style: solid; -fx-border-radius: 15;");
         vbox.setPrefWidth(30);
         vbox.setMaxWidth(30);
@@ -390,40 +438,38 @@ public class NetworkMonitorApp extends Application {
         });
     }
 
-        // Adds a mouse-click handler to the node to show the detail panel.
-        private void addDetailPanelHandler(NetworkNode node) {
-            node.setOnMouseClicked(e -> {
-                // Get the center (StackPane) from the BorderPane's center.
-                StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
-                // Remove any existing detail panels.
-                rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
-        
-                // Create and show the detail panel for this node.
-                NodeDetailPanel detailPanel = new NodeDetailPanel(node);
-                // Add the stylesheet to the scene.
-                primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
-                detailPanel.showPanel();
-        
-                // Position the panel in the bottom-right corner.
-                StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
-                StackPane.setMargin(detailPanel, new Insets(20));
-                rootStack.getChildren().add(detailPanel);
-        
-                // Create an event filter to hide the panel when clicking outside.
-                javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent ev) {
-                        if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
-                            detailPanel.hidePanel();
-                            rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
-                        }
+    // Adds a mouse-click handler to the node to show the detail panel.
+    private void addDetailPanelHandler(NetworkNode node) {
+        node.setOnMouseClicked(e -> {
+            // Get the center (StackPane) from the BorderPane's center.
+            StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+            // Remove any existing detail panels.
+            rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
+
+            // Create and show the detail panel for this node.
+            NodeDetailPanel detailPanel = new NodeDetailPanel(node);
+            // Add the stylesheet to the scene.
+            primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
+            detailPanel.showPanel();
+
+            // Position the panel in the bottom-right corner.
+            StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
+            StackPane.setMargin(detailPanel, new Insets(20));
+            rootStack.getChildren().add(detailPanel);
+
+            // Create an event filter to hide the panel when clicking outside.
+            javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent ev) {
+                    if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
+                        detailPanel.hidePanel();
+                        rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
                     }
-                };
-                rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
-            });
-        }
-        
-    
+                }
+            };
+            rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
+        });
+    }
 
     private void saveNodesToFile() {
         try {

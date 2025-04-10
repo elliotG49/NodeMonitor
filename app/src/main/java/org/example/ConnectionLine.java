@@ -5,6 +5,7 @@ import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.CubicCurve;
@@ -13,6 +14,7 @@ import javafx.util.Duration;
 public class ConnectionLine extends Pane {
 
     private final CubicCurve curve;
+    private final StackPane latencyContainer; // Container for latency label.
     private final Label latencyLabel;
     private final NetworkNode from;
     private final NetworkNode to;
@@ -36,12 +38,19 @@ public class ConnectionLine extends Pane {
         curve.setStroke(Color.RED);
         curve.setFill(Color.TRANSPARENT);
 
+        // Create the latency label and wrap it in its container.
         latencyLabel = new Label("...");
         latencyLabel.getStyleClass().add("latency-label");
+        latencyContainer = new StackPane();
+        latencyContainer.getStyleClass().add("latency-container");
+        latencyContainer.getChildren().add(latencyLabel);
+        // Initially hide the latency container if there's no connection.
+        latencyContainer.setVisible(false);
 
         pingParticle = new Circle(2, Color.WHITE);
 
-        getChildren().addAll(curve, latencyLabel, pingParticle);
+        // Add children in proper order.
+        getChildren().addAll(curve, latencyContainer, pingParticle);
 
         animationStartTime = System.nanoTime();
 
@@ -68,13 +77,13 @@ public class ConnectionLine extends Pane {
                 double ey = curve.getEndY();
 
                 double x = Math.pow(oneMinusT, 3) * sx +
-                        3 * Math.pow(oneMinusT, 2) * t * cx1 +
-                        3 * oneMinusT * Math.pow(t, 2) * cx2 +
-                        Math.pow(t, 3) * ex;
+                           3 * Math.pow(oneMinusT, 2) * t * cx1 +
+                           3 * oneMinusT * Math.pow(t, 2) * cx2 +
+                           Math.pow(t, 3) * ex;
                 double y = Math.pow(oneMinusT, 3) * sy +
-                        3 * Math.pow(oneMinusT, 2) * t * cy1 +
-                        3 * oneMinusT * Math.pow(t, 2) * cy2 +
-                        Math.pow(t, 3) * ey;
+                           3 * Math.pow(oneMinusT, 2) * t * cy1 +
+                           3 * oneMinusT * Math.pow(t, 2) * cy2 +
+                           Math.pow(t, 3) * ey;
 
                 pingParticle.setLayoutX(x);
                 pingParticle.setLayoutY(y);
@@ -84,20 +93,24 @@ public class ConnectionLine extends Pane {
                     lastTrailTime = now;
                 }
 
-                // Reposition the latency label to the midpoint along the Bezier curve
+                // Reposition the latency container so that its center is at the midpoint of the curve.
                 double midT = 0.5;
                 double omt = 1 - midT;
                 double lx = Math.pow(omt, 3) * sx +
-                        3 * Math.pow(omt, 2) * midT * cx1 +
-                        3 * omt * Math.pow(midT, 2) * cx2 +
-                        Math.pow(midT, 3) * ex;
+                            3 * Math.pow(omt, 2) * midT * cx1 +
+                            3 * omt * Math.pow(midT, 2) * cx2 +
+                            Math.pow(midT, 3) * ex;
                 double ly = Math.pow(omt, 3) * sy +
-                        3 * Math.pow(omt, 2) * midT * cy1 +
-                        3 * omt * Math.pow(midT, 2) * cy2 +
-                        Math.pow(midT, 3) * ey;
-
-                latencyLabel.setLayoutX(lx);
-                latencyLabel.setLayoutY(ly);
+                            3 * Math.pow(omt, 2) * midT * cy1 +
+                            3 * omt * Math.pow(midT, 2) * cy2 +
+                            Math.pow(midT, 3) * ey;
+                
+                latencyContainer.autosize();
+                latencyContainer.setLayoutX(lx - latencyContainer.getWidth() / 2);
+                latencyContainer.setLayoutY(ly - latencyContainer.getHeight() / 2);
+                
+                // Bring the latency container to the front so it appears above the ping particles.
+                latencyContainer.toFront();
             }
         };
         pingTimer.start();
@@ -157,11 +170,13 @@ public class ConnectionLine extends Pane {
                 Platform.runLater(() -> {
                     connected = reachable;
                     if (reachable) {
-                        curve.setStroke(Color.GREEN);
+                        curve.setStroke(Color.web("#2E8B57"));
                         latencyLabel.setText(elapsed + " ms");
+                        latencyContainer.setVisible(true);
                     } else {
                         curve.setStroke(Color.RED);
                         latencyLabel.setText("");
+                        latencyContainer.setVisible(false);
                     }
                 });
             } catch (Exception ex) {
@@ -170,6 +185,7 @@ public class ConnectionLine extends Pane {
                     curve.setStroke(Color.RED);
                     latencyLabel.setText("Error");
                     connected = false;
+                    latencyContainer.setVisible(false);
                 });
             }
         }).start();

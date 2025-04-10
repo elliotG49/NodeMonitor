@@ -1,9 +1,10 @@
 .nodedetail-panel {
-    -fx-background-color: rgba(19, 33, 63, 0.9); /* #13213F with opacity */
-    -fx-border-color: white;
-    -fx-border-width: 2px;
-    -fx-border-radius: 20px;
-    -fx-background-radius: 20px;
+    -fx-background-color: #182030; /* #13213F with opacity */
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-border-radius: 15px;
+    -fx-background-radius: 15px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 10, 0.5, 0, 0);
 }
 
 .nodedetail-header {
@@ -42,7 +43,7 @@
 }
 
 .nodedetail-update-button {
-    -fx-background-color: rgb(196, 247, 180);
+    -fx-background-color: rgb(58, 248, 0);
     -fx-text-fill: white;
     -fx-font-size: 12px;
     -fx-padding: 5px 20px;
