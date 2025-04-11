@@ -67,6 +67,9 @@ public class NetworkMonitorApp extends Application {
         // Set a minimum window size.
         primaryStage.setMinWidth(1024);
         primaryStage.setMinHeight(768);
+        primaryStage.setTitle("Testing");
+        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/node.png")));
+
 
         // Ensure config directory exists.
         File configDir = new File(CONFIG_DIR);
@@ -76,10 +79,8 @@ public class NetworkMonitorApp extends Application {
 
         BorderPane root = new BorderPane();
         spiderMapPane = createSpiderMapPane();
-        statusPanel = createStatusPanel();
-
         StackPane centerStack = new StackPane();
-        centerStack.getChildren().addAll(spiderMapPane, statusPanel);
+        centerStack.getChildren().add(spiderMapPane);
         root.setCenter(centerStack);
 
         if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
@@ -182,10 +183,6 @@ public class NetworkMonitorApp extends Application {
             }
         });
 
-        Timeline statusTimeline = new Timeline(new KeyFrame(Duration.seconds(5), event -> updateStatusPanel()));
-        statusTimeline.setCycleCount(Timeline.INDEFINITE);
-        statusTimeline.play();
-
         Timeline connectionTimeline = new Timeline(new KeyFrame(Duration.seconds(2), event -> {
             for (javafx.scene.Node node : spiderMapPane.getChildren()) {
                 if (node instanceof ConnectionLine) {
@@ -274,77 +271,6 @@ public class NetworkMonitorApp extends Application {
         return pane;
     }
 
-    private VBox createStatusPanel() {
-        ImageView nodeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/node.png")));
-        nodeIcon.setFitWidth(16);
-        nodeIcon.setFitHeight(16);
-        totalLabel = new Label("0");
-        totalLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-        HBox totalBox = new HBox(5, nodeIcon, totalLabel);
-        totalBox.setAlignment(Pos.CENTER_LEFT);
-
-        ImageView upIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/up-arrow.png")));
-        upIcon.setFitWidth(16);
-        upIcon.setFitHeight(16);
-        upLabel = new Label("0");
-        upLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-        HBox upBox = new HBox(5, upIcon, upLabel);
-        upBox.setAlignment(Pos.CENTER_LEFT);
-
-        ImageView downIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/down-arrow.png")));
-        downIcon.setFitWidth(16);
-        downIcon.setFitHeight(16);
-        downLabel = new Label("0");
-        downLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
-        HBox downBox = new HBox(5, downIcon, downLabel);
-        downBox.setAlignment(Pos.CENTER_LEFT);
-
-        VBox vbox = new VBox(5, totalBox, upBox, downBox);
-        vbox.setPadding(new Insets(5));
-        vbox.setStyle("-fx-background-color: #182030; -fx-background-radius: 15; -fx-border-width: 1px; " +
-                      "-fx-border-color: rgb(255,255,255); -fx-border-style: solid; -fx-border-radius: 15;");
-        vbox.setPrefWidth(30);
-        vbox.setMaxWidth(30);
-        vbox.setPrefHeight(70);
-        vbox.setMaxHeight(70);
-        StackPane.setAlignment(vbox, Pos.TOP_LEFT);
-        StackPane.setMargin(vbox, new Insets(10));
-        return vbox;
-    }
-
-    // Update status panel and update each node's connection status.
-    private void updateStatusPanel() {
-        new Thread(() -> {
-            int total = persistentNodes.size();
-            AtomicInteger upCount = new AtomicInteger(0);
-            AtomicInteger downCount = new AtomicInteger(0);
-            for (NetworkNode node : persistentNodes) {
-                try {
-                    String ip = node.getIpOrHostname();
-                    if (!ip.matches("\\d+\\.\\d+\\.\\d+\\.\\d+") && node.getResolvedIp() != null) {
-                        ip = node.getResolvedIp();
-                    }
-                    InetAddress address = InetAddress.getByName(ip);
-                    boolean reachable = address.isReachable(1000);
-                    if (reachable) {
-                        upCount.incrementAndGet();
-                    } else {
-                        downCount.incrementAndGet();
-                    }
-                    Platform.runLater(() -> node.setConnected(reachable));
-                } catch (Exception e) {
-                    downCount.incrementAndGet();
-                    Platform.runLater(() -> node.setConnected(false));
-                }
-            }
-            Platform.runLater(() -> {
-                totalLabel.setText(String.valueOf(total));
-                upLabel.setText(String.valueOf(upCount.get()));
-                downLabel.setText(String.valueOf(downCount.get()));
-            });
-        }).start();
-    }
-
     private void createDefaultMainNodes() {
         double centerX = primaryStage.getWidth() / 2;
         double centerY = primaryStage.getHeight() / 2;
@@ -428,7 +354,7 @@ public class NetworkMonitorApp extends Application {
                             NetworkNode gateway = getMainNodeByDisplayName("Gateway");
                             connection = new ConnectionLine(gateway, node);
                         } else {
-                            NetworkNode internet = getMainNodeByDisplayName("Internet");
+                            NetworkNode internet = getMainNodeByDisplayName("Google DNS");
                             connection = new ConnectionLine(internet, node);
                         }
                         spiderMapPane.getChildren().add(0, connection);
@@ -475,6 +401,29 @@ public class NetworkMonitorApp extends Application {
             };
             rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
         });
+    }
+
+    public static void updateConnectionLineForNode(NetworkNode node) {
+        // Remove existing connection lines targeting this node.
+        instance.spiderMapPane.getChildren().removeIf(child ->
+            child instanceof ConnectionLine && (((ConnectionLine) child).getTo() == node)
+        );
+        
+        // Create a new connection line if the node is not a main node.
+        if (!node.isMainNode()) {
+            ConnectionLine connection;
+            if (node.getConnectionType() == ConnectionType.VIRTUAL) {
+                NetworkNode host = instance.getMainNodeByDisplayName("Host");
+                connection = new ConnectionLine(host, node);
+            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+                NetworkNode gateway = instance.getMainNodeByDisplayName("Gateway");
+                connection = new ConnectionLine(gateway, node);
+            } else {
+                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
+                connection = new ConnectionLine(internet, node);
+            }
+            instance.spiderMapPane.getChildren().add(0, connection);
+        }
     }
 
     private void saveNodesToFile() {

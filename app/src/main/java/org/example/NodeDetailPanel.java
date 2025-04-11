@@ -14,6 +14,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -58,7 +59,13 @@ public class NodeDetailPanel extends BorderPane {
         // Apply panel style.
         getStyleClass().add("nodedetail-panel");
         setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0.5, 0, 0);");
+        setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ESCAPE) {
+                hidePanel();
+            }
+        });
     }
+
 
     private void createUI() {
         // --- Top Content ---
@@ -198,7 +205,11 @@ public class NodeDetailPanel extends BorderPane {
     }
 
     private void populateFields() {
-        ipField.setText(node.getIpOrHostname());
+        if (node.getResolvedIp() != null && !node.getResolvedIp().isEmpty()) {
+            ipField.setText(node.getResolvedIp() + "/" + node.getIpOrHostname());
+        } else {
+            ipField.setText(node.getIpOrHostname());
+        }
         displayNameField.setText(node.getDisplayName());
         deviceTypeBox.setValue(node.getDeviceType());
         networkTypeBox.setValue(node.getNetworkType());
@@ -222,7 +233,14 @@ public class NodeDetailPanel extends BorderPane {
         nodeColorPicker.valueProperty().addListener((obs, oldVal, newVal) -> enableUpdate());
 
         updateButton.setOnAction(e -> {
-            node.setIpOrHostname(ipField.getText());
+            String ipInput = ipField.getText();
+            if (ipInput.contains("/")) {
+                // Use the text after the slash as the ipOrHostname.
+                String[] parts = ipInput.split("/", 2);
+                node.setIpOrHostname(parts[1].trim());
+            } else {
+                node.setIpOrHostname(ipInput);
+            }
             node.setDisplayName(displayNameField.getText());
             node.setDeviceType(deviceTypeBox.getValue());
             node.setNetworkType(networkTypeBox.getValue());
@@ -232,6 +250,8 @@ public class NodeDetailPanel extends BorderPane {
                     (int)(nodeColorPicker.getValue().getGreen()*255),
                     (int)(nodeColorPicker.getValue().getBlue()*255)));
             updateButton.setDisable(true);
+            // Refresh the connection line to reflect the new network type.
+            NetworkMonitorApp.updateConnectionLineForNode(node);
         });
     }
 
