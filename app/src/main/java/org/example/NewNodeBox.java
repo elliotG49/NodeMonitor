@@ -18,28 +18,29 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 public class NewNodeBox extends StackPane {
-    private final double FIELD_WIDTH = 200; // Or any value you want
+    private final double FIELD_WIDTH = 200;
     private final double WIDTH = 150;
     private final double MIN_HEIGHT = 50;
-    private final double EXPANDED_HEIGHT = 600; // updated to 600
+    private final double EXPANDED_HEIGHT = 550;
     private final double EXPANDED_WIDTH = 250;
+    private final double NODE_BOX_GAP = 10;
+
     private boolean expanded = false;
     
-    // Instance style strings
     private final String normalStyle = "-fx-background-color: #182030; " +
                                          "-fx-border-color: #3B3B3B; " +
                                          "-fx-border-width: 1px; " +
                                          "-fx-border-radius: 10px; " +
                                          "-fx-background-radius: 10px; " +
                                          "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);";
-
+    
     private final String hoverStyle = "-fx-background-color: #2c384a; " +
                                         "-fx-border-color: #3B3B3B; " +
                                         "-fx-border-width: 1px; " +
                                         "-fx-border-radius: 10px; " +
                                         "-fx-background-radius: 10px; " +
                                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);";
-
+    
     // Minimized state content.
     private Label minimizedLabel;
     
@@ -57,13 +58,11 @@ public class NewNodeBox extends StackPane {
     private Button cancelButton;
     
     public NewNodeBox() {
-        // Set initial size and style (shrunken state)
         setPrefWidth(WIDTH);
         setPrefHeight(MIN_HEIGHT);
         setMinWidth(WIDTH);
         setStyle(normalStyle);
         
-        // Add hover behavior only if not expanded.
         setOnMouseEntered(e -> {
             if (!expanded) {
                 setStyle(hoverStyle);
@@ -75,114 +74,100 @@ public class NewNodeBox extends StackPane {
             }
         });
         
-        // Bind layoutY so that the box’s bottom remains anchored:
-        // parent's height - current prefHeight - 15px margin.
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene != null && getParent() != null) {
-                // Use Region here because your parent is a Pane, and Pane extends Region.
-                layoutYProperty().bind(((Region)getParent()).heightProperty()
-                        .subtract(prefHeightProperty())
-                        .subtract(15));
+                layoutYProperty().bind(((Region)getParent()).heightProperty().subtract(prefHeightProperty()).subtract(15));
             }
         });
         
-        minimizedLabel = new Label("Add New Node");
+        // Updated minimized label.
+        minimizedLabel = new Label("Add Node");
         minimizedLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
         setAlignment(minimizedLabel, Pos.CENTER);
         getChildren().add(minimizedLabel);
         
         // Build expanded view.
-        contentBox = new VBox(15);  // spacing set to 15 for consistent gaps
-        contentBox.setPadding(new Insets(15));
+        contentBox = new VBox(NODE_BOX_GAP);
+        contentBox.setPadding(new Insets(NODE_BOX_GAP));
         contentBox.setAlignment(Pos.TOP_CENTER);
         
+        // Header section.
+        VBox headerBox = new VBox();
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        Label titleLabel = new Label("Add Node");
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+        // Bottom border with color #b8d4f1 and padding.
+        headerBox.setStyle("-fx-border-color: transparent transparent #b8d4f1 transparent; " +
+                           "-fx-border-width: 0 0 0.5px 0; -fx-padding: 0 0 10px 0;");
+        headerBox.getChildren().add(titleLabel);
+        
         // HOSTNAME/IP Section.
-        VBox ipSection = new VBox(20);
+        VBox ipSection = new VBox(NODE_BOX_GAP);
         Label ipLabel = new Label("HOSTNAME/IP");
-        ipLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        ipLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
         ipField = new TextField();
         ipField.setPrefWidth(FIELD_WIDTH);
         ipField.setPromptText("");
-        ipField.setStyle("-fx-font-size: 14px; " +
-                         "-fx-background-color: #1b2433; " +
-                         "-fx-border-color: #3B3B3B; " +
-                         "-fx-border-width: 1px; " +
-                         "-fx-background-radius: 5; " +
-                         "-fx-border-radius: 5; " +
-                         "-fx-text-fill: white;");
+        ipField.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
+                         "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
+                         "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
         ipSection.getChildren().addAll(ipLabel, ipField);
         
         // DISPLAY NAME Section.
-        VBox nameSection = new VBox(20);
+        VBox nameSection = new VBox(NODE_BOX_GAP);
         Label nameLabel = new Label("DISPLAY NAME");
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        nameLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
         displayNameField = new TextField();
         displayNameField.setPrefWidth(FIELD_WIDTH);
         displayNameField.setPromptText("");
-        displayNameField.setStyle("-fx-font-size: 14px; " +
-                                  "-fx-background-color: #1b2433; " +
-                                  "-fx-border-color: #3B3B3B; " +
-                                  "-fx-border-width: 1px; " +
-                                  "-fx-background-radius: 5; " +
-                                  "-fx-border-radius: 5; " +
-                                  "-fx-text-fill: white;");
+        displayNameField.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
+                                  "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
+                                  "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
         nameSection.getChildren().addAll(nameLabel, displayNameField);
         
         // DEVICE TYPE Section.
-        VBox deviceSection = new VBox(20);
+        VBox deviceSection = new VBox(NODE_BOX_GAP);
         Label deviceLabel = new Label("DEVICE TYPE");
-        deviceLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        deviceLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
         deviceTypeBox = new ComboBox<>();
         deviceTypeBox.setPrefWidth(FIELD_WIDTH);
         deviceTypeBox.getItems().addAll(DeviceType.values());
         deviceTypeBox.setValue(DeviceType.COMPUTER);
-        deviceTypeBox.setStyle("-fx-font-size: 14px; " +
-                               "-fx-background-color: #1b2433; " +
-                               "-fx-border-color: #3B3B3B; " +
-                               "-fx-border-width: 1px; " +
-                               "-fx-background-radius: 5; " +
-                               "-fx-border-radius: 5; " +
-                               "-fx-text-fill: white;");
+        deviceTypeBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
+                               "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
+                               "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
         deviceSection.getChildren().addAll(deviceLabel, deviceTypeBox);
         
         // NETWORK TYPE Section.
-        VBox networkSection = new VBox(20);
+        VBox networkSection = new VBox(NODE_BOX_GAP);
         Label networkLabel = new Label("NETWORK TYPE");
-        networkLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        networkLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
         networkTypeBox = new ComboBox<>();
         networkTypeBox.setPrefWidth(FIELD_WIDTH);
         networkTypeBox.getItems().addAll(NetworkType.values());
         networkTypeBox.setValue(NetworkType.INTERNAL);
-        networkTypeBox.setStyle("-fx-font-size: 14px; " +
-                                "-fx-background-color: #1b2433; " +
-                                "-fx-border-color: #3B3B3B; " +
-                                "-fx-border-width: 1px; " +
-                                "-fx-background-radius: 5; " +
-                                "-fx-border-radius: 5; " +
-                                "-fx-text-fill: white;");
+        networkTypeBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
+                                "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
+                                "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
         networkSection.getChildren().addAll(networkLabel, networkTypeBox);
         
         // CONNECTION TYPE Section.
-        VBox connectionSection = new VBox(20);
+        VBox connectionSection = new VBox(NODE_BOX_GAP);
         Label connectionLabel = new Label("CONNECTION TYPE");
-        connectionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        connectionLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
         connectionTypeBox = new ComboBox<>();
         connectionTypeBox.setPrefWidth(FIELD_WIDTH);
         connectionTypeBox.getItems().addAll(ConnectionType.values());
         connectionTypeBox.setValue(ConnectionType.ETHERNET);
-        connectionTypeBox.setStyle("-fx-font-size: 14px; " +
-                                   "-fx-background-color: #1b2433; " +
-                                   "-fx-border-color: #3B3B3B; " +
-                                   "-fx-border-width: 1px; " +
-                                   "-fx-background-radius: 5; " +
-                                   "-fx-border-radius: 5; " +
-                                   "-fx-text-fill: white;");
+        connectionTypeBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
+                                   "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
+                                   "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
         connectionSection.getChildren().addAll(connectionLabel, connectionTypeBox);
         
         // NODE COLOUR Section.
-        VBox colorSection = new VBox(20);
+        VBox colorSection = new VBox(NODE_BOX_GAP);
         Label colorLabel = new Label("NODE COLOUR");
-        colorLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        colorLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
         nodeColorBox = new ComboBox<>();
         nodeColorBox.setPrefWidth(FIELD_WIDTH);
         nodeColorBox.getItems().addAll(
@@ -192,20 +177,15 @@ public class NewNodeBox extends StackPane {
             Color.GREEN,
             Color.RED
         );
-        nodeColorBox.setValue(Color.web("#FFFFFF"));  // Default to white
-        nodeColorBox.setStyle("-fx-font-size: 14px; " +
-                              "-fx-background-color: #1b2433; " +
-                              "-fx-border-color: #3B3B3B; " +
-                              "-fx-border-width: 1px; " +
-                              "-fx-background-radius: 10; " +
-                              "-fx-border-radius: 10; " +
-                              "-fx-text-fill: white;");
+        nodeColorBox.setValue(Color.web("#FFFFFF"));
+        nodeColorBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
+                              "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
+                              "-fx-background-radius: 10; -fx-border-radius: 10; -fx-text-fill: white;");
         colorSection.getChildren().addAll(colorLabel, nodeColorBox);
         
-        // Button container: use an HBox to place Create and Cancel side by side.
+        // Button container.
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        // Add extra top margin (15px) above the buttons.
         VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
         
         createButton = new Button("Create");
@@ -215,7 +195,7 @@ public class NewNodeBox extends StackPane {
         cancelButton.setStyle("-fx-background-color: red; -fx-text-fill: white; -fx-font-size: 14px;");
         buttonBox.getChildren().addAll(createButton, cancelButton);
         
-        contentBox.getChildren().addAll(ipSection, nameSection, deviceSection, networkSection, connectionSection, colorSection, buttonBox);
+        contentBox.getChildren().addAll(headerBox, ipSection, nameSection, deviceSection, networkSection, connectionSection, colorSection, buttonBox);
         
         ipField.textProperty().addListener((obs, oldVal, newVal) -> checkFields());
         displayNameField.textProperty().addListener((obs, oldVal, newVal) -> checkFields());
@@ -270,9 +250,7 @@ public class NewNodeBox extends StackPane {
     
     private void expand() {
         expanded = true;
-        // Reset style to normal when expanded.
         setStyle(normalStyle);
-        // Remove minimized label so hover changes don't affect it.
         getChildren().remove(minimizedLabel);
         Timeline expandTimeline = new Timeline();
         KeyValue kvHeight = new KeyValue(prefHeightProperty(), EXPANDED_HEIGHT);
@@ -288,7 +266,7 @@ public class NewNodeBox extends StackPane {
         expandTimeline.play();
     }
     
-    private void collapse() {
+    public void collapse() {
         expanded = false;
         getChildren().remove(contentBox);
         Timeline collapseTimeline = new Timeline();
@@ -302,5 +280,30 @@ public class NewNodeBox extends StackPane {
             }
         });
         collapseTimeline.play();
+    }
+    
+    public boolean isExpanded() {
+        return expanded;
+    }
+    
+    {
+        setOnMouseClicked(e -> {
+            if (!expanded || e.getTarget().equals(this)) {
+                toggle();
+            }
+        });
+        setOnKeyPressed(e -> {
+            if (expanded && e.getCode() == KeyCode.ESCAPE) {
+                collapse();
+            }
+        });
+    }
+    
+    public void toggle() {
+        if (expanded) {
+            collapse();
+        } else {
+            expand();
+        }
     }
 }

@@ -78,12 +78,10 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane = createSpiderMapPane();
         statusPanel = createStatusPanel();
 
-        // Plus button and add-node/zone UI removed.
         StackPane centerStack = new StackPane();
         centerStack.getChildren().addAll(spiderMapPane, statusPanel);
         root.setCenter(centerStack);
 
-        // Load window size if available; otherwise, maximize the window.
         if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
             loadWindowSize();
         } else {
@@ -96,24 +94,36 @@ public class NetworkMonitorApp extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        // Store initial scene dimensions for responsive scaling.
         prevSceneWidth = scene.getWidth();
         prevSceneHeight = scene.getHeight();
 
-        // Add the New Node Box to the bottom left of the spiderMapPane.
+        // Add the New Node Box to the bottom left.
         NewNodeBox newNodeBox = new NewNodeBox();
         spiderMapPane.getChildren().add(newNodeBox);
         newNodeBox.setLayoutX(10);
-        // NewNodeBox handles its own vertical anchoring internally.
 
         // Add the Filter Box to the right of the NewNodeBox.
         FilterBox filterBox = new FilterBox();
         spiderMapPane.getChildren().add(filterBox);
-        // Bind the filter box's X position to newNodeBox's X plus its current width plus a 10px gap.
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
-        // Do not bind layoutY here; FilterBox now anchors its own vertical position.
+        // FilterBox now anchors its own layoutY internally.
 
-        // Defer loading nodes and zones until after the scene is set.
+        // After newNodeBox and filterBox have been added to spiderMapPane...
+        spiderMapPane.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+            // Convert the click’s scene coordinates to the spiderMapPane’s coordinates
+            javafx.geometry.Point2D pt = spiderMapPane.sceneToLocal(event.getSceneX(), event.getSceneY());
+            
+            // If the NewNodeBox is expanded and the click is not inside it, collapse it.
+            if (newNodeBox.isExpanded() && !newNodeBox.getBoundsInParent().contains(pt)) {
+                newNodeBox.collapse();
+            }
+            // Similarly for the FilterBox:
+            if (filterBox.isExpanded() && !filterBox.getBoundsInParent().contains(pt)) {
+                filterBox.collapse();
+            }
+        });
+
+
         Platform.runLater(() -> {
             if (!Files.exists(Paths.get(CONFIG_FILE))) {
                 createDefaultMainNodes();
@@ -123,7 +133,6 @@ public class NetworkMonitorApp extends Application {
             loadZonesFromFile();
         });
 
-        // Responsive scaling: Adjust positions based on scene resize.
         scene.widthProperty().addListener((obs, oldVal, newVal) -> {
             double newWidth = newVal.doubleValue();
             double ratio = newWidth / prevSceneWidth;
@@ -150,7 +159,6 @@ public class NetworkMonitorApp extends Application {
             prevSceneHeight = newHeight;
         });
 
-        // Additional listeners to keep nodes within bounds.
         scene.widthProperty().addListener((obs, oldVal, newVal) -> {
             double newWidth = newVal.doubleValue();
             for (NetworkNode node : persistentNodes) {
@@ -189,30 +197,34 @@ public class NetworkMonitorApp extends Application {
         connectionTimeline.play();
     }
 
+    public static void updateConnectionLinesVisibility() {
+        instance.spiderMapPane.getChildren().forEach(child -> {
+            if (child instanceof ConnectionLine) {
+                ConnectionLine line = (ConnectionLine) child;
+                // The connection line is visible only if both the source and target nodes are visible.
+                boolean bothVisible = line.getFrom().isVisible() && line.getTo().isVisible();
+                line.setVisible(bothVisible);
+            }
+        });
+    }
+    
     public static void removeNode(NetworkNode node) {
-        // Remove the node from persistent lists.
         instance.persistentNodes.remove(node);
         instance.persistentNodesStatic.remove(node);
-        // Remove the node from the spiderMapPane.
         instance.spiderMapPane.getChildren().remove(node);
-        // Remove any connection lines linked to the node.
         instance.spiderMapPane.getChildren().removeIf(child ->
             child instanceof ConnectionLine &&
             (((ConnectionLine) child).getFrom() == node || ((ConnectionLine) child).getTo() == node)
         );
-        // Save the updated node list to persistent storage.
         instance.saveNodesToFile();
     }
     
-
-    // New static helper to add a newly created node to the application.
     public static void addNewNode(NetworkNode node) {
         instance.persistentNodes.add(node);
         instance.persistentNodesStatic.add(node);
         instance.addDetailPanelHandler(node);
         instance.spiderMapPane.getChildren().add(node);
     
-        // Create a connection line if the node is not a main node.
         if (!node.isMainNode()) {
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
@@ -229,7 +241,6 @@ public class NetworkMonitorApp extends Application {
         }
     }
     
-
     private void loadWindowSize() {
         try {
             if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
@@ -257,7 +268,6 @@ public class NetworkMonitorApp extends Application {
         }
     }
 
-    // spiderMapPane fills its parent.
     private Pane createSpiderMapPane() {
         Pane pane = new Pane();
         pane.setStyle("-fx-background-color: #182030;");
@@ -302,6 +312,7 @@ public class NetworkMonitorApp extends Application {
         return vbox;
     }
 
+    // Update status panel and update each node's connection status.
     private void updateStatusPanel() {
         new Thread(() -> {
             int total = persistentNodes.size();
@@ -320,8 +331,10 @@ public class NetworkMonitorApp extends Application {
                     } else {
                         downCount.incrementAndGet();
                     }
+                    Platform.runLater(() -> node.setConnected(reachable));
                 } catch (Exception e) {
                     downCount.incrementAndGet();
+                    Platform.runLater(() -> node.setConnected(false));
                 }
             }
             Platform.runLater(() -> {
@@ -332,8 +345,6 @@ public class NetworkMonitorApp extends Application {
         }).start();
     }
 
-    // Create default main nodes positioned so their centers are on the horizontal center line.
-    // Also increased vertical spacing to 200.
     private void createDefaultMainNodes() {
         double centerX = primaryStage.getWidth() / 2;
         double centerY = primaryStage.getHeight() / 2;
@@ -443,7 +454,6 @@ public class NetworkMonitorApp extends Application {
         });
     }
 
-    // Adds a mouse-click handler to the node to show the detail panel.
     private void addDetailPanelHandler(NetworkNode node) {
         node.setOnMouseClicked(e -> {
             StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
@@ -502,7 +512,6 @@ public class NetworkMonitorApp extends Application {
         }
     }
 
-    // Zone saving and loading.
     private void saveZonesToFile() {
         try {
             List<ZoneConfig> zoneConfigs = new ArrayList<>();
@@ -573,7 +582,6 @@ public class NetworkMonitorApp extends Application {
         return persistentNodesStatic;
     }
 
-    // Reintroduced static method for zone removal.
     public static void removeZone(DrawableZone zone) {
         instance.zones.remove(zone);
         instance.saveZonesToFile();

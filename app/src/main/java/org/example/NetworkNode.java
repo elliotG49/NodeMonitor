@@ -31,13 +31,15 @@ public class NetworkNode extends Pane {
     // Field to store the resolved IP address (if applicable)
     private String resolvedIp = null;
     
+    // New field: connection status. It will be updated periodically.
+    private boolean connected = false;
+    
     // Visual components.
     private Rectangle background;
     private ImageView iconView;
     private HBox nameContainer;  // Container for the display name label (for centering)
     private Label nameLabel;
     private Label ipLabel; // still created but not added
-    // Connection icon has been removed.
     // Resize icon (visible handle) for resizing the node.
     private ImageView resizeIcon;
     
@@ -94,9 +96,7 @@ public class NetworkNode extends Pane {
         nameContainer.setAlignment(Pos.CENTER);
         nameContainer.setPrefWidth(BASE_SIZE);
         // Position the name container below the icon.
-        // For instance, set its Y so that it appears below the icon:
         nameContainer.setLayoutY(10 + iconView.getFitHeight() + 5);
-        // No need to set layoutX (0 means it will start at the left but the HBox centers its content).
         
         // IP label is still used by the node details but not added to the node.
         ipLabel = new Label(ipOrHostname);
@@ -107,7 +107,6 @@ public class NetworkNode extends Pane {
         // Add background, the device icon, and the name container.
         getChildren().add(background);
         getChildren().addAll(iconView, nameContainer);
-        // The ipLabel and connection icon are not added.
         
         // --- Resize Hit Area and Icon Setup ---
         resizeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/resize.png")));
@@ -149,7 +148,6 @@ public class NetworkNode extends Pane {
             // Re-center the name container.
             nameContainer.setPrefWidth(newSize);
             nameContainer.setLayoutY(10 * scale + iconView.getFitHeight() + 5 * scale);
-            // Update font size based on scale.
             nameLabel.setStyle("-fx-font-size: " + (16 * scale) + "px; -fx-text-fill: white;");
         });
         // --- End Resize Hit Area and Icon Setup ---
@@ -212,13 +210,11 @@ public class NetworkNode extends Pane {
     
     public void setIpOrHostname(String ip) {
         this.ipOrHostname = ip;
-        // Not updating ipLabel since it isn’t shown on the node.
     }
     
     public void setDisplayName(String name) {
         this.displayName = name;
         nameLabel.setText(name);
-        // The nameContainer will center the label automatically.
     }
     
     public void setDeviceType(DeviceType deviceType) {
@@ -228,7 +224,6 @@ public class NetworkNode extends Pane {
     
     public void setNetworkType(NetworkType networkType) {
         this.networkType = networkType;
-        // No connection icon is used.
     }
     
     public String getIpOrHostname() {
@@ -253,7 +248,6 @@ public class NetworkNode extends Pane {
     
     public void setMainNode(boolean mainNode) {
         this.mainNode = mainNode;
-        // If main node, nothing additional to do (no connection icon).
     }
     
     public String getOutlineColor() {
@@ -271,11 +265,19 @@ public class NetworkNode extends Pane {
     
     public void setConnectionType(ConnectionType connectionType) {
         this.connectionType = connectionType;
-        // No connection icon updated.
     }
     
     public String getResolvedIp() {
         return resolvedIp;
+    }
+    
+    // New connection status getters/setters.
+    public boolean isConnected() {
+        return connected;
+    }
+    
+    public void setConnected(boolean connected) {
+        this.connected = connected;
     }
     
     /**
@@ -293,6 +295,5 @@ public class NetworkNode extends Pane {
         }
         iconView.setImage(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
         nameLabel.setText(displayName);
-        // The name container keeps the label centered.
     }
 }
