@@ -16,6 +16,8 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 
 public class NetworkNode extends Pane {
     private String ipOrHostname;
@@ -40,7 +42,7 @@ public class NetworkNode extends Pane {
     private HBox nameContainer;  // Container for the display name label (for centering)
     private Label nameLabel;
     private Label ipLabel; // still created but not added
-    // Resize icon (visible handle) for resizing the node.
+    // Resize icon for resizing the node.
     private ImageView resizeIcon;
     
     // For dragging.
@@ -52,11 +54,16 @@ public class NetworkNode extends Pane {
     private double resizeStartHeight;
     private double resizeStartX;
     private double resizeStartY;
+    // Save the node’s original layoutX and layoutY at the start of resizing.
+    private double resizeStartLayoutX;
+    private double resizeStartLayoutY;
     
     // Base dimensions.
-    private final double BASE_SIZE = 100;
+    private final double BASE_SIZE = 100; // base height remains 100
     private final double MIN_SIZE = BASE_SIZE / 2;  // 50
     private final double MAX_SIZE = BASE_SIZE * 2;    // 200
+    // Extra padding added to the measured text width.
+    private final double NAME_PADDING = 20;
     
     // For uptime.
     private long startTime;
@@ -71,81 +78,105 @@ public class NetworkNode extends Pane {
     }
     
     private void initialize() {
-        setPrefSize(BASE_SIZE, BASE_SIZE);
-        // Apply the container style via CSS.
-        getStyleClass().add("node-container");
+        // Measure the display name's width.
+        Text textMeasure = new Text(displayName);
+        textMeasure.setFont(Font.font(14));
+        double textWidth = textMeasure.getLayoutBounds().getWidth();
+        double newWidth = Math.max(BASE_SIZE, textWidth + NAME_PADDING);
+        
+        // Set preferred size using newWidth and BASE_SIZE for height.
+        setPrefSize(newWidth, BASE_SIZE);
         
         // Background rectangle.
-        background = new Rectangle(BASE_SIZE, BASE_SIZE);
+        background = new Rectangle(newWidth, BASE_SIZE);
         background.getStyleClass().add("node-background");
         outlineColorProperty.addListener((obs, oldVal, newVal) -> background.setStroke(newVal));
         background.setStroke(outlineColorProperty.get());
         
-        // Device icon: Increase the size from 48 to 56.
+        // Device icon.
         iconView = new ImageView(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
         iconView.setFitWidth(60);
         iconView.setFitHeight(60);
-        iconView.setLayoutX((BASE_SIZE - iconView.getFitWidth()) / 2);
+        iconView.setLayoutX((newWidth - iconView.getFitWidth()) / 2);
         iconView.setLayoutY(10);
         
-        // Display name label, with increased text size.
+        // Display name label.
         nameLabel = new Label(displayName);
         nameLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: 600;");
-        // Instead of manually setting layoutX, we wrap the label in an HBox.
         nameContainer = new HBox(nameLabel);
         nameContainer.setAlignment(Pos.CENTER);
-        nameContainer.setPrefWidth(BASE_SIZE);
-        // Position the name container below the icon.
+        nameContainer.setPrefWidth(newWidth);
         nameContainer.setLayoutY(10 + iconView.getFitHeight() + 5);
         
-        // IP label is still used by the node details but not added to the node.
+        // IP label (not added to visible layout)
         ipLabel = new Label(ipOrHostname);
         ipLabel.getStyleClass().add("node-ip-label");
         ipLabel.setLayoutX(5);
         ipLabel.setLayoutY(80);
         
-        // Add background, the device icon, and the name container.
+        // Add components.
         getChildren().add(background);
         getChildren().addAll(iconView, nameContainer);
         
-        // --- Resize Hit Area and Icon Setup ---
+        // --- Resize Hit Area and Icon Setup (Top-Right Corner) ---
         resizeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/resize.png")));
         resizeIcon.setFitWidth(8);
         resizeIcon.setFitHeight(8);
         resizeIcon.setMouseTransparent(true);
+        // Bind X to the right edge (width - 12).
         resizeIcon.layoutXProperty().bind(widthProperty().subtract(12));
-        resizeIcon.layoutYProperty().bind(heightProperty().subtract(12));
+        // Set Y to fixed value (e.g., 12) so it's at the top.
+        resizeIcon.setLayoutY(6);
+        
         Region resizeHitArea = new Region();
         resizeHitArea.setPrefSize(30, 30);
         resizeHitArea.setStyle("-fx-background-color: transparent;");
-        resizeHitArea.setCursor(Cursor.SE_RESIZE);
+        // Set cursor to NE_RESIZE which is typical for top-right.
+        resizeHitArea.setCursor(Cursor.NE_RESIZE);
+        // Bind hit area X position similarly.
         resizeHitArea.layoutXProperty().bind(widthProperty().subtract(32));
-        resizeHitArea.layoutYProperty().bind(heightProperty().subtract(32));
+        resizeHitArea.setLayoutY(6);
+        
         getChildren().addAll(resizeHitArea, resizeIcon);
+        
+        // Capture starting properties on mouse press.
         resizeHitArea.setOnMousePressed((MouseEvent e) -> {
             e.consume();
             resizeStartWidth = getPrefWidth();
             resizeStartHeight = getPrefHeight();
             resizeStartX = e.getSceneX();
             resizeStartY = e.getSceneY();
+            resizeStartLayoutX = getLayoutX();
+            resizeStartLayoutY = getLayoutY();
         });
+        
+        // On dragging, calculate the new size and update layoutY
+        // so that the bottom edge remains fixed.
         resizeHitArea.setOnMouseDragged((MouseEvent e) -> {
             e.consume();
             double dx = e.getSceneX() - resizeStartX;
+            // Increase size by dragging right.
             double newSize = resizeStartWidth + dx;
             newSize = Math.round(newSize / 10) * 10;
             newSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, newSize));
+            // Adjust layoutY so that the bottom edge remains fixed:
+            // new layoutY = (original bottom) - newSize, where
+            // original bottom = resizeStartLayoutY + resizeStartHeight.
+            setLayoutY(resizeStartLayoutY + resizeStartHeight - newSize);
+            
+            // Update the node’s dimensions.
             setPrefSize(newSize, newSize);
             setMinSize(newSize, newSize);
             setMaxSize(newSize, newSize);
             background.setWidth(newSize);
             background.setHeight(newSize);
+            
+            // Adjust the scaling and positioning of inner components.
             double scale = newSize / BASE_SIZE;
             iconView.setFitWidth(56 * scale);
             iconView.setFitHeight(56 * scale);
             iconView.setLayoutX((newSize - iconView.getFitWidth()) / 2);
             iconView.setLayoutY(10 * scale);
-            // Re-center the name container.
             nameContainer.setPrefWidth(newSize);
             nameContainer.setLayoutY(10 * scale + iconView.getFitHeight() + 5 * scale);
             nameLabel.setStyle("-fx-font-size: " + (16 * scale) + "px; -fx-text-fill: white;");

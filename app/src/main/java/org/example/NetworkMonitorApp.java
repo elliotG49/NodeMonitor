@@ -234,7 +234,7 @@ public class NetworkMonitorApp extends Application {
                 NetworkNode gateway = instance.getMainNodeByDisplayName("Gateway");
                 connection = new ConnectionLine(gateway, node);
             } else {
-                NetworkNode internet = instance.getMainNodeByDisplayName("Internet");
+                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
                 connection = new ConnectionLine(internet, node);
             }
             instance.spiderMapPane.getChildren().add(0, connection);
@@ -368,7 +368,7 @@ public class NetworkMonitorApp extends Application {
         persistentNodesStatic.add(gatewayNode);
         spiderMapPane.getChildren().add(gatewayNode);
 
-        NetworkNode internetNode = new NetworkNode("8.8.8.8", "Internet", DeviceType.ROUTER, NetworkType.EXTERNAL);
+        NetworkNode internetNode = new NetworkNode("8.8.8.8", "Google DNS", DeviceType.ROUTER, NetworkType.EXTERNAL);
         internetNode.setLayoutX(centerX - internetNode.getPrefWidth() / 2);
         internetNode.setLayoutY(centerY + spacing - internetNode.getPrefHeight() / 2);
         internetNode.setMainNode(true);
