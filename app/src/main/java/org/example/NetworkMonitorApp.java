@@ -2,7 +2,6 @@ package org.example;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -21,11 +20,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -70,7 +68,6 @@ public class NetworkMonitorApp extends Application {
         primaryStage.setTitle("Testing");
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/node.png")));
 
-
         // Ensure config directory exists.
         File configDir = new File(CONFIG_DIR);
         if (!configDir.exists()) {
@@ -102,28 +99,35 @@ public class NetworkMonitorApp extends Application {
         NewNodeBox newNodeBox = new NewNodeBox();
         spiderMapPane.getChildren().add(newNodeBox);
         newNodeBox.setLayoutX(10);
+        // (NewNodeBox anchors its Y internally via scene property listener)
 
         // Add the Filter Box to the right of the NewNodeBox.
         FilterBox filterBox = new FilterBox();
         spiderMapPane.getChildren().add(filterBox);
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
-        // FilterBox now anchors its own layoutY internally.
+        // (FilterBox anchors its Y internally)
 
-        // After newNodeBox and filterBox have been added to spiderMapPane...
+        // Add the Functions Box to the right of the FilterBox.
+        FunctionsBox functionsBox = new FunctionsBox();
+        spiderMapPane.getChildren().add(functionsBox);
+        functionsBox.layoutXProperty().bind(filterBox.layoutXProperty().add(filterBox.widthProperty()).add(10));
+        // Bind its Y so that it stays anchored at the bottom.
+        functionsBox.layoutYProperty().bind(spiderMapPane.heightProperty().subtract(functionsBox.prefHeightProperty()).subtract(15));
+
+        // Collapse any expanded boxes when clicking outside.
         spiderMapPane.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
-            // Convert the click’s scene coordinates to the spiderMapPane’s coordinates
+            // Convert the click's scene coordinates to spiderMapPane coordinates.
             javafx.geometry.Point2D pt = spiderMapPane.sceneToLocal(event.getSceneX(), event.getSceneY());
-            
-            // If the NewNodeBox is expanded and the click is not inside it, collapse it.
             if (newNodeBox.isExpanded() && !newNodeBox.getBoundsInParent().contains(pt)) {
                 newNodeBox.collapse();
             }
-            // Similarly for the FilterBox:
             if (filterBox.isExpanded() && !filterBox.getBoundsInParent().contains(pt)) {
                 filterBox.collapse();
             }
+            if (functionsBox.isExpanded() && !functionsBox.getBoundsInParent().contains(pt)) {
+                functionsBox.collapse();
+            }
         });
-
 
         Platform.runLater(() -> {
             if (!Files.exists(Paths.get(CONFIG_FILE))) {
