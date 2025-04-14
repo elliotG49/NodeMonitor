@@ -222,9 +222,9 @@ public class NetworkNode extends Pane {
         
         // Set placeholder actions.
         tracerouteItem.setOnAction(event -> {
-            System.out.println("Traceroute selected for node: " + getDisplayName());
-            // Future traceroute functionality.
+            NetworkMonitorApp.performTraceroute(NetworkNode.this);
         });
+        
         portscanItem.setOnAction(event -> {
             StackPane rootStack = (StackPane) ((BorderPane) getScene().getRoot()).getCenter();
             rootStack.getChildren().removeIf(n -> n instanceof PortscanConfigPanel);

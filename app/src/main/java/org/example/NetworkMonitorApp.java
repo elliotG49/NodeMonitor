@@ -5,6 +5,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -25,6 +26,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -230,6 +232,104 @@ public class NetworkMonitorApp extends Application {
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
+
+    private static class TracerouteOrigin {
+        NetworkNode node;
+        double x;
+        double y;
+    }
+    
+    public static void performTraceroute(NetworkNode source) {
+    // Get the spider map pane.
+    Pane spiderPane = instance.spiderMapPane;
+    
+    // Create or replace the traceroute panel in the top left.
+    StackPane rootStack = (StackPane) ((BorderPane) instance.primaryStage.getScene().getRoot()).getCenter();
+    rootStack.getChildren().removeIf(n -> n instanceof TraceroutePanel);
+    TraceroutePanel panel = new TraceroutePanel();
+    StackPane.setAlignment(panel, Pos.TOP_LEFT);
+    StackPane.setMargin(panel, new Insets(10));
+    rootStack.getChildren().add(panel);
+    
+    // Always use the HOST node as starting point.
+    final NetworkNode hostFinal;
+    NetworkNode tempHost = instance.getMainNodeByDisplayName("Host");
+    if (tempHost == null) {
+        hostFinal = source;
+    } else {
+        hostFinal = tempHost;
+    }
+    
+    final TracerouteOrigin origin = new TracerouteOrigin();
+    origin.node = hostFinal;
+    origin.x = hostFinal.getLayoutX() + hostFinal.getWidth() / 2;
+    origin.y = hostFinal.getLayoutY() + hostFinal.getHeight() / 2;
+    
+    final java.util.concurrent.atomic.AtomicInteger hopCounter = new java.util.concurrent.atomic.AtomicInteger(0);
+    final java.util.List<TracerouteLine> tracerouteLines = new java.util.ArrayList<>();
+    
+    // Debug colors array.
+    final Color[] debugColors = {Color.RED, Color.GREEN, Color.BLUE, Color.ORANGE, Color.PURPLE, Color.CYAN, Color.MAGENTA};
+    
+    String target = source.getIpOrHostname();
+    TracerouteTask task = new TracerouteTask(target);
+    
+    task.setHopCallback(hop -> {
+        int index = hopCounter.incrementAndGet();
+        panel.addHop("Hop " + index + ": " + hop);
+        
+        // Determine debug color.
+        Color lineColor = debugColors[(index - 1) % debugColors.length];
+        
+        // Find matching node.
+        NetworkNode targetNode = null;
+        for (NetworkNode node : getPersistentNodesStatic()) {
+            String nodeIp = (node.getResolvedIp() != null && !node.getResolvedIp().isEmpty())
+                ? node.getResolvedIp() : node.getIpOrHostname();
+            if (nodeIp.equals(hop)) {
+                targetNode = node;
+                break;
+            }
+        }
+        
+        TracerouteLine tLine;
+        if (targetNode != null) {
+            tLine = new TracerouteLine(origin.node, targetNode);
+            // Update origin to this node.
+            origin.node = targetNode;
+            origin.x = targetNode.getLayoutX() + targetNode.getWidth() / 2;
+            origin.y = targetNode.getLayoutY() + targetNode.getHeight() / 2;
+        } else {
+            tLine = new TracerouteLine(origin.x, origin.y, hop, index - 1);
+            // Always add offset to the right.
+            origin.x = origin.x + TracerouteLine.UNKNOWN_OFFSET;
+            // origin.y remains unchanged.
+        }
+        tLine.setLineColor(lineColor);
+        tracerouteLines.add(tLine);
+        spiderPane.getChildren().add(0, tLine);
+    });
+    
+    task.setOnSucceeded(e -> {
+        panel.addHop("Traceroute complete");
+        // After traceroute completes, wait 5 seconds then fade out all traceroute lines.
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.seconds(5));
+        pause.setOnFinished(ev -> {
+            for (TracerouteLine line : tracerouteLines) {
+                line.startFadeOut();
+            }
+        });
+        pause.play();
+    });
+    
+    task.setOnFailed(e -> {
+        System.err.println("Traceroute failed: " + task.getException());
+    });
+    
+    new Thread(task).start();
+}
+
+    
     
     private void loadWindowSize() {
         try {
