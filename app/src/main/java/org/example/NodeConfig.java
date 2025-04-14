@@ -12,6 +12,8 @@ public class NodeConfig {
     private boolean mainNode;
     private String nodeColour; // outline color
     private ConnectionType connectionType; // connection type
+    private double width; // New field: node width
+    private double height; // New field: node height
 
     public NodeConfig() {
         // Default constructor for Gson
@@ -19,7 +21,8 @@ public class NodeConfig {
 
     public NodeConfig(String ipOrHostname, String displayName, DeviceType deviceType, NetworkType networkType,
                       double layoutX, double layoutY, double relativeX, double relativeY,
-                      boolean mainNode, String nodeColour, ConnectionType connectionType) {
+                      boolean mainNode, String nodeColour, ConnectionType connectionType,
+                      double width, double height) {
         this.ipOrHostname = ipOrHostname;
         this.displayName = displayName;
         this.deviceType = deviceType;
@@ -31,9 +34,10 @@ public class NodeConfig {
         this.mainNode = mainNode;
         this.nodeColour = nodeColour;
         this.connectionType = connectionType;
+        this.width = width;
+        this.height = height;
     }
 
-    // Getters and setters
     public String getIpOrHostname() {
         return ipOrHostname;
     }
@@ -120,5 +124,21 @@ public class NodeConfig {
 
     public void setConnectionType(ConnectionType connectionType) {
         this.connectionType = connectionType;
+    }
+
+    public double getWidth() {
+        return width;
+    }
+
+    public void setWidth(double width) {
+        this.width = width;
+    }
+
+    public double getHeight() {
+        return height;
+    }
+
+    public void setHeight(double height) {
+        this.height = height;
     }
 }

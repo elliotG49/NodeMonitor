@@ -5,15 +5,20 @@ import java.net.InetAddress;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
@@ -78,147 +83,170 @@ public class NetworkNode extends Pane {
     }
     
     private void initialize() {
-        // Measure the display name's width.
-        Text textMeasure = new Text(displayName);
-        textMeasure.setFont(Font.font(14));
-        double textWidth = textMeasure.getLayoutBounds().getWidth();
-        double newWidth = Math.max(BASE_SIZE, textWidth + NAME_PADDING);
-        
-        // Set preferred size using newWidth and BASE_SIZE for height.
-        setPrefSize(newWidth, BASE_SIZE);
-        
-        // Background rectangle.
-        background = new Rectangle(newWidth, BASE_SIZE);
-        background.getStyleClass().add("node-background");
-        outlineColorProperty.addListener((obs, oldVal, newVal) -> background.setStroke(newVal));
-        background.setStroke(outlineColorProperty.get());
-        
-        // Device icon.
-        iconView = new ImageView(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
-        iconView.setFitWidth(60);
-        iconView.setFitHeight(60);
-        iconView.setLayoutX((newWidth - iconView.getFitWidth()) / 2);
-        iconView.setLayoutY(10);
-        
-        // Display name label.
-        nameLabel = new Label(displayName);
-        nameLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: 600;");
-        nameContainer = new HBox(nameLabel);
-        nameContainer.setAlignment(Pos.CENTER);
-        nameContainer.setPrefWidth(newWidth);
-        nameContainer.setLayoutY(10 + iconView.getFitHeight() + 5);
-        
-        // IP label (not added to visible layout)
-        ipLabel = new Label(ipOrHostname);
-        ipLabel.getStyleClass().add("node-ip-label");
-        ipLabel.setLayoutX(5);
-        ipLabel.setLayoutY(80);
-        
-        // Add components.
-        getChildren().add(background);
-        getChildren().addAll(iconView, nameContainer);
-        
-        // --- Resize Hit Area and Icon Setup (Top-Right Corner) ---
-        resizeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/resize.png")));
-        resizeIcon.setFitWidth(8);
-        resizeIcon.setFitHeight(8);
-        resizeIcon.setMouseTransparent(true);
-        // Bind X to the right edge (width - 12).
-        resizeIcon.layoutXProperty().bind(widthProperty().subtract(12));
-        // Set Y to fixed value (e.g., 12) so it's at the top.
-        resizeIcon.setLayoutY(6);
-        
-        Region resizeHitArea = new Region();
-        resizeHitArea.setPrefSize(30, 30);
-        resizeHitArea.setStyle("-fx-background-color: transparent;");
-        // Set cursor to NE_RESIZE which is typical for top-right.
-        resizeHitArea.setCursor(Cursor.NE_RESIZE);
-        // Bind hit area X position similarly.
-        resizeHitArea.layoutXProperty().bind(widthProperty().subtract(32));
-        resizeHitArea.setLayoutY(6);
-        
-        getChildren().addAll(resizeHitArea, resizeIcon);
-        
-        // Capture starting properties on mouse press.
-        resizeHitArea.setOnMousePressed((MouseEvent e) -> {
-            e.consume();
-            resizeStartWidth = getPrefWidth();
-            resizeStartHeight = getPrefHeight();
-            resizeStartX = e.getSceneX();
-            resizeStartY = e.getSceneY();
-            resizeStartLayoutX = getLayoutX();
-            resizeStartLayoutY = getLayoutY();
-        });
-        
-        // On dragging, calculate the new size and update layoutY
-        // so that the bottom edge remains fixed.
-        resizeHitArea.setOnMouseDragged((MouseEvent e) -> {
-            e.consume();
-            double dx = e.getSceneX() - resizeStartX;
-            // Increase size by dragging right.
-            double newSize = resizeStartWidth + dx;
-            newSize = Math.round(newSize / 10) * 10;
-            newSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, newSize));
-            // Adjust layoutY so that the bottom edge remains fixed:
-            // new layoutY = (original bottom) - newSize, where
-            // original bottom = resizeStartLayoutY + resizeStartHeight.
-            setLayoutY(resizeStartLayoutY + resizeStartHeight - newSize);
-            
-            // Update the node’s dimensions.
-            setPrefSize(newSize, newSize);
-            setMinSize(newSize, newSize);
-            setMaxSize(newSize, newSize);
-            background.setWidth(newSize);
-            background.setHeight(newSize);
-            
-            // Adjust the scaling and positioning of inner components.
-            double scale = newSize / BASE_SIZE;
-            iconView.setFitWidth(56 * scale);
-            iconView.setFitHeight(56 * scale);
-            iconView.setLayoutX((newSize - iconView.getFitWidth()) / 2);
-            iconView.setLayoutY(10 * scale);
-            nameContainer.setPrefWidth(newSize);
-            nameContainer.setLayoutY(10 * scale + iconView.getFitHeight() + 5 * scale);
-            nameLabel.setStyle("-fx-font-size: " + (16 * scale) + "px; -fx-text-fill: white;");
-        });
-        // --- End Resize Hit Area and Icon Setup ---
-        
-        // Dragging node.
-        setOnMousePressed(e -> {
-            if (!e.getTarget().equals(resizeIcon)) {
-                dragDeltaX = getLayoutX() - e.getSceneX();
-                dragDeltaY = getLayoutY() - e.getSceneY();
-            }
-        });
-        setOnMouseDragged(e -> {
-            if (!e.getTarget().equals(resizeIcon)) {
-                setLayoutX(e.getSceneX() + dragDeltaX);
-                setLayoutY(e.getSceneY() + dragDeltaY);
-            }
-        });
-        setOnMouseReleased(e -> {
-            setLayoutX(Math.round(getLayoutX() / 10) * 10);
-            setLayoutY(Math.round(getLayoutY() / 10) * 10);
-        });
-        
-        // Hover effects.
-        setOnMouseEntered(e -> background.setFill(Color.web("#2c384a")));
-        setOnMouseExited(e -> background.setFill(Color.web("#182030")));
-        
-        // Resolve hostname if necessary.
-        if (!ipOrHostname.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
-            new Thread(() -> {
-                try {
-                    InetAddress addr = InetAddress.getByName(ipOrHostname);
-                    String resolved = addr.getHostAddress();
-                    resolvedIp = resolved;
-                    Platform.runLater(() -> ipLabel.setText(resolved));
-                } catch (Exception e) {
-                    // If resolution fails, leave the original text.
-                }
-            }).start();
+    // Measure the display name's width.
+    Text textMeasure = new Text(displayName);
+    textMeasure.setFont(Font.font(14));
+    double textWidth = textMeasure.getLayoutBounds().getWidth();
+    double newWidth = Math.max(BASE_SIZE, textWidth + NAME_PADDING);
+    
+    // Set preferred size using newWidth and BASE_SIZE for height.
+    setPrefSize(newWidth, BASE_SIZE);
+    
+    // Background rectangle.
+    background = new Rectangle(newWidth, BASE_SIZE);
+    background.getStyleClass().add("node-background");
+    outlineColorProperty.addListener((obs, oldVal, newVal) -> background.setStroke(newVal));
+    background.setStroke(outlineColorProperty.get());
+    
+    // Device icon.
+    iconView = new ImageView(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
+    iconView.setFitWidth(60);
+    iconView.setFitHeight(60);
+    iconView.setLayoutX((newWidth - iconView.getFitWidth()) / 2);
+    iconView.setLayoutY(10);
+    
+    // Display name label.
+    nameLabel = new Label(displayName);
+    nameLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: 600;");
+    nameContainer = new HBox(nameLabel);
+    nameContainer.setAlignment(Pos.CENTER);
+    nameContainer.setPrefWidth(newWidth);
+    nameContainer.setLayoutY(10 + iconView.getFitHeight() + 5);
+    
+    // IP label (not added to visible layout)
+    ipLabel = new Label(ipOrHostname);
+    ipLabel.getStyleClass().add("node-ip-label");
+    ipLabel.setLayoutX(5);
+    ipLabel.setLayoutY(80);
+    
+    // Add components.
+    getChildren().add(background);
+    getChildren().addAll(iconView, nameContainer);
+    
+    // --- Resize Hit Area and Icon Setup (Top-Right Corner) --- 
+    resizeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/resize.png")));
+    resizeIcon.setFitWidth(8);
+    resizeIcon.setFitHeight(8);
+    resizeIcon.setMouseTransparent(true);
+    resizeIcon.layoutXProperty().bind(widthProperty().subtract(12));
+    resizeIcon.setLayoutY(6);
+    
+    Region resizeHitArea = new Region();
+    resizeHitArea.setPrefSize(30, 30);
+    resizeHitArea.setStyle("-fx-background-color: transparent;");
+    resizeHitArea.setCursor(Cursor.NE_RESIZE);
+    resizeHitArea.layoutXProperty().bind(widthProperty().subtract(32));
+    resizeHitArea.setLayoutY(6);
+    
+    getChildren().addAll(resizeHitArea, resizeIcon);
+    
+    // Attach resize event handlers.
+    resizeHitArea.setOnMousePressed((MouseEvent e) -> {
+        e.consume();
+        resizeStartWidth = getPrefWidth();
+        resizeStartHeight = getPrefHeight();
+        resizeStartX = e.getSceneX();
+        resizeStartY = e.getSceneY();
+        resizeStartLayoutX = getLayoutX();
+        resizeStartLayoutY = getLayoutY();
+    });
+    
+    resizeHitArea.setOnMouseDragged((MouseEvent e) -> {
+        e.consume();
+        double dx = e.getSceneX() - resizeStartX;
+        double newSize = resizeStartWidth + dx;
+        newSize = Math.round(newSize / 10) * 10;
+        newSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, newSize));
+        setLayoutY(resizeStartLayoutY + resizeStartHeight - newSize);
+        setPrefSize(newSize, newSize);
+        setMinSize(newSize, newSize);
+        setMaxSize(newSize, newSize);
+        background.setWidth(newSize);
+        background.setHeight(newSize);
+        double scale = newSize / BASE_SIZE;
+        iconView.setFitWidth(56 * scale);
+        iconView.setFitHeight(56 * scale);
+        iconView.setLayoutX((newSize - iconView.getFitWidth()) / 2);
+        iconView.setLayoutY(10 * scale);
+        nameContainer.setPrefWidth(newSize);
+        nameContainer.setLayoutY(10 * scale + iconView.getFitHeight() + 5 * scale);
+        nameLabel.setStyle("-fx-font-size: " + (16 * scale) + "px; -fx-text-fill: white;");
+    });
+    
+    // Dragging node.
+    setOnMousePressed(e -> {
+        if (!e.getTarget().equals(resizeIcon)) {
+            dragDeltaX = getLayoutX() - e.getSceneX();
+            dragDeltaY = getLayoutY() - e.getSceneY();
         }
+    });
+    setOnMouseDragged(e -> {
+        if (!e.getTarget().equals(resizeIcon)) {
+            setLayoutX(e.getSceneX() + dragDeltaX);
+            setLayoutY(e.getSceneY() + dragDeltaY);
+        }
+    });
+    setOnMouseReleased(e -> {
+        setLayoutX(Math.round(getLayoutX() / 10) * 10);
+        setLayoutY(Math.round(getLayoutY() / 10) * 10);
+    });
+    
+    // Hover effects.
+    setOnMouseEntered(e -> background.setFill(Color.web("#2c384a")));
+    setOnMouseExited(e -> background.setFill(Color.web("#182030")));
+    
+    // Resolve hostname if necessary.
+    if (!ipOrHostname.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
+        new Thread(() -> {
+            try {
+                InetAddress addr = InetAddress.getByName(ipOrHostname);
+                String resolved = addr.getHostAddress();
+                resolvedIp = resolved;
+                Platform.runLater(() -> ipLabel.setText(resolved));
+            } catch (Exception e) {
+                // If resolution fails, leave the original text.
+            }
+        }).start();
     }
+    
+    // --- New: Context Menu for Right-Click ---
+    setOnContextMenuRequested(e -> {
+        ContextMenu cm = new ContextMenu();
+        MenuItem tracerouteItem = new MenuItem("Traceroute");
+        MenuItem portscanItem = new MenuItem("Portscan");
+        
+        // Apply custom styling so it matches our application's theme.
+        String menuItemStyle = "-fx-text-fill: white; ";
+        tracerouteItem.setStyle(menuItemStyle);
+        portscanItem.setStyle(menuItemStyle);
+        
+        // Set placeholder actions.
+        tracerouteItem.setOnAction(event -> {
+            System.out.println("Traceroute selected for node: " + getDisplayName());
+            // Future traceroute functionality.
+        });
+        portscanItem.setOnAction(event -> {
+            StackPane rootStack = (StackPane) ((BorderPane) getScene().getRoot()).getCenter();
+            rootStack.getChildren().removeIf(n -> n instanceof PortscanConfigPanel);
+            // Use NetworkNode.this to ensure the correct instance is passed.
+            PortscanConfigPanel configPanel = new PortscanConfigPanel(NetworkNode.this);
+            // Set alignment and margin to ensure 15px spacing from the parent's edges.
+            StackPane.setAlignment(configPanel, Pos.TOP_LEFT);
+            StackPane.setMargin(configPanel, new Insets(10));
+            rootStack.getChildren().add(configPanel);
+        });
+        
+
+        
+        cm.getItems().addAll(tracerouteItem, portscanItem);
+        // Set the context menu's overall style.
+        cm.setStyle("-fx-background-color:rgb(39, 51, 77); -fx-text-fill: white; -fx-background-radius: 5px;");
+        
+        cm.show(this, e.getScreenX(), e.getScreenY());
+        e.consume(); 
+    });
+}
+
     
     private String getIconFileName() {
         switch (deviceType) {
@@ -326,5 +354,31 @@ public class NetworkNode extends Pane {
         }
         iconView.setImage(new Image(getClass().getResourceAsStream("/icons/" + getIconFileName())));
         nameLabel.setText(displayName);
+    }
+    
+    /**
+     * Recalculates and updates the layout of internal components (background, icon, and name label)
+     * based on the current preferred size.
+     */
+    private void updateLayoutComponents() {
+        double newSize = getPrefWidth(); // Assuming the node is square.
+        background.setWidth(newSize);
+        background.setHeight(newSize);
+        double scale = newSize / BASE_SIZE;
+        iconView.setFitWidth(56 * scale);
+        iconView.setFitHeight(56 * scale);
+        iconView.setLayoutX((newSize - iconView.getFitWidth()) / 2);
+        iconView.setLayoutY(10 * scale);
+        nameContainer.setPrefWidth(newSize);
+        nameContainer.setLayoutY(10 * scale + iconView.getFitHeight() + 5 * scale);
+        nameLabel.setStyle("-fx-font-size: " + (16 * scale) + "px; -fx-text-fill: white;");
+    }
+    
+    /**
+     * Public method to trigger an update of the internal layout components.
+     * This should be called after setting a new preferred size (for example, when reloading from file).
+     */
+    public void updateLayoutForSavedSize() {
+        updateLayoutComponents();
     }
 }

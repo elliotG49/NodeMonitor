@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -20,10 +19,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -107,13 +106,6 @@ public class NetworkMonitorApp extends Application {
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
         // (FilterBox anchors its Y internally)
 
-        // Add the Functions Box to the right of the FilterBox.
-        FunctionsBox functionsBox = new FunctionsBox();
-        spiderMapPane.getChildren().add(functionsBox);
-        functionsBox.layoutXProperty().bind(filterBox.layoutXProperty().add(filterBox.widthProperty()).add(10));
-        // Bind its Y so that it stays anchored at the bottom.
-        functionsBox.layoutYProperty().bind(spiderMapPane.heightProperty().subtract(functionsBox.prefHeightProperty()).subtract(15));
-
         // Collapse any expanded boxes when clicking outside.
         spiderMapPane.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
             // Convert the click's scene coordinates to spiderMapPane coordinates.
@@ -123,9 +115,6 @@ public class NetworkMonitorApp extends Application {
             }
             if (filterBox.isExpanded() && !filterBox.getBoundsInParent().contains(pt)) {
                 filterBox.collapse();
-            }
-            if (functionsBox.isExpanded() && !functionsBox.getBoundsInParent().contains(pt)) {
-                functionsBox.collapse();
             }
         });
 
@@ -335,6 +324,10 @@ public class NetworkMonitorApp extends Application {
                             config.getDeviceType(),
                             config.getNetworkType()
                     );
+                    // Set the node size from the saved configuration.
+                    node.setPrefSize(config.getWidth(), config.getHeight());
+                    // Update the inner layout to match the new size.
+                    node.updateLayoutForSavedSize();
                     node.setLayoutX(absoluteX);
                     node.setLayoutY(absoluteY);
                     node.setMainNode(config.isMainNode());
@@ -385,24 +378,28 @@ public class NetworkMonitorApp extends Application {
     }
 
     private void addDetailPanelHandler(NetworkNode node) {
-        node.setOnMouseClicked(e -> {
-            StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
-            rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
-            NodeDetailPanel detailPanel = new NodeDetailPanel(node);
-            primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
-            detailPanel.showPanel();
-            StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
-            StackPane.setMargin(detailPanel, new Insets(20));
-            rootStack.getChildren().add(detailPanel);
-            javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent ev) {
-                    if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
-                        detailPanel.hidePanel();
-                        rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
-                    }
+    node.setOnMouseClicked(e -> {
+        // Only trigger the detail panel on left-click (primary button)
+        if (e.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
+        StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+        rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
+        NodeDetailPanel detailPanel = new NodeDetailPanel(node);
+        primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
+        detailPanel.showPanel();
+        StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(detailPanel, new Insets(20));
+        rootStack.getChildren().add(detailPanel);
+        javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent ev) {
+                if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
+                    detailPanel.hidePanel();
+                    rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
                 }
-            };
+            }
+        };
             rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
         });
     }
@@ -443,17 +440,19 @@ public class NetworkMonitorApp extends Application {
                 System.out.println("Saving node: layoutX=" + node.getLayoutX() +
                                    ", paneWidth=" + paneWidth + ", relativeX=" + relativeX);
                 NodeConfig config = new NodeConfig(
-                        node.getIpOrHostname(),
-                        node.getDisplayName(),
-                        node.getDeviceType(),
-                        node.getNetworkType(),
-                        node.getLayoutX(),
-                        node.getLayoutY(),
-                        relativeX,
-                        relativeY,
-                        node.isMainNode(),
-                        node.getOutlineColor(),
-                        node.getConnectionType()
+                    node.getIpOrHostname(),
+                    node.getDisplayName(),
+                    node.getDeviceType(),
+                    node.getNetworkType(),
+                    node.getLayoutX(),
+                    node.getLayoutY(),
+                    relativeX,
+                    relativeY,
+                    node.isMainNode(),
+                    node.getOutlineColor(),
+                    node.getConnectionType(),
+                    node.getPrefWidth(), // Save current width
+                    node.getPrefHeight() // Save current height
                 );
                 configs.add(config);
             }
