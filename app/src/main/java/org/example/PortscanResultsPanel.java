@@ -16,6 +16,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 
+
 public class PortscanResultsPanel extends StackPane {
 
     private final VBox contentBox;
@@ -24,8 +25,11 @@ public class PortscanResultsPanel extends StackPane {
     private final TextFlow resultsFlow;
     private final Button closeButton;
     private final Label progressLabel;
+    private final PortscanTask runningTask;
+    private final Button cancelScanButton;
 
-    public PortscanResultsPanel(String nodeDisplayName) {
+    public PortscanResultsPanel(String nodeDisplayName, PortscanTask runningTask) {
+        this.runningTask = runningTask;
         setPadding(new Insets(10));
         setStyle("-fx-background-color: #182030; -fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
                  "-fx-border-radius: 10px; -fx-background-radius: 10px; " +
@@ -45,6 +49,17 @@ public class PortscanResultsPanel extends StackPane {
         progressLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
         progressLabel.setWrapText(true);
 
+        cancelScanButton = new Button("Cancel Scan");
+        cancelScanButton.setStyle("-fx-background-color: #8b0000; -fx-text-fill: white; -fx-font-size: 14px;");
+        cancelScanButton.setOnAction(e -> {
+            if (runningTask != null) {
+                runningTask.cancel();
+                updateMessage("Scan cancelled by user.");
+                contentBox.getChildren().remove(cancelScanButton);
+                hidePanel();
+            }
+        });
+
         resultsFlow = new TextFlow();
         resultsFlow.setLineSpacing(4);
 
@@ -52,7 +67,7 @@ public class PortscanResultsPanel extends StackPane {
         closeButton.setStyle("-fx-background-color: #317756; -fx-text-fill: white; -fx-font-size: 14px;");
         closeButton.setOnAction(e -> hidePanel());
 
-        contentBox.getChildren().addAll(titleLabel, separator, progressLabel);
+        contentBox.getChildren().addAll(titleLabel, separator, progressLabel, cancelScanButton);
         getChildren().add(contentBox);
         StackPane.setAlignment(contentBox, Pos.TOP_LEFT);
 
@@ -124,6 +139,7 @@ public class PortscanResultsPanel extends StackPane {
             if (!contentBox.getChildren().contains(closeButton)) {
                 contentBox.getChildren().add(closeButton);
             }
+            contentBox.getChildren().remove(cancelScanButton);
 
             contentBox.applyCss();
             contentBox.layout();

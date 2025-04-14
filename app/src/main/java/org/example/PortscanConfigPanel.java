@@ -178,7 +178,7 @@ public class PortscanConfigPanel extends StackPane {
                                 ? targetNode.getResolvedIp() : targetNode.getIpOrHostname();
                         boolean bannerDetection = "Yes".equalsIgnoreCase(bannerBox.getValue());
                         PortscanTask task = new PortscanTask(targetIp, portList, bannerDetection);
-                        PortscanResultsPanel resultsPanel = new PortscanResultsPanel(targetNode.getDisplayName());
+                        PortscanResultsPanel resultsPanel = new PortscanResultsPanel(targetNode.getDisplayName(), task);
                         StackPane rootStack = (StackPane) ((BorderPane) currentScene.getRoot()).getCenter();
                         rootStack.getChildren().removeIf(n -> n instanceof PortscanResultsPanel);
                         rootStack.getChildren().add(resultsPanel);
