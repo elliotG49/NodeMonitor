@@ -219,7 +219,7 @@ public class NodeDetailPanel extends BorderPane {
 
         // --- Bottom Container using BorderPane ---
         bottomContainer = new BorderPane();
-        bottomContainer.setPrefHeight(50);
+        bottomContainer.setPrefHeight(20);
         bottomContainer.setPadding(new Insets(10));
 
         updateButton = new Button("Update");

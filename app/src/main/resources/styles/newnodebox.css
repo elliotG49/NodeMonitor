@@ -5,7 +5,6 @@
     -fx-border-width: 1px;
     -fx-border-radius: 10px;
     -fx-background-radius: 10px;
-    -fx-padding: 10px;
 }
 
 .newnodebox-panel.collapsed:hover {
@@ -75,8 +74,20 @@
     -fx-text-fill: white;
     -fx-font-size: 14px;
 }
+
+.newnodebox-create-button:hover {
+    -fx-background-color: #3b8d4c;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+}
 .newnodebox-cancel-button {
     -fx-background-color: red;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+}
+
+.newnodebox-cancel-button:hover {
+    -fx-background-color: rgb(138, 0, 0);
     -fx-text-fill: white;
     -fx-font-size: 14px;
 }
