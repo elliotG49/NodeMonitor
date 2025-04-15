@@ -11,23 +11,35 @@ import javafx.util.Duration;
 public class TracerouteLine extends Pane {
     public static final double UNKNOWN_OFFSET = 100;
     private final CubicCurve curve;
-    private Circle endpointMarker; // Used for unknown hops.
-    private Text ipLabel;          // Displays the hop IP for unknown hops.
+    private Circle endpointMarker; // Used only for unknown hops.
+    private Text ipLabel;          // For unknown hops, shows the hop IP.
 
-    // Constructor for known hops (connecting two nodes).
+    // Constructor for known hops: starting from a node (from) to a node (to).
     public TracerouteLine(NetworkNode from, NetworkNode to) {
         curve = new CubicCurve();
-        curve.setStroke(Color.YELLOW);
+        curve.setStroke(Color.web("#C9EB78"));
         curve.setStrokeWidth(3);
         curve.setFill(Color.TRANSPARENT);
         getChildren().add(curve);
         updateCurve(from, to);
     }
-
-    // Constructor for unknown hops (using a fixed rightward offset).
+    
+    // Overloaded constructor for known hops when the starting point is provided by coordinates.
+    public TracerouteLine(double startX, double startY, NetworkNode to) {
+        curve = new CubicCurve();
+        curve.setStroke(Color.web("#C9EB78"));
+        curve.setStrokeWidth(3);
+        curve.setFill(Color.TRANSPARENT);
+        getChildren().add(curve);
+        double ex = to.getLayoutX() + to.getWidth() / 2;
+        double ey = to.getLayoutY() + to.getHeight() / 2;
+        updateCurve(startX, startY, ex, ey);
+    }
+    
+    // Constructor for unknown hops: starting from coordinates with hop IP and an index.
     public TracerouteLine(double startX, double startY, String hopIp, int hopIndex) {
         curve = new CubicCurve();
-        curve.setStroke(Color.YELLOW);
+        curve.setStroke(Color.web("#C9EB78"));
         curve.setStrokeWidth(3);
         curve.setFill(Color.TRANSPARENT);
         getChildren().add(curve);
@@ -35,22 +47,22 @@ public class TracerouteLine extends Pane {
         double targetX = startX + UNKNOWN_OFFSET;
         double targetY = startY;
         updateCurve(startX, startY, targetX, targetY);
-        // Create endpoint marker (a small circle).
-        endpointMarker = new Circle(5, Color.YELLOW);
+        // Create an endpoint marker.
+        endpointMarker = new Circle(5, Color.web("#C9EB78"));
         endpointMarker.setLayoutX(targetX);
         endpointMarker.setLayoutY(targetY);
         getChildren().add(endpointMarker);
-        // Create an IP label for the unknown hop.
+        // Create an IP label below the marker.
         ipLabel = new Text(hopIp);
-        ipLabel.setFill(Color.YELLOW);
+        ipLabel.setFill(Color.WHITE);
         ipLabel.setStyle("-fx-font-size: 12px;");
-        // Position the label slightly below the marker.
-        ipLabel.setLayoutX(targetX - 15); // Adjust offset as needed.
+        // Position label: adjust these offsets as needed.
+        ipLabel.setLayoutX(targetX - 15);
         ipLabel.setLayoutY(targetY + 20);
         getChildren().add(ipLabel);
     }
-
-    // Update the curve given two nodes.
+    
+    // For known hops using node objects.
     private void updateCurve(NetworkNode from, NetworkNode to) {
         double sx = from.getLayoutX() + from.getWidth() / 2;
         double sy = from.getLayoutY() + from.getHeight() / 2;
@@ -58,33 +70,36 @@ public class TracerouteLine extends Pane {
         double ey = to.getLayoutY() + to.getHeight() / 2;
         updateCurve(sx, sy, ex, ey);
     }
-
-    // Update the curve using explicit coordinates.
+    
+    // General method to update curve with start and end coordinates.
+    // This version computes a perpendicular offset so the line is curved.
     private void updateCurve(double sx, double sy, double ex, double ey) {
         curve.setStartX(sx);
         curve.setStartY(sy);
         curve.setEndX(ex);
         curve.setEndY(ey);
-        // Set control points to create a smooth curve.
-        double ctrlOffset = 50;
-        curve.setControlX1(sx);
-        curve.setControlY1(sy - ctrlOffset);
-        curve.setControlX2(ex);
-        curve.setControlY2(ey - ctrlOffset);
+        // Compute a perpendicular offset proportional to the distance.
+        double dx = ex - sx;
+        double dy = ey - sy;
+        double distance = Math.hypot(dx, dy);
+        double offset = distance * 0.2; // adjust as desired
+        // Angle of the line.
+        double angle = Math.atan2(dy, dx);
+        // Perpendicular angle.
+        double perpAngle = angle - Math.PI / 2;
+        // Set control points offset perpendicular from the midpoint.
+        double midX = (sx + ex) / 2;
+        double midY = (sy + ey) / 2;
+        double ctrlX = midX + offset * Math.cos(perpAngle);
+        double ctrlY = midY + offset * Math.sin(perpAngle);
+        // For a cubic curve, we can use the same control point for both ends.
+        curve.setControlX1(ctrlX);
+        curve.setControlY1(ctrlY);
+        curve.setControlX2(ctrlX);
+        curve.setControlY2(ctrlY);
     }
-
-    // Set the line's color (and update the endpoint marker and IP label if present).
-    public void setLineColor(Color color) {
-        curve.setStroke(color);
-        if (endpointMarker != null) {
-            endpointMarker.setFill(color);
-        }
-        if (ipLabel != null) {
-            ipLabel.setFill(color);
-        }
-    }
-
-    // This method triggers a fade-out transition.
+    
+    // Triggers a fade-out transition for this traceroute line.
     public void startFadeOut() {
         FadeTransition ft = new FadeTransition(Duration.seconds(5), this);
         ft.setFromValue(1.0);
@@ -95,5 +110,14 @@ public class TracerouteLine extends Pane {
             }
         });
         ft.play();
+    }
+    
+    // (Optional) Method to set the line color.
+    public void setLineColor(Color color) {
+        curve.setStroke(color);
+        if (endpointMarker != null) {
+            endpointMarker.setFill(color);
+        }
+        // For unknown hops, IP label remains white.
     }
 }
