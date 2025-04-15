@@ -156,9 +156,13 @@ public class NodeDetailPanel extends BorderPane {
         routeSwitchBox = new ComboBox<>();
         routeSwitchBox.getStyleClass().add("nodedetail-combobox");
         routeSwitchBox.setPrefWidth(FIELD_WIDTH);
-        routeSwitchBox.getItems().add("None");
-        // [Populate with existing switches...]
-        routeSwitchBox.setValue("None");
+        updateRouteSwitchList(); // Populate with current switches
+        // Set the default value (if the node's route switch is not set, "None" will be used)
+        if (node.getRouteSwitch() == null || node.getRouteSwitch().isEmpty()) {
+            routeSwitchBox.setValue("None");
+        } else {
+            routeSwitchBox.setValue(node.getRouteSwitch());
+        }
 
         // Node Colour label and ComboBox (using a slightly different style for radius):
         Label nodeColorLabel = new Label("Node Colour:");
@@ -316,6 +320,16 @@ public class NodeDetailPanel extends BorderPane {
         });
     }
 
+    private void updateRouteSwitchList() {
+        routeSwitchBox.getItems().clear();
+        routeSwitchBox.getItems().add("None");
+        for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+            if (n.getDeviceType() == DeviceType.SWITCH) {
+                routeSwitchBox.getItems().add(n.getDisplayName());
+            }
+        }
+    }
+    
     private void enableUpdate() {
         updateButton.setDisable(false);
     }

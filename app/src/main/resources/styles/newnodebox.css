@@ -1,0 +1,127 @@
+/* Overall container for NewNodeBox */
+.newnodebox-panel {
+    -fx-background-color: #182030;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 10px;
+}
+
+.newnodebox-panel.collapsed:hover {
+    -fx-background-color: #2c384a;
+}
+
+/* Minimized label style */
+.newnodebox-minimized-label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.newnodebox-minimized-label:hover {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* Header box that holds the title */
+.newnodebox-header-box {
+    -fx-border-color: transparent transparent #b8d4f1 transparent;
+    -fx-border-width: 0 0 0.5px 0;
+    -fx-padding: 0 0 10px 0;
+    -fx-alignment: center-left;
+}
+
+/* Title label inside header */
+.newnodebox-title-label {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+/* General label styling in NewNodeBox */
+.newnodebox-label {
+    -fx-text-fill: #b8d4f1;
+    -fx-font-size: 14px;
+}
+
+/* TextField styling for NewNodeBox fields */
+.newnodebox-textfield {
+    -fx-font-size: 14px;
+    -fx-background-color: #1b2433;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-text-fill: white;
+}
+
+/* ComboBox styling for NewNodeBox */
+.newnodebox-combobox {
+    -fx-font-size: 14px;
+    -fx-background-color: #1b2433;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-text-fill: white;
+    -fx-pref-width: 200px;
+}
+
+/* Buttons in NewNodeBox */
+.newnodebox-create-button {
+    -fx-background-color: #317756;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+}
+.newnodebox-cancel-button {
+    -fx-background-color: red;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+}
+
+.newnodebox-combobox .list-cell,
+.newnodebox-combobox .button {
+    -fx-text-fill: white;
+}
+
+.newnodebox-combobox .list-view {
+    -fx-background-color: #1b2433; /* set the background of the list */
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5px;
+}
+
+/* Style each cell in the dropdown */
+.newnodebox-combobox .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-padding: 5px;
+}
+
+/* Style for selected cells */
+.newnodebox-combobox .list-cell:selected,
+.newnodebox-combobox .list-cell:filled:selected {
+    -fx-background-color: #1b2433;
+    -fx-text-fill: white;
+}
+
+.newnodebox-combobox .list-cell:hover {
+    -fx-background-color: #2c3a52;
+    -fx-text-fill: white;
+}
+
+.newnodebox-combobox:hover {
+    -fx-font-size: 14px;
+    -fx-background-color: #2c3a52;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-text-fill: white;
+    -fx-pref-width: 200px;  /* Adjust width as needed */
+}
+
+/* You can add hover effects, transitions, etc., as desired */

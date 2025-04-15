@@ -86,6 +86,7 @@ public class NetworkMonitorApp extends Application {
 
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/styles/style.css").toExternalForm());
+
         primaryStage.setScene(scene);
         primaryStage.show();
 
@@ -93,6 +94,7 @@ public class NetworkMonitorApp extends Application {
         prevSceneHeight = scene.getHeight();
 
         NewNodeBox newNodeBox = new NewNodeBox();
+        scene.getStylesheets().add(getClass().getResource("/styles/newnodebox.css").toExternalForm());
         spiderMapPane.getChildren().add(newNodeBox);
         newNodeBox.setLayoutX(10);
 
@@ -165,6 +167,8 @@ public class NetworkMonitorApp extends Application {
             }
         });
     }
+
+    
     
     public static void removeNode(NetworkNode node) {
         instance.persistentNodes.remove(node);
