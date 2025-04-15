@@ -7,28 +7,74 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 10, 0.5, 0, 0);
 }
 
-.nodedetail-header {
-    -fx-font-size: 16px;
-    -fx-text-fill: green;
+/* Header container style: replicates the inline styles for headerBox */
+.nodedetail-header-box {
+    -fx-border-color: transparent transparent #b8d4f1 transparent;
+    -fx-border-width: 0 0 0.5px 0;
+    -fx-padding: 0 0 10px 0;
+    -fx-alignment: center-left;
+}
+
+/* Title label style: replicates the inline styles for the title label */
+.nodedetail-title-label {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-padding: 10px;
 }
 
+
+/* For labels (IP, Display Name, Device Type, etc.) */
 .nodedetail-label {
-    -fx-text-fill: white;
-    -fx-font-size: 10px;
+    -fx-text-fill: #b8d4f1;
+    -fx-font-size: 14px;
 }
 
+/* For text fields (e.g. ipField, displayNameField) */
 .nodedetail-textfield {
-    -fx-font-size: 10px;
-    -fx-pref-width: 100px;
+    -fx-font-size: 14px;
+    -fx-background-color: #1b2433;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
     -fx-text-fill: white;
 }
 
-.nodedetail-combobox {
-    -fx-font-size: 10px;
-    -fx-pref-width: 200px;
+.nodedetail-textfield:hover {
+    -fx-font-size: 14px;
+    -fx-background-color: #2c3a52;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
     -fx-text-fill: white;
+}
+
+.nodedetail-value-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+}
+/* For ComboBoxes that follow the same style */
+.nodedetail-combobox {
+    -fx-font-size: 14px;
+    -fx-background-color: #1b2433;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-text-fill: white;
+    -fx-pref-width: 200px;  /* Adjust width as needed */
+}
+
+.nodedetail-combobox:hover {
+    -fx-font-size: 14px;
+    -fx-background-color: #2c3a52;
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-text-fill: white;
+    -fx-pref-width: 200px;  /* Adjust width as needed */
 }
 
 
@@ -68,6 +114,30 @@
 }
 
 .nodedetail-combobox .list-cell:hover {
-    -fx-background-color: #313d3d;
+    -fx-background-color: #2c3a52;
     -fx-text-fill: white;
 }
+
+.nodedetail-updatebutton {
+    -fx-background-color: #2E8B57;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+}
+
+.nodedetail-updatebutton:hover {
+    -fx-background-color: #48d184;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+}
+
+.nodedetail-binbutton {
+    -fx-background-color: red;
+    -fx-cursor: hand;
+}
+
+.nodedetail-binbutton:hover {
+    -fx-background-color: rgb(102, 0, 0);
+    -fx-cursor: hand;
+}
+
+

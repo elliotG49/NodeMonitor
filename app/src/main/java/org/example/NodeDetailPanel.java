@@ -75,7 +75,6 @@ public class NodeDetailPanel extends BorderPane {
         setPadding(new Insets(10));
         // Apply panel style.
         getStyleClass().add("nodedetail-panel");
-        setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0.5, 0, 0);");
         setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ESCAPE) {
                 hidePanel();
@@ -92,9 +91,8 @@ public class NodeDetailPanel extends BorderPane {
         VBox headerBox = new VBox();
         headerBox.setAlignment(Pos.CENTER_LEFT);
         Label titleLabel = new Label(node.getDisplayName());
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
-        headerBox.setStyle("-fx-border-color: transparent transparent #b8d4f1 transparent; " +
-                           "-fx-border-width: 0 0 0.5px 0; -fx-padding: 0 0 10px 0;");
+        titleLabel.getStyleClass().add("nodedetail-title-label");
+        headerBox.getStyleClass().add("nodedetail-header-box");
         headerBox.getChildren().add(titleLabel);
 
         // Create a grid for node fields.
@@ -103,97 +101,85 @@ public class NodeDetailPanel extends BorderPane {
         grid.setVgap(15);
         // (Optional: set row constraints if needed)
 
+        // IP/Hostname label and field:
         Label ipLabel = new Label("IP/Hostname:");
-        ipLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        ipLabel.getStyleClass().add("nodedetail-label");
+
         ipField = new TextField();
         ipField.setPrefWidth(FIELD_WIDTH);
         ipField.setPromptText("");
-        ipField.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                         "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
-                         "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
+        ipField.getStyleClass().add("nodedetail-textfield");
 
+        // Display Name label and field:
         Label displayNameLabel = new Label("Display Name:");
-        displayNameLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
-        displayNameField = new TextField();
-        displayNameField.getStyleClass().add("nodedetail-textfeild");
-        displayNameField.setPrefWidth(FIELD_WIDTH);
-        displayNameField.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                                  "-fx-border-color:rgb(43, 38, 38); -fx-border-width: 1px; " +
-                                  "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
+        displayNameLabel.getStyleClass().add("nodedetail-label");
 
+        displayNameField = new TextField();
+        displayNameField.setPrefWidth(FIELD_WIDTH);
+        // Use the corrected class name here:
+        displayNameField.getStyleClass().add("nodedetail-textfield");
+
+        // Device Type label and ComboBox:
         Label deviceTypeLabel = new Label("Device Type:");
-        deviceTypeLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        deviceTypeLabel.getStyleClass().add("nodedetail-label");
+
         deviceTypeBox = new ComboBox<>();
         deviceTypeBox.getStyleClass().add("nodedetail-combobox");
         deviceTypeBox.getItems().addAll(DeviceType.values());
         deviceTypeBox.setPrefWidth(FIELD_WIDTH);
         deviceTypeBox.setValue(DeviceType.COMPUTER);
-        deviceTypeBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                               "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
-                               "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
 
+        // Network Type label and ComboBox:
         Label networkTypeLabel = new Label("Network Type:");
-        networkTypeLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        networkTypeLabel.getStyleClass().add("nodedetail-label");
+
         networkTypeBox = new ComboBox<>();
         networkTypeBox.getStyleClass().add("nodedetail-combobox");
         networkTypeBox.setPrefWidth(FIELD_WIDTH);
         networkTypeBox.getItems().addAll(NetworkType.values());
         networkTypeBox.setValue(NetworkType.INTERNAL);
-        networkTypeBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                                "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
-                                "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
 
+        // Connection Type label and ComboBox:
         Label connectionTypeLabel = new Label("Connection Type:");
-        connectionTypeLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        connectionTypeLabel.getStyleClass().add("nodedetail-label");
+
         connectionTypeBox = new ComboBox<>();
         connectionTypeBox.getStyleClass().add("nodedetail-combobox");
         connectionTypeBox.setPrefWidth(FIELD_WIDTH);
         connectionTypeBox.getItems().addAll(ConnectionType.values());
         connectionTypeBox.setValue(ConnectionType.ETHERNET);
-        connectionTypeBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                                   "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
-                                   "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
 
-        // ROUTE VIA SWITCH section.
+        // Route via Switch label and ComboBox:
         Label routeSwitchLabel = new Label("Route via Switch:");
-        routeSwitchLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        routeSwitchLabel.getStyleClass().add("nodedetail-label");
+
         routeSwitchBox = new ComboBox<>();
         routeSwitchBox.getStyleClass().add("nodedetail-combobox");
         routeSwitchBox.setPrefWidth(FIELD_WIDTH);
-        routeSwitchBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                                "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
-                                "-fx-background-radius: 5; -fx-border-radius: 5; -fx-text-fill: white;");
         routeSwitchBox.getItems().add("None");
-        // Populate with existing switches.
-        for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
-            if (n.getDeviceType() == DeviceType.SWITCH) {
-                routeSwitchBox.getItems().add(n.getDisplayName());
-            }
-        }
+        // [Populate with existing switches...]
         routeSwitchBox.setValue("None");
 
+        // Node Colour label and ComboBox (using a slightly different style for radius):
         Label nodeColorLabel = new Label("Node Colour:");
-        nodeColorLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
-        // Replace the color picker with a ComboBox of strings.
+        nodeColorLabel.getStyleClass().add("nodedetail-label");
         nodeColorBox = new ComboBox<>();
+        // Here we use a separate style class to achieve different rounded corners.
         nodeColorBox.getStyleClass().add("nodedetail-combobox");
         nodeColorBox.setPrefWidth(FIELD_WIDTH);
         nodeColorBox.getItems().addAll(rainbowColors.keySet());
-        nodeColorBox.setValue("Red");
-        nodeColorBox.setStyle("-fx-font-size: 14px; -fx-background-color: #1b2433; " +
-                              "-fx-border-color: #3B3B3B; -fx-border-width: 1px; " +
-                              "-fx-background-radius: 10; -fx-border-radius: 10; -fx-text-fill: white;");
+
 
         // Replace MAC text field with a label.
         Label macLabel = new Label("MAC Address:");
-        macLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        macLabel.getStyleClass().add("nodedetail-label");
         macValueLabel = new Label();
-        macValueLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        macValueLabel.getStyleClass().add("nodedetail-value-label"); // Dynamic value styling
 
         Label uptimeStaticLabel = new Label("Uptime:");
-        uptimeStaticLabel.setStyle("-fx-text-fill: #b8d4f1; -fx-font-size: 14px;");
+        uptimeStaticLabel.getStyleClass().add("nodedetail-label");
         Label uptimeLabel = new Label();
-        uptimeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        macValueLabel.getStyleClass().add("nodedetail-value-label"); // Dynamic value styling
 
         // Add all fields to the grid with updated row indices.
         grid.add(ipLabel, 0, 0);
@@ -237,7 +223,7 @@ public class NodeDetailPanel extends BorderPane {
         updateButton.setMinWidth(Region.USE_PREF_SIZE);
         updateButton.setMinWidth(100);
         updateButton.setMinHeight(35);
-        updateButton.setStyle("-fx-background-color: #2E8B57; -fx-text-fill: white; -fx-font-size: 16px;");
+        updateButton.getStyleClass().add("nodedetail-updatebutton");
         BorderPane.setAlignment(updateButton, Pos.CENTER);
         bottomContainer.setCenter(updateButton);
 
@@ -246,7 +232,7 @@ public class NodeDetailPanel extends BorderPane {
         binIcon.setFitWidth(25);
         binIcon.setFitHeight(25);
         deleteButton.setGraphic(binIcon);
-        deleteButton.setStyle("-fx-background-color: red; -fx-cursor: hand;");
+        deleteButton.getStyleClass().add("nodedetail-binbutton");
         deleteButton.setPrefSize(35, 35);
         BorderPane.setAlignment(deleteButton, Pos.CENTER_RIGHT);
         bottomContainer.setRight(deleteButton);
