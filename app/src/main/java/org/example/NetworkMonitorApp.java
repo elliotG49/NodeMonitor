@@ -5,7 +5,6 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -63,13 +62,11 @@ public class NetworkMonitorApp extends Application {
         instance = this;
         this.primaryStage = primaryStage;
 
-        // Set a minimum window size.
         primaryStage.setMinWidth(1024);
         primaryStage.setMinHeight(768);
-        primaryStage.setTitle("Testing");
+        primaryStage.setTitle("Network Device Monitor");
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/node.png")));
 
-        // Ensure config directory exists.
         File configDir = new File(CONFIG_DIR);
         if (!configDir.exists()) {
             configDir.mkdirs();
@@ -89,28 +86,21 @@ public class NetworkMonitorApp extends Application {
 
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/styles/style.css").toExternalForm());
-        primaryStage.setTitle("Network Device Monitor");
         primaryStage.setScene(scene);
         primaryStage.show();
 
         prevSceneWidth = scene.getWidth();
         prevSceneHeight = scene.getHeight();
 
-        // Add the New Node Box to the bottom left.
         NewNodeBox newNodeBox = new NewNodeBox();
         spiderMapPane.getChildren().add(newNodeBox);
         newNodeBox.setLayoutX(10);
-        // (NewNodeBox anchors its Y internally via scene property listener)
 
-        // Add the Filter Box to the right of the NewNodeBox.
         FilterBox filterBox = new FilterBox();
         spiderMapPane.getChildren().add(filterBox);
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
-        // (FilterBox anchors its Y internally)
 
-        // Collapse any expanded boxes when clicking outside.
-        spiderMapPane.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
-            // Convert the click's scene coordinates to spiderMapPane coordinates.
+        spiderMapPane.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
             javafx.geometry.Point2D pt = spiderMapPane.sceneToLocal(event.getSceneX(), event.getSceneY());
             if (newNodeBox.isExpanded() && !newNodeBox.getBoundsInParent().contains(pt)) {
                 newNodeBox.collapse();
@@ -155,29 +145,6 @@ public class NetworkMonitorApp extends Application {
             prevSceneHeight = newHeight;
         });
 
-        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
-            double newWidth = newVal.doubleValue();
-            for (NetworkNode node : persistentNodes) {
-                if (node.getLayoutX() + node.getWidth() > newWidth) {
-                    node.setLayoutX(newWidth - node.getWidth());
-                }
-                if (node.getLayoutX() < 0) {
-                    node.setLayoutX(0);
-                }
-            }
-        });
-        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
-            double newHeight = newVal.doubleValue();
-            for (NetworkNode node : persistentNodes) {
-                if (node.getLayoutY() + node.getHeight() > newHeight) {
-                    node.setLayoutY(newHeight - node.getHeight());
-                }
-                if (node.getLayoutY() < 0) {
-                    node.setLayoutY(0);
-                }
-            }
-        });
-
         Timeline connectionTimeline = new Timeline(new KeyFrame(Duration.seconds(2), event -> {
             for (javafx.scene.Node node : spiderMapPane.getChildren()) {
                 if (node instanceof ConnectionLine) {
@@ -193,7 +160,6 @@ public class NetworkMonitorApp extends Application {
         instance.spiderMapPane.getChildren().forEach(child -> {
             if (child instanceof ConnectionLine) {
                 ConnectionLine line = (ConnectionLine) child;
-                // The connection line is visible only if both the source and target nodes are visible.
                 boolean bothVisible = line.getFrom().isVisible() && line.getTo().isVisible();
                 line.setVisible(bothVisible);
             }
@@ -202,7 +168,7 @@ public class NetworkMonitorApp extends Application {
     
     public static void removeNode(NetworkNode node) {
         instance.persistentNodes.remove(node);
-        instance.persistentNodesStatic.remove(node);
+        persistentNodesStatic.remove(node);
         instance.spiderMapPane.getChildren().remove(node);
         instance.spiderMapPane.getChildren().removeIf(child ->
             child instanceof ConnectionLine &&
@@ -213,11 +179,30 @@ public class NetworkMonitorApp extends Application {
     
     public static void addNewNode(NetworkNode node) {
         instance.persistentNodes.add(node);
-        instance.persistentNodesStatic.add(node);
+        persistentNodesStatic.add(node);
         instance.addDetailPanelHandler(node);
         instance.spiderMapPane.getChildren().add(node);
     
         if (!node.isMainNode()) {
+            // Check if node has a route switch configured.
+            if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                NetworkNode switchNode = null;
+                for (NetworkNode n : persistentNodesStatic) {
+                    if (n.getDeviceType() == DeviceType.SWITCH &&
+                        n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                        switchNode = n;
+                        break;
+                    }
+                }
+                if (switchNode != null) {
+                    ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
+                    line1.setLineColor(Color.GREY);
+                    ConnectionLine line2 = new ConnectionLine(switchNode, node);
+                    instance.spiderMapPane.getChildren().add(0, line1);
+                    instance.spiderMapPane.getChildren().add(0, line2);
+                    return;
+                }
+            }
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
@@ -232,110 +217,13 @@ public class NetworkMonitorApp extends Application {
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
-
-    private static class TracerouteOrigin {
-        NetworkNode node;
-        double x;
-        double y;
-        boolean isVirtual = false;
-    }
     
-    public static void performTraceroute(NetworkNode source) {
-        Pane spiderPane = instance.spiderMapPane;
-        
-        // Create/replace traceroute panel at top left.
-        StackPane rootStack = (StackPane) ((BorderPane) instance.primaryStage.getScene().getRoot()).getCenter();
-        rootStack.getChildren().removeIf(n -> n instanceof TraceroutePanel);
-        TraceroutePanel panel = new TraceroutePanel();
-        StackPane.setAlignment(panel, Pos.TOP_LEFT);
-        StackPane.setMargin(panel, new Insets(10));
-        rootStack.getChildren().add(panel);
-        
-        // Always use the HOST node as starting point.
-        final NetworkNode hostFinal;
-        NetworkNode tempHost = instance.getMainNodeByDisplayName("Host");
-        if (tempHost == null) {
-            hostFinal = source;
-        } else {
-            hostFinal = tempHost;
+    public static NetworkNode getUpstreamNode(NetworkNode node) {
+        if (node.getNetworkType() == NetworkType.INTERNAL) {
+            return instance.getMainNodeByDisplayName("Gateway");
         }
-        
-        final TracerouteOrigin origin = new TracerouteOrigin();
-        origin.node = hostFinal;
-        origin.x = hostFinal.getLayoutX() + hostFinal.getWidth() / 2;
-        origin.y = hostFinal.getLayoutY() + hostFinal.getHeight() / 2;
-        origin.isVirtual = false;
-        
-        final java.util.concurrent.atomic.AtomicInteger hopCounter = new java.util.concurrent.atomic.AtomicInteger(0);
-        final java.util.List<TracerouteLine> tracerouteLines = new java.util.ArrayList<>();
-        
-        String target = source.getIpOrHostname();
-        TracerouteTask task = new TracerouteTask(target);
-        
-        task.setHopCallback(hop -> {
-            int index = hopCounter.incrementAndGet();
-            panel.addHop("Hop " + index + ": " + hop);
-            
-            // Try to find a matching node.
-            NetworkNode targetNode = null;
-            for (NetworkNode node : getPersistentNodesStatic()) {
-                String nodeIp = (node.getResolvedIp() != null && !node.getResolvedIp().isEmpty())
-                    ? node.getResolvedIp() : node.getIpOrHostname();
-                if (nodeIp.equals(hop)) {
-                    targetNode = node;
-                    break;
-                }
-            }
-            
-            TracerouteLine tLine;
-            if (targetNode != null) {
-                // If the current origin is virtual (from a previous undef hop), use the origin coordinates.
-                if (origin.isVirtual) {
-                    tLine = new TracerouteLine(origin.x, origin.y, targetNode);
-                } else {
-                    tLine = new TracerouteLine(origin.node, targetNode);
-                }
-                // Update origin to the known node.
-                origin.node = targetNode;
-                origin.x = targetNode.getLayoutX() + targetNode.getWidth() / 2;
-                origin.y = targetNode.getLayoutY() + targetNode.getHeight() / 2;
-                origin.isVirtual = false;
-            } else {
-                // Unknown hop: always add rightward offset.
-                tLine = new TracerouteLine(origin.x, origin.y, hop, index - 1);
-                origin.x = origin.x + TracerouteLine.UNKNOWN_OFFSET;
-                // Mark origin as virtual.
-                origin.node = null;
-                origin.isVirtual = true;
-            }
-            // Set the line color (all lines use fixed color #C9EB78).
-            tLine.setLineColor(Color.web("#C9EB78"));
-            tracerouteLines.add(tLine);
-            spiderPane.getChildren().add(0, tLine);
-        });
-        
-        task.setOnSucceeded(e -> {
-            panel.addHop("Traceroute complete");
-            // After traceroute completes, wait 5 seconds then fade out all lines.
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.seconds(5));
-            pause.setOnFinished(ev -> {
-                for (TracerouteLine line : tracerouteLines) {
-                    line.startFadeOut();
-                }
-                panel.startFadeOut();
-            });
-            pause.play();
-        });
-        
-        task.setOnFailed(e -> {
-            System.err.println("Traceroute failed: " + task.getException());
-        });
-        
-        new Thread(task).start();
+        return instance.getMainNodeByDisplayName("Google DNS");
     }
-    
-
-    
     
     private void loadWindowSize() {
         try {
@@ -430,9 +318,7 @@ public class NetworkMonitorApp extends Application {
                             config.getDeviceType(),
                             config.getNetworkType()
                     );
-                    // Set the node size from the saved configuration.
                     node.setPrefSize(config.getWidth(), config.getHeight());
-                    // Update the inner layout to match the new size.
                     node.updateLayoutForSavedSize();
                     node.setLayoutX(absoluteX);
                     node.setLayoutY(absoluteY);
@@ -443,29 +329,49 @@ public class NetworkMonitorApp extends Application {
                     if (config.getConnectionType() != null) {
                         node.setConnectionType(config.getConnectionType());
                     }
+                    // Set the route switch value from config.
+                    node.setRouteSwitch(config.getRouteSwitch());
                     addDetailPanelHandler(node);
                     persistentNodes.add(node);
                     persistentNodesStatic.add(node);
                     spiderMapPane.getChildren().add(node);
-
+        
+                    // Create connection lines for non–main nodes.
                     if (!node.isMainNode()) {
-                        ConnectionLine connection;
-                        if (node.getConnectionType() == ConnectionType.VIRTUAL) {
-                            NetworkNode host = getMainNodeByDisplayName("Host");
-                            connection = new ConnectionLine(host, node);
-                        } else if (node.getNetworkType() == NetworkType.INTERNAL) {
-                            NetworkNode gateway = getMainNodeByDisplayName("Gateway");
-                            connection = new ConnectionLine(gateway, node);
+                        // Check if the node has a route switch configured.
+                        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                            NetworkNode switchNode = null;
+                            // Search for a switch in persistentNodesStatic with a matching display name.
+                            for (NetworkNode n : persistentNodesStatic) {
+                                if (n.getDeviceType() == DeviceType.SWITCH &&
+                                    n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                                    switchNode = n;
+                                    break;
+                                }
+                            }
+                            if (switchNode != null) {
+                                // Create two segments:
+                                // 1. From the upstream node (e.g. gateway) to the switch (grey line)
+                                ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
+                                line1.setLineColor(Color.GREY);
+                                // 2. From the switch to the node (status-based)
+                                ConnectionLine line2 = new ConnectionLine(switchNode, node);
+                                spiderMapPane.getChildren().add(0, line1);
+                                spiderMapPane.getChildren().add(0, line2);
+                            } else {
+                                // Fallback: if route switch is set but the switch node wasn't found, use default logic.
+                                addDefaultConnectionLine(node);
+                            }
                         } else {
-                            NetworkNode internet = getMainNodeByDisplayName("Google DNS");
-                            connection = new ConnectionLine(internet, node);
+                            // No route switch set: use default connection line.
+                            addDefaultConnectionLine(node);
                         }
-                        spiderMapPane.getChildren().add(0, connection);
                     }
                     node.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {
-                        // No additional action.
+                        // Additional actions if needed.
                     });
                 }
+                // Create connection lines among main nodes.
                 List<NetworkNode> mainNodes = new ArrayList<>();
                 for (NetworkNode node : persistentNodes) {
                     if (node.isMainNode()) {
@@ -482,43 +388,78 @@ public class NetworkMonitorApp extends Application {
             }
         });
     }
-
-    private void addDetailPanelHandler(NetworkNode node) {
-    node.setOnMouseClicked(e -> {
-        // Only trigger the detail panel on left-click (primary button)
-        if (e.getButton() != MouseButton.PRIMARY) {
-            return;
+    
+    /**
+     * Helper method to add a default connection line to a node (without a route switch).
+     */
+    private void addDefaultConnectionLine(NetworkNode node) {
+        ConnectionLine connection;
+        if (node.getConnectionType() == ConnectionType.VIRTUAL) {
+            NetworkNode host = getMainNodeByDisplayName("Host");
+            connection = new ConnectionLine(host, node);
+        } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+            NetworkNode gateway = getMainNodeByDisplayName("Gateway");
+            connection = new ConnectionLine(gateway, node);
+        } else {
+            NetworkNode internet = getMainNodeByDisplayName("Google DNS");
+            connection = new ConnectionLine(internet, node);
         }
-        StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
-        rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
-        NodeDetailPanel detailPanel = new NodeDetailPanel(node);
-        primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
-        detailPanel.showPanel();
-        StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(detailPanel, new Insets(20));
-        rootStack.getChildren().add(detailPanel);
-        javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent ev) {
-                if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
-                    detailPanel.hidePanel();
-                    rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
-                }
+        spiderMapPane.getChildren().add(0, connection);
+    }
+    
+    private void addDetailPanelHandler(NetworkNode node) {
+        node.setOnMouseClicked(e -> {
+            if (e.getButton() != MouseButton.PRIMARY) {
+                return;
             }
-        };
+            StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+            rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
+            NodeDetailPanel detailPanel = new NodeDetailPanel(node);
+            primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
+            detailPanel.showPanel();
+            StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
+            StackPane.setMargin(detailPanel, new Insets(20));
+            rootStack.getChildren().add(detailPanel);
+            javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent ev) {
+                    if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
+                        detailPanel.hidePanel();
+                        // Remove the filter using the local variable 'filter', not "this".
+                        rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
+                    }
+                }
+            };
             rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
         });
     }
 
     public static void updateConnectionLineForNode(NetworkNode node) {
-        // Remove existing connection lines targeting this node.
         instance.spiderMapPane.getChildren().removeIf(child ->
             child instanceof ConnectionLine && (((ConnectionLine) child).getTo() == node)
         );
         
-        // Create a new connection line if the node is not a main node.
         if (!node.isMainNode()) {
             ConnectionLine connection;
+            if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                // Find the switch node that matches the routeSwitch
+                NetworkNode switchNode = null;
+                for (NetworkNode n : persistentNodesStatic) {
+                    if (n.getDeviceType() == DeviceType.SWITCH &&
+                        n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                        switchNode = n;
+                        break;
+                    }
+                }
+                if (switchNode != null) {
+                    ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
+                    line1.setLineColor(Color.GREY); // grey for router-to-switch segment.
+                    ConnectionLine line2 = new ConnectionLine(switchNode, node);
+                    instance.spiderMapPane.getChildren().add(0, line1);
+                    instance.spiderMapPane.getChildren().add(0, line2);
+                    return;
+                }
+            }
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
                 connection = new ConnectionLine(host, node);
@@ -532,6 +473,7 @@ public class NetworkMonitorApp extends Application {
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
+    
 
     private void saveNodesToFile() {
         try {
@@ -544,22 +486,23 @@ public class NetworkMonitorApp extends Application {
                 double relativeX = node.getLayoutX() / paneWidth;
                 double relativeY = node.getLayoutY() / paneHeight;
                 System.out.println("Saving node: layoutX=" + node.getLayoutX() +
-                                   ", paneWidth=" + paneWidth + ", relativeX=" + relativeX);
-                NodeConfig config = new NodeConfig(
-                    node.getIpOrHostname(),
-                    node.getDisplayName(),
-                    node.getDeviceType(),
-                    node.getNetworkType(),
-                    node.getLayoutX(),
-                    node.getLayoutY(),
-                    relativeX,
-                    relativeY,
-                    node.isMainNode(),
-                    node.getOutlineColor(),
-                    node.getConnectionType(),
-                    node.getPrefWidth(), // Save current width
-                    node.getPrefHeight() // Save current height
-                );
+                                ", paneWidth=" + paneWidth + ", relativeX=" + relativeX);
+                                NodeConfig config = new NodeConfig(
+                                    node.getIpOrHostname(),
+                                    node.getDisplayName(),
+                                    node.getDeviceType(),
+                                    node.getNetworkType(),
+                                    node.getLayoutX(),
+                                    node.getLayoutY(),
+                                    relativeX,
+                                    relativeY,
+                                    node.isMainNode(),
+                                    node.getOutlineColor(),
+                                    node.getConnectionType(),
+                                    node.getPrefWidth(),
+                                    node.getPrefHeight(),
+                                    node.getRouteSwitch()  // Ensure this is passed!
+                                );
                 configs.add(config);
             }
             Gson gson = new Gson();
@@ -619,6 +562,7 @@ public class NetworkMonitorApp extends Application {
         });
     }
 
+    // Remove duplicate stop() method.
     @Override
     public void stop() throws Exception {
         saveNodesToFile();
@@ -627,6 +571,11 @@ public class NetworkMonitorApp extends Application {
         super.stop();
     }
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+    
+    // Helper: Get main node by display name.
     private NetworkNode getMainNodeByDisplayName(String name) {
         for (NetworkNode node : persistentNodes) {
             if (node.isMainNode() && node.getDisplayName().equalsIgnoreCase(name)) {
@@ -635,17 +584,106 @@ public class NetworkMonitorApp extends Application {
         }
         return null;
     }
-
+    
     public static List<NetworkNode> getPersistentNodesStatic() {
         return persistentNodesStatic;
     }
-
+    
     public static void removeZone(DrawableZone zone) {
         instance.zones.remove(zone);
         instance.saveZonesToFile();
     }
-
-    public static void main(String[] args) {
-        launch(args);
+    
+    // --- Traceroute functionality ---
+    private static class TracerouteOrigin {
+        NetworkNode node; // if defined; null if virtual.
+        double x;
+        double y;
+        boolean isVirtual = false;
+    }
+    
+    public static void performTraceroute(NetworkNode source) {
+        Pane spiderPane = instance.spiderMapPane;
+        
+        StackPane rootStack = (StackPane) ((BorderPane) instance.primaryStage.getScene().getRoot()).getCenter();
+        rootStack.getChildren().removeIf(n -> n instanceof TraceroutePanel);
+        TraceroutePanel panel = new TraceroutePanel();
+        StackPane.setAlignment(panel, Pos.TOP_LEFT);
+        StackPane.setMargin(panel, new Insets(10));
+        rootStack.getChildren().add(panel);
+        
+        final NetworkNode hostFinal;
+        NetworkNode tempHost = instance.getMainNodeByDisplayName("Host");
+        if (tempHost == null) {
+            hostFinal = source;
+        } else {
+            hostFinal = tempHost;
+        }
+        
+        final TracerouteOrigin origin = new TracerouteOrigin();
+        origin.node = hostFinal;
+        origin.x = hostFinal.getLayoutX() + hostFinal.getWidth() / 2;
+        origin.y = hostFinal.getLayoutY() + hostFinal.getHeight() / 2;
+        origin.isVirtual = false;
+        
+        final java.util.concurrent.atomic.AtomicInteger hopCounter = new java.util.concurrent.atomic.AtomicInteger(0);
+        final List<TracerouteLine> tracerouteLines = new ArrayList<>();
+        
+        String target = source.getIpOrHostname();
+        TracerouteTask task = new TracerouteTask(target);
+        
+        task.setHopCallback(hop -> {
+            int index = hopCounter.incrementAndGet();
+            panel.addHop("Hop " + index + ": " + hop);
+            
+            NetworkNode targetNode = null;
+            for (NetworkNode node : getPersistentNodesStatic()) {
+                String nodeIp = (node.getResolvedIp() != null && !node.getResolvedIp().isEmpty())
+                        ? node.getResolvedIp() : node.getIpOrHostname();
+                if (nodeIp.equals(hop)) {
+                    targetNode = node;
+                    break;
+                }
+            }
+            
+            TracerouteLine tLine;
+            if (targetNode != null) {
+                if (origin.isVirtual) {
+                    tLine = new TracerouteLine(origin.x, origin.y, targetNode);
+                } else {
+                    tLine = new TracerouteLine(origin.node, targetNode);
+                }
+                origin.node = targetNode;
+                origin.x = targetNode.getLayoutX() + targetNode.getWidth() / 2;
+                origin.y = targetNode.getLayoutY() + targetNode.getHeight() / 2;
+                origin.isVirtual = false;
+            } else {
+                tLine = new TracerouteLine(origin.x, origin.y, hop, index - 1);
+                origin.x = origin.x + TracerouteLine.UNKNOWN_OFFSET;
+                origin.node = null;
+                origin.isVirtual = true;
+            }
+            tLine.setLineColor(Color.web("#C9EB78"));
+            tracerouteLines.add(tLine);
+            spiderPane.getChildren().add(0, tLine);
+        });
+        
+        task.setOnSucceeded(e -> {
+            panel.addHop("Traceroute complete");
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.seconds(5));
+            pause.setOnFinished(ev -> {
+                for (TracerouteLine line : tracerouteLines) {
+                    line.startFadeOut();
+                }
+                panel.startFadeOut();
+            });
+            pause.play();
+        });
+        
+        task.setOnFailed(e -> {
+            System.err.println("Traceroute failed: " + task.getException());
+        });
+        
+        new Thread(task).start();
     }
 }

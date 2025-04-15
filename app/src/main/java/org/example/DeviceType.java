@@ -2,6 +2,7 @@ package org.example;
 
 public enum DeviceType {
     COMPUTER,
+    SWITCH,
     LAPTOP,
     SERVER,
     ROUTER,

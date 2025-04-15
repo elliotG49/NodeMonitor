@@ -1,14 +1,15 @@
 package org.example;
 
-import javafx.concurrent.Task;
-import javafx.application.Platform;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.function.Consumer;
+
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 
 public class TracerouteTask extends Task<List<String>> {
     private final String target;
@@ -27,7 +28,7 @@ public class TracerouteTask extends Task<List<String>> {
     protected List<String> call() throws Exception {
         List<String> hops = new ArrayList<>();
         // Windows-specific tracert command with parameters.
-        String command = "tracert -4 -h 10 -w 500 " + target;
+        String command = "tracert -4 -h 15 -w 500 " + target;
         Process process = Runtime.getRuntime().exec(command);
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String line;

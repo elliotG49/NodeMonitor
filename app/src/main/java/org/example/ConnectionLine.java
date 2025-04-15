@@ -3,13 +3,18 @@ package org.example;
 import javafx.animation.AnimationTimer;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.CubicCurve;
 import javafx.util.Duration;
+
 
 public class ConnectionLine extends Pane {
 
@@ -159,37 +164,77 @@ public class ConnectionLine extends Pane {
         ft.play();
     }
 
+    public void setLineColor(Color color) {
+        curve.setStroke(color);
+    }
+    
+
     public void updateStatus() {
-        new Thread(() -> {
-            try {
-                String ip = to.getIpOrHostname();
-                java.net.InetAddress address = java.net.InetAddress.getByName(ip);
-                long start = System.currentTimeMillis();
-                boolean reachable = address.isReachable(2000);
-                long elapsed = System.currentTimeMillis() - start;
-                Platform.runLater(() -> {
-                    connected = reachable;
-                    if (reachable) {
-                        curve.setStroke(Color.web("#2E8B57"));
-                        latencyLabel.setText(elapsed + " ms");
-                        latencyContainer.setVisible(true);
+    // If the target node is a switch, just set grey and hide the latency label.
+    if (to.getDeviceType() == DeviceType.SWITCH) {
+        Platform.runLater(() -> {
+            curve.setStroke(Color.GREY);
+            latencyLabel.setText("");
+            latencyContainer.setVisible(false);
+            connected = true;
+        });
+        return;
+    }
+    
+    new Thread(() -> {
+        try {
+            String ip = to.getIpOrHostname();
+            java.net.InetAddress address = java.net.InetAddress.getByName(ip);
+            long start = System.currentTimeMillis();
+            boolean reachable = address.isReachable(2000);
+            long elapsed = System.currentTimeMillis() - start;
+            Platform.runLater(() -> {
+                connected = reachable;
+                if (reachable) {
+                    // Use green stroke for reachable.
+                    curve.setStroke(Color.web("#2E8B57"));
+                    latencyLabel.setText(elapsed + " ms");
+                    
+                    // If the target is an internal node, add the connection type icon.
+                    if (to.getNetworkType() == NetworkType.INTERNAL) {
+                        ImageView icon = new ImageView();
+                        // Choose the appropriate icon based on the connection type.
+                        if (to.getConnectionType() == ConnectionType.ETHERNET || to.getConnectionType() == ConnectionType.VIRTUAL) {
+                            icon.setImage(new Image(getClass().getResourceAsStream("/icons/ethernet.png")));
+                        } else if (to.getConnectionType() == ConnectionType.WIRELESS) {
+                            icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
+                        }  
+                        icon.setFitWidth(18);
+                        icon.setFitHeight(18);
+                        
+                        // Create an HBox to hold the icon and the latency label.
+                        HBox hbox = new HBox(3);
+                        hbox.setAlignment(Pos.CENTER);
+                        hbox.getChildren().setAll(icon, latencyLabel);
+                        latencyContainer.getChildren().setAll(hbox);
                     } else {
-                        curve.setStroke(Color.RED);
-                        latencyLabel.setText("");
-                        latencyContainer.setVisible(false);
+                        // For non-internal nodes, just show the latency label.
+                        latencyContainer.getChildren().setAll(latencyLabel);
                     }
-                });
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Platform.runLater(() -> {
+                    latencyContainer.setVisible(true);
+                } else {
                     curve.setStroke(Color.RED);
-                    latencyLabel.setText("Error");
-                    connected = false;
+                    latencyLabel.setText("");
                     latencyContainer.setVisible(false);
+                }
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Platform.runLater(() -> {
+                curve.setStroke(Color.RED);
+                latencyLabel.setText("Error");
+                connected = false;
+                latencyContainer.setVisible(false);
                 });
-            }
+            }   
         }).start();
     }
+    
 
     public NetworkNode getFrom() {
         return from;

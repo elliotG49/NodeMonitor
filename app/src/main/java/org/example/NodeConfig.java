@@ -7,22 +7,20 @@ public class NodeConfig {
     private NetworkType networkType;
     private double layoutX;
     private double layoutY;
-    private double relativeX; // New field: value between 0.0 and 1.0
-    private double relativeY; // New field: value between 0.0 and 1.0
+    private double relativeX;
+    private double relativeY;
     private boolean mainNode;
-    private String nodeColour; // outline color
-    private ConnectionType connectionType; // connection type
-    private double width; // New field: node width
-    private double height; // New field: node height
+    private String nodeColour;
+    private ConnectionType connectionType;
+    private double width;
+    private double height;
+    private String routeSwitch;  // New field
 
-    public NodeConfig() {
-        // Default constructor for Gson
-    }
+    public NodeConfig() { }
 
     public NodeConfig(String ipOrHostname, String displayName, DeviceType deviceType, NetworkType networkType,
-                      double layoutX, double layoutY, double relativeX, double relativeY,
-                      boolean mainNode, String nodeColour, ConnectionType connectionType,
-                      double width, double height) {
+                    double layoutX, double layoutY, double relativeX, double relativeY, boolean mainNode,
+                    String nodeColour, ConnectionType connectionType, double width, double height, String routeSwitch) {
         this.ipOrHostname = ipOrHostname;
         this.displayName = displayName;
         this.deviceType = deviceType;
@@ -36,6 +34,15 @@ public class NodeConfig {
         this.connectionType = connectionType;
         this.width = width;
         this.height = height;
+        this.routeSwitch = routeSwitch;
+    }
+
+    public String getRouteSwitch() {
+        return routeSwitch;
+    }
+
+    public void setRouteSwitch(String routeSwitch) {
+        this.routeSwitch = routeSwitch;
     }
 
     public String getIpOrHostname() {

@@ -31,6 +31,7 @@ public class NetworkNode extends Pane {
     private NetworkType networkType;
     private boolean mainNode = false;
     private ObjectProperty<Color> outlineColorProperty = new SimpleObjectProperty<>(Color.web("#3B3B3B"));
+    private String routeSwitch = ""; // default value
 
     // Field for connection type; default to Ethernet.
     private ConnectionType connectionType = ConnectionType.ETHERNET;
@@ -80,6 +81,14 @@ public class NetworkNode extends Pane {
         this.networkType = networkType;
         this.startTime = System.currentTimeMillis();
         initialize();
+    }
+
+    public String getRouteSwitch() {
+        return routeSwitch;
+    }
+    
+    public void setRouteSwitch(String routeSwitch) {
+        this.routeSwitch = routeSwitch;
     }
     
     private void initialize() {
@@ -251,6 +260,7 @@ public class NetworkNode extends Pane {
     private String getIconFileName() {
         switch (deviceType) {
             case COMPUTER: return "host.png";
+            case SWITCH: return "switch.png";
             case LAPTOP: return "laptop.png";
             case SERVER: return "server.png";
             case ROUTER: return "internet.png";

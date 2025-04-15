@@ -9,13 +9,9 @@
 
 .nodedetail-header {
     -fx-font-size: 16px;
-    -fx-text-fill: white;
+    -fx-text-fill: green;
     -fx-font-weight: bold;
-    -fx-padding: 10px
-}
-
-.nodedetail-grid {
-    /* Additional grid styling can be added here if needed */
+    -fx-padding: 10px;
 }
 
 .nodedetail-label {
@@ -26,30 +22,52 @@
 .nodedetail-textfield {
     -fx-font-size: 10px;
     -fx-pref-width: 100px;
+    -fx-text-fill: white;
 }
 
 .nodedetail-combobox {
     -fx-font-size: 10px;
-    -fx-pref-width: 100px;
-}
-
-.nodedetail-colorpicker {
-    -fx-pref-width: 100px;
-}
-
-.nodedetail-uptime {
+    -fx-pref-width: 200px;
     -fx-text-fill: white;
-    -fx-font-size: 10px;
 }
+
 
 .nodedetail-update-button {
     -fx-background-color: rgb(58, 248, 0);
     -fx-text-fill: white;
     -fx-font-size: 12px;
     -fx-padding: 5px 20px;
+
 }
 
-/* When update button is enabled, you can add a pseudo-class styling, e.g., */
-/* .nodedetail-update-button:enabled { */
-/*     -fx-background-color: green; */
-/* } */
+.nodedetail-combobox .list-cell,
+.nodedetail-combobox .button {
+    -fx-text-fill: white;
+}
+
+.nodedetail-combobox .list-view {
+    -fx-background-color: #1b2433; /* set the background of the list */
+    -fx-border-color: #3B3B3B;
+    -fx-border-width: 1px;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5px;
+}
+
+/* Style each cell in the dropdown */
+.nodedetail-combobox .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-padding: 5px;
+}
+
+/* Style for selected cells */
+.nodedetail-combobox .list-cell:selected,
+.nodedetail-combobox .list-cell:filled:selected {
+    -fx-background-color: #1b2433;
+    -fx-text-fill: white;
+}
+
+.nodedetail-combobox .list-cell:hover {
+    -fx-background-color: #313d3d;
+    -fx-text-fill: white;
+}
