@@ -188,26 +188,26 @@ public class NetworkMonitorApp extends Application {
         instance.addDetailPanelHandler(node);
         instance.spiderMapPane.getChildren().add(node);
     
-        if (!node.isMainNode()) {
-            // Check if node has a route switch configured.
-            if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-                NetworkNode switchNode = null;
-                for (NetworkNode n : persistentNodesStatic) {
-                    if (n.getDeviceType() == DeviceType.SWITCH &&
-                        n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
-                        switchNode = n;
-                        break;
-                    }
-                }
-                if (switchNode != null) {
-                    ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
-                    line1.setLineColor(Color.GREY);
-                    ConnectionLine line2 = new ConnectionLine(switchNode, node);
-                    instance.spiderMapPane.getChildren().add(0, line1);
-                    instance.spiderMapPane.getChildren().add(0, line2);
-                    return;
+        // ── If the user specified a routeSwitch, always draw ONE green line: switch → node ──
+        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+            NetworkNode switchNode = null;
+            for (NetworkNode n : persistentNodesStatic) {
+                if (n.getDeviceType() == DeviceType.SWITCH
+                 && n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                    switchNode = n;
+                    break;
                 }
             }
+            if (switchNode != null) {
+                // one ping‑monitored link from the switch into this node
+                ConnectionLine line = new ConnectionLine(switchNode, node);
+                instance.spiderMapPane.getChildren().add(0, line);
+                return;
+            }
+        }
+    
+        // ── Fallback: unchanged logic for non‑main nodes without a routeSwitch ──
+        if (!node.isMainNode()) {
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
@@ -377,8 +377,7 @@ public class NetworkMonitorApp extends Application {
                 }
                 // --- Deferred update: Iterate through nodes with a route switch and update their connection lines ---
                 for (NetworkNode node : persistentNodes) {
-                    if (!node.isMainNode() &&
-                        node.getRouteSwitch() != null &&
+                    if (node.getRouteSwitch() != null &&
                         !node.getRouteSwitch().isEmpty()) {
                         updateConnectionLineForNode(node);
                     }
@@ -436,31 +435,33 @@ public class NetworkMonitorApp extends Application {
     }
 
     public static void updateConnectionLineForNode(NetworkNode node) {
+        // 1) Remove any existing lines involving this node (from or to)
         instance.spiderMapPane.getChildren().removeIf(child ->
-            child instanceof ConnectionLine && (((ConnectionLine) child).getTo() == node)
+            child instanceof ConnectionLine && (
+                ((ConnectionLine) child).getFrom() == node ||
+                ((ConnectionLine) child).getTo()   == node
+            )
         );
-        
-        if (!node.isMainNode()) {
-            // Check for a route switch.
-            if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-                NetworkNode switchNode = null;
-                for (NetworkNode n : persistentNodesStatic) {
-                    if (n.getDeviceType() == DeviceType.SWITCH &&
-                        n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
-                        switchNode = n;
-                        break;
-                    }
-                }
-                if (switchNode != null) {
-                    ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
-                    line1.setLineColor(Color.GREY); // Indicates a route (status not monitored)
-                    ConnectionLine line2 = new ConnectionLine(switchNode, node);
-                    instance.spiderMapPane.getChildren().add(0, line1);
-                    instance.spiderMapPane.getChildren().add(0, line2);
-                    return;
+    
+        // 2) If a routeSwitch is set, draw ONE ping‑monitored line: switch → node
+        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+            NetworkNode switchNode = null;
+            for (NetworkNode n : persistentNodesStatic) {
+                if (n.getDeviceType() == DeviceType.SWITCH
+                 && n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                    switchNode = n;
+                    break;
                 }
             }
-            // Default connection line logic.
+            if (switchNode != null) {
+                ConnectionLine line = new ConnectionLine(switchNode, node);
+                instance.spiderMapPane.getChildren().add(0, line);
+                return;
+            }
+        }
+    
+        // 3) Fallback for non‑main nodes without routeSwitch
+        if (!node.isMainNode()) {
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
@@ -475,6 +476,7 @@ public class NetworkMonitorApp extends Application {
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
+    
     
 
     private void saveNodesToFile() {

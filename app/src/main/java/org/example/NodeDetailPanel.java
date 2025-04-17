@@ -200,6 +200,9 @@ public class NodeDetailPanel extends BorderPane {
         displayNameField.setText(node.getDisplayName());
         deviceTypeBox.setValue(node.getDeviceType());
         networkTypeBox.setValue(node.getNetworkType());
+        if (node.isMainNode()) {
+            networkTypeBox.setDisable(true);
+        }
         connectionTypeBox.setValue(node.getConnectionType());
         if (node.getRouteSwitch() == null || node.getRouteSwitch().isEmpty()) {
             routeSwitchBox.setValue("None");

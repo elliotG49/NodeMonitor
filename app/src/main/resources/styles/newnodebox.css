@@ -1,17 +1,13 @@
 /* Overall container for NewNodeBox */
 .newnodebox-panel {
-    -fx-background-color: #5593a5;
+    -fx-background-color: #6fa2b1;
     -fx-border-radius: 10px;
     -fx-background-radius: 10px;
-
 }
 
 .newnodebox-panel.expanded {
-    -fx-background-color: #0D1317;
+    -fx-background-color: #2e383c;
     -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
-    -fx-border-width: 1px;
-    -fx-border-color: #424242;
     -fx-effect: dropshadow(gaussian, rgba(17, 17, 17, 0.25), 10, 0.5, 0, 0);
 }
 
@@ -55,15 +51,15 @@
     -fx-background-color: #0D1317;
     -fx-border-size: 1px;
     -fx-border-color: #424242;
-    -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
+    -fx-background-radius: 15px;
+    -fx-border-radius: 15px;
     -fx-text-fill: white;
 }
 
 .newnodebox-textfield:hover {
     -fx-font-size: 14px;
-    -fx-border-color: #6564DB;
-    -fx-background-radius: 5;
+    -fx-border-color: #5593a5;
+    -fx-background-radius: 15px;
     -fx-text-fill: white;
 }
 
@@ -72,14 +68,14 @@
     -fx-background-color: #0D1317;
     -fx-border-size: 1px;
     -fx-border-color: #424242;
-    -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
+    -fx-background-radius: 15px;
+    -fx-border-radius: 15px;
     -fx-text-fill: white; /* Text inside the field remains white */
 }
 
 .newnodebox-combobox:hover {
     -fx-border-size: 1px;
-    -fx-border-color: #6564DB;
+    -fx-border-color: #5593a5;
 }
 
 
@@ -90,11 +86,11 @@
 /* Style for the drop-down list container can be left transparent so each cell's style shows */
 .newnodebox-combobox .list-view {
     -fx-background-color: transparent;
-    -fx-background-radius: 5;
+    -fx-background-radius: 15px;
 }
 
 .newnodebox-combobox .list-cell:hover {
-    -fx-background-color: #7A7BE0;
+    -fx-background-color: #5593a5;
     -fx-text-fill: black;
 }
 
@@ -119,11 +115,11 @@
 /* Buttons in NewNodeBox */
 .newnodebox-create-button {
     -fx-background-insets: 0; /* Ensure background extends fully */
-    -fx-background-color: #121A20;
-    -fx-border-radius: 10px;
-    -fx-background-radius: 10px;
+    -fx-background-color: #121A15;
+    -fx-border-radius: 15px;
+    -fx-background-radius: 15px;
     -fx-border-size: 1px;
-    -fx-border-color: #6564DB;
+    -fx-border-color: #6fa2b1;
     -fx-text-fill: white;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
@@ -131,7 +127,7 @@
 }
 
 .newnodebox-create-button:hover {
-    -fx-background-color: #6564DB;
+    -fx-background-color: #6fa2b1;
     -fx-border-size: 0px;
     -fx-text-fill: white;
     -fx-font-size: 16px;

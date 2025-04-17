@@ -204,11 +204,11 @@ public class ConnectionLine extends Pane {
                         } else if (to.getConnectionType() == ConnectionType.WIRELESS) {
                             icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
                         }  
-                        icon.setFitWidth(18);
-                        icon.setFitHeight(18);
+                        icon.setFitWidth(15);
+                        icon.setFitHeight(15);
                         
                         // Create an HBox to hold the icon and the latency label.
-                        HBox hbox = new HBox(3);
+                        HBox hbox = new HBox(5);
                         hbox.setAlignment(Pos.CENTER);
                         hbox.getChildren().setAll(icon, latencyLabel);
                         latencyContainer.getChildren().setAll(hbox);

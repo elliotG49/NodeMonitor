@@ -97,6 +97,7 @@ public class NewNodeBox extends StackPane {
         HBox nameControlContainer = new HBox();
         nameControlContainer.setAlignment(Pos.CENTER);
         displayNameField = new TextField();
+        displayNameField.setPromptText("eg PC-1");
         displayNameField.setPrefWidth(FIELD_WIDTH);
         displayNameField.setMinWidth(FIELD_WIDTH);
         displayNameField.setMaxWidth(FIELD_WIDTH);
@@ -113,10 +114,11 @@ public class NewNodeBox extends StackPane {
         HBox ipControlContainer = new HBox();
         ipControlContainer.setAlignment(Pos.CENTER);
         ipField = new TextField();
+        ipField.setPromptText("eg 192.168.1.1");
         ipField.setPrefWidth(FIELD_WIDTH);
         ipField.setMinWidth(FIELD_WIDTH);
         ipField.setMaxWidth(FIELD_WIDTH);
-        ipField.setPromptText("");
+        ipField.setPromptText("eg 192.168.1.1");
         ipField.getStyleClass().add("newnodebox-textfield");
         ipControlContainer.getChildren().add(ipField);
         ipSection.getChildren().addAll(ipLabel, ipControlContainer);
