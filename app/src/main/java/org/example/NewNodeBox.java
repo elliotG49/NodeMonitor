@@ -1,10 +1,9 @@
 package org.example;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
+import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -19,14 +18,15 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
+
 public class NewNodeBox extends StackPane {
     private final double FIELD_WIDTH = 200;
-    private final double WIDTH = 150;
+    private final double WIDTH = 50;
     private final double MIN_HEIGHT = 50;
     // Expanded height remains the same.
-    private final double EXPANDED_HEIGHT = 425;
+    private final double EXPANDED_HEIGHT = 575;
     // Expanded width updated to match NodeDetailPanel (350).
-    private final double EXPANDED_WIDTH = 350;
+    private final double EXPANDED_WIDTH = 250;
     private final double NODE_BOX_GAP = 10;
     private boolean expanded = false;
 
@@ -40,164 +40,184 @@ public class NewNodeBox extends StackPane {
     private ComboBox<DeviceType> deviceTypeBox;
     private ComboBox<NetworkType> networkTypeBox;
     private ComboBox<ConnectionType> connectionTypeBox;
-    private ComboBox<String> nodeColorBox;
+    // Removed nodeColorBox.
     private ComboBox<String> routeSwitchBox;
 
-    private Button createButton;
-    private Button cancelButton;
+    private final Button createButton;
 
-    // Local mapping of rainbow colour names to Color objects.
-    private Map<String, javafx.scene.paint.Color> rainbowColors = new HashMap<>();
 
     public NewNodeBox() {
-        // Setup rainbowColors mapping.
-        rainbowColors.put("White", javafx.scene.paint.Color.WHITE);
-        rainbowColors.put("Red", javafx.scene.paint.Color.RED);
-        rainbowColors.put("Orange", javafx.scene.paint.Color.ORANGE);
-        rainbowColors.put("Yellow", javafx.scene.paint.Color.YELLOW);
-        rainbowColors.put("Green", javafx.scene.paint.Color.GREEN);
-        rainbowColors.put("Blue", javafx.scene.paint.Color.BLUE);
-        rainbowColors.put("Indigo", javafx.scene.paint.Color.INDIGO);
-        rainbowColors.put("Violet", javafx.scene.paint.Color.VIOLET);
-
-        // Remove inline styles and instead add style classes.
         setPrefWidth(WIDTH);
         setPrefHeight(MIN_HEIGHT);
         getStyleClass().add("newnodebox-panel");
 
         // Minimized label.
-        minimizedLabel = new Label("Add Node");
+        minimizedLabel = new Label("+");
         minimizedLabel.getStyleClass().add("newnodebox-minimized-label");
         setAlignment(minimizedLabel, Pos.CENTER);
         getChildren().add(minimizedLabel);
 
         // Build expanded view.
         contentBox = new VBox(NODE_BOX_GAP);
-        contentBox.setPadding(new Insets(NODE_BOX_GAP));
         contentBox.getStyleClass().add("newnodebox-content-box");
         contentBox.setAlignment(Pos.TOP_CENTER);
 
         // Header section.
+        // Header section.
         VBox headerBox = new VBox();
         headerBox.getStyleClass().add("newnodebox-header-box");
         Label titleLabel = new Label("Add Node");
+        VBox.setMargin(headerBox, new Insets(0, 20, 0, 20));  // 25px from far left edge
         titleLabel.getStyleClass().add("newnodebox-title-label");
+        titleLabel.setAlignment(Pos.CENTER);
         headerBox.getChildren().add(titleLabel);
 
-        // Create horizontal sections for each field.
-        // Define a standard label width.
-        double labelWidth = 120;
-        
-        // DEVICE TYPE Section.
-        HBox deviceSection = new HBox(10);
-        deviceSection.setAlignment(Pos.CENTER_LEFT);
+                // DEVICE TYPE Section.
+        VBox deviceSection = new VBox(10);
+        deviceSection.setAlignment(Pos.TOP_LEFT);  // Let the VBox align its children to the left by default.
         Label deviceLabel = new Label("Device Type:");
-        deviceLabel.setPrefWidth(labelWidth);
         deviceLabel.getStyleClass().add("newnodebox-label");
+        VBox.setMargin(deviceLabel, new Insets(0, 0, 0, 25));  // 25px from far left edge
+        // Create an HBox to center the control.
+        HBox deviceControlContainer = new HBox();
+        deviceControlContainer.setAlignment(Pos.CENTER);
         deviceTypeBox = new ComboBox<>();
         deviceTypeBox.getStyleClass().add("newnodebox-combobox");
         deviceTypeBox.setPrefWidth(FIELD_WIDTH);
         deviceTypeBox.getItems().addAll(DeviceType.values());
-        deviceSection.getChildren().addAll(deviceLabel, deviceTypeBox);
+        deviceControlContainer.getChildren().add(deviceTypeBox);
+        deviceSection.getChildren().addAll(deviceLabel, deviceControlContainer);
 
         // DISPLAY NAME Section.
-        HBox nameSection = new HBox(10);
-        nameSection.setAlignment(Pos.CENTER_LEFT);
+        VBox nameSection = new VBox(10);
+        nameSection.setAlignment(Pos.TOP_LEFT);
         Label nameLabel = new Label("Display Name:");
-        nameLabel.setPrefWidth(labelWidth);
         nameLabel.getStyleClass().add("newnodebox-label");
+        VBox.setMargin(nameLabel, new Insets(0, 0, 0, 25));
+        HBox nameControlContainer = new HBox();
+        nameControlContainer.setAlignment(Pos.CENTER);
         displayNameField = new TextField();
         displayNameField.setPrefWidth(FIELD_WIDTH);
+        displayNameField.setMinWidth(FIELD_WIDTH);
+        displayNameField.setMaxWidth(FIELD_WIDTH);
         displayNameField.getStyleClass().add("newnodebox-textfield");
-        nameSection.getChildren().addAll(nameLabel, displayNameField);
+        nameControlContainer.getChildren().add(displayNameField);
+        nameSection.getChildren().addAll(nameLabel, nameControlContainer);
 
         // HOSTNAME/IP Section.
-        HBox ipSection = new HBox(10);
-        ipSection.setAlignment(Pos.CENTER_LEFT);
+        VBox ipSection = new VBox(10);
+        ipSection.setAlignment(Pos.TOP_LEFT);
         Label ipLabel = new Label("Hostname/IP:");
-        ipLabel.setPrefWidth(labelWidth);
         ipLabel.getStyleClass().add("newnodebox-label");
+        VBox.setMargin(ipLabel, new Insets(0, 0, 0, 25));
+        HBox ipControlContainer = new HBox();
+        ipControlContainer.setAlignment(Pos.CENTER);
         ipField = new TextField();
         ipField.setPrefWidth(FIELD_WIDTH);
+        ipField.setMinWidth(FIELD_WIDTH);
+        ipField.setMaxWidth(FIELD_WIDTH);
         ipField.setPromptText("");
         ipField.getStyleClass().add("newnodebox-textfield");
-        ipSection.getChildren().addAll(ipLabel, ipField);
+        ipControlContainer.getChildren().add(ipField);
+        ipSection.getChildren().addAll(ipLabel, ipControlContainer);
 
         // NETWORK TYPE Section.
-        HBox networkSection = new HBox(10);
-        networkSection.setAlignment(Pos.CENTER_LEFT);
+        VBox networkSection = new VBox(10);
+        networkSection.setAlignment(Pos.TOP_LEFT);
         Label networkLabel = new Label("Network Type:");
-        networkLabel.setPrefWidth(labelWidth);
         networkLabel.getStyleClass().add("newnodebox-label");
+        VBox.setMargin(networkLabel, new Insets(0, 0, 0, 25));
+        HBox networkControlContainer = new HBox();
+        networkControlContainer.setAlignment(Pos.CENTER);
         networkTypeBox = new ComboBox<>();
         networkTypeBox.getStyleClass().add("newnodebox-combobox");
         networkTypeBox.setPrefWidth(FIELD_WIDTH);
         networkTypeBox.getItems().addAll(NetworkType.values());
-        networkSection.getChildren().addAll(networkLabel, networkTypeBox);
+        networkControlContainer.getChildren().add(networkTypeBox);
+        networkSection.getChildren().addAll(networkLabel, networkControlContainer);
 
         // ROUTE VIA SWITCH Section.
-        HBox routeSection = new HBox(10);
-        routeSection.setAlignment(Pos.CENTER_LEFT);
+        VBox routeSection = new VBox(10);
+        routeSection.setAlignment(Pos.TOP_LEFT);
         Label routeLabel = new Label("Network Route:");
-        routeLabel.setPrefWidth(labelWidth);
         routeLabel.getStyleClass().add("newnodebox-label");
+        VBox.setMargin(routeLabel, new Insets(0, 0, 0, 25));
+        HBox routeControlContainer = new HBox();
+        routeControlContainer.setAlignment(Pos.CENTER);
         routeSwitchBox = new ComboBox<>();
         routeSwitchBox.getStyleClass().add("newnodebox-combobox");
         routeSwitchBox.setPrefWidth(FIELD_WIDTH);
         updateRouteSwitchList();
         routeSwitchBox.setValue("None");
-        routeSection.getChildren().addAll(routeLabel, routeSwitchBox);
+        routeControlContainer.getChildren().add(routeSwitchBox);
+        routeSection.getChildren().addAll(routeLabel, routeControlContainer);
 
         // CONNECTION TYPE Section.
-        HBox connectionSection = new HBox(10);
-        connectionSection.setAlignment(Pos.CENTER_LEFT);
+        VBox connectionSection = new VBox(10);
+        connectionSection.setAlignment(Pos.TOP_LEFT);
         Label connectionLabel = new Label("Connection Type:");
-        connectionLabel.setPrefWidth(labelWidth);
         connectionLabel.getStyleClass().add("newnodebox-label");
+        VBox.setMargin(connectionLabel, new Insets(0, 0, 0, 25));
+        HBox connectionControlContainer = new HBox();
+        connectionControlContainer.setAlignment(Pos.CENTER);
         connectionTypeBox = new ComboBox<>();
         connectionTypeBox.getStyleClass().add("newnodebox-combobox");
         connectionTypeBox.setPrefWidth(FIELD_WIDTH);
         connectionTypeBox.getItems().addAll(ConnectionType.values());
-        connectionSection.getChildren().addAll(connectionLabel, connectionTypeBox);
+        connectionControlContainer.getChildren().add(connectionTypeBox);
+        connectionSection.getChildren().addAll(connectionLabel, connectionControlContainer);
 
-        // NODE COLOUR Section.
-        HBox colorSection = new HBox(10);
-        colorSection.setAlignment(Pos.CENTER_LEFT);
-        Label colorLabel = new Label("Node Colour:");
-        colorLabel.setPrefWidth(labelWidth);
-        colorLabel.getStyleClass().add("newnodebox-label");
-        nodeColorBox = new ComboBox<>();
-        nodeColorBox.getStyleClass().add("newnodebox-combobox");
-        nodeColorBox.setPrefWidth(FIELD_WIDTH);
-        nodeColorBox.getItems().addAll(rainbowColors.keySet());
-        nodeColorBox.setValue("White");
-        colorSection.getChildren().addAll(colorLabel, nodeColorBox);
+
 
         // Button container.
-        HBox buttonBox = new HBox(10);
-        VBox.setMargin(buttonBox, new Insets(10, 0, 0, 0));
-        buttonBox.setAlignment(Pos.CENTER);
+        VBox buttonSection = new VBox(10);
+        buttonSection.setAlignment(Pos.CENTER);
         createButton = new Button("Create");
+        VBox.setMargin(createButton, new Insets(20, 0, 0, 0));
         createButton.getStyleClass().add("newnodebox-create-button");
+        createButton.setPrefWidth(150);
         createButton.setDisable(true);
-        cancelButton = new Button("Cancel");
-        cancelButton.getStyleClass().add("newnodebox-cancel-button");
-        cancelButton.setOnAction(e -> collapse());
-        buttonBox.getChildren().addAll(createButton, cancelButton);
+        buttonSection.getChildren().addAll(createButton);
 
         // Assemble all sections into the content box.
-        contentBox.getChildren().addAll(headerBox, deviceSection, nameSection, ipSection, networkSection, routeSection, connectionSection, colorSection, buttonBox);
+        contentBox.getChildren().addAll(headerBox, deviceSection, nameSection, ipSection, networkSection, routeSection, connectionSection, buttonSection);
 
-        // Attach listeners to update the create button state.
+        contentBox.setAlignment(Pos.TOP_CENTER);
+
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null && getParent() != null) {
+                layoutYProperty().bind(((Region) getParent()).heightProperty()
+                        .subtract(prefHeightProperty())
+                        .subtract(15));
+            }
+        });
+
+        createButton.setOnAction(e -> {
+            String ip = ipField.getText().trim();
+            String displayName = displayNameField.getText().trim();
+            DeviceType deviceType = deviceTypeBox.getValue();
+            NetworkType networkType = networkTypeBox.getValue();
+            ConnectionType connectionType = connectionTypeBox.getValue();
+            String routeSwitch = routeSwitchBox.getValue();
+            if ("None".equals(routeSwitch)) {
+                routeSwitch = "";
+            }
+            NetworkNode newNode = new NetworkNode(ip, displayName, deviceType, networkType);
+            newNode.setConnectionType(connectionType);
+            newNode.setRouteSwitch(routeSwitch);
+            NetworkMonitorApp.addNewNode(newNode);
+            collapse();
+
+            
+        });
+
         ipField.textProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
         displayNameField.textProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
         deviceTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
         networkTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
         connectionTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-        nodeColorBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
         routeSwitchBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
 
-        // Set up expand/collapse logic.
         setOnMouseClicked(e -> {
             if (!expanded) {
                 expand();
@@ -208,44 +228,36 @@ public class NewNodeBox extends StackPane {
                 collapse();
             }
         });
-        
-        // Bind layoutY to position the box at the bottom.
-        sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene != null && getParent() != null) {
-                layoutYProperty().bind(((Region) getParent()).heightProperty()
-                        .subtract(prefHeightProperty())
-                        .subtract(15));
+        // ――― Hover + Press effects ―――
+        this.setOnMouseEntered(e -> {
+            if (!expanded) {
+                ScaleTransition st = new ScaleTransition(Duration.millis(200), this);
+                st.setToX(1.05);
+                st.setToY(1.05);
+                st.play();
             }
+        });
+        this.setOnMouseExited(e -> {
+            if (!expanded) {
+                ScaleTransition st = new ScaleTransition(Duration.millis(200), this);
+                st.setToX(1.0);
+                st.setToY(1.0);
+                st.play();
+            }
+        });
+        this.setOnMousePressed(e -> {
+            ScaleTransition st = new ScaleTransition(Duration.millis(100), this);
+            st.setToX(0.95);
+            st.setToY(0.95);
+            st.play();
+        });
+        this.setOnMouseReleased(e -> {
+            ScaleTransition st = new ScaleTransition(Duration.millis(100), this);
+            st.setToX(1.0);
+            st.setToY(1.0);
+            st.play();
         });
 
-        // Set action for create button to create a new node.
-        createButton.setOnAction(e -> {
-            String ip = ipField.getText().trim();
-            String displayName = displayNameField.getText().trim();
-            DeviceType deviceType = deviceTypeBox.getValue();
-            NetworkType networkType = networkTypeBox.getValue();
-            ConnectionType connectionType = connectionTypeBox.getValue();
-            String colorName = nodeColorBox.getValue();
-            String routeSwitch = routeSwitchBox.getValue();
-            if ("None".equals(routeSwitch)) {
-                routeSwitch = "";
-            }
-            // Convert color name to hex.
-            javafx.scene.paint.Color color = rainbowColors.get(colorName);
-            String hexColor = String.format("#%02X%02X%02X",
-                    (int)(color.getRed() * 255),
-                    (int)(color.getGreen() * 255),
-                    (int)(color.getBlue() * 255));
-            
-            // Create the new node.
-            NetworkNode newNode = new NetworkNode(ip, displayName, deviceType, networkType);
-            newNode.setConnectionType(connectionType);
-            newNode.setOutlineColor(hexColor);
-            newNode.setRouteSwitch(routeSwitch);
-            NetworkMonitorApp.addNewNode(newNode);
-            // Optionally, collapse the box after creation.
-            collapse();
-        });
     }
     
     private void updateRouteSwitchList() {
@@ -264,17 +276,22 @@ public class NewNodeBox extends StackPane {
                 && deviceTypeBox.getValue() != null
                 && networkTypeBox.getValue() != null
                 && connectionTypeBox.getValue() != null
-                && nodeColorBox.getValue() != null
                 && routeSwitchBox.getValue() != null;
         createButton.setDisable(!enable);
     }
     
     private void expand() {
+    // Delay the expand animation by 100ms
+    PauseTransition delay = new PauseTransition(Duration.millis(100));
+    delay.setOnFinished(evt -> {
         updateRouteSwitchList();
         expanded = true;
-        // Remove any collapsed style if present.
         getStyleClass().remove("collapsed");
+        if (!getStyleClass().contains("expanded")) {
+            getStyleClass().add("expanded");
+        }
         getChildren().remove(minimizedLabel);
+
         Timeline expandTimeline = new Timeline();
         KeyValue kvHeight = new KeyValue(prefHeightProperty(), EXPANDED_HEIGHT);
         KeyValue kvWidth = new KeyValue(prefWidthProperty(), EXPANDED_WIDTH);
@@ -287,14 +304,20 @@ public class NewNodeBox extends StackPane {
             this.requestFocus();
         });
         expandTimeline.play();
-    }
+    });
+    delay.play();
+}
+
+    
+    
     
     public void collapse() {
         expanded = false;
-        // When collapsing, add the "collapsed" style class.
         if (!getStyleClass().contains("collapsed")) {
             getStyleClass().add("collapsed");
         }
+        // Remove the "expanded" style class
+        getStyleClass().remove("expanded");
         getChildren().remove(contentBox);
         Timeline collapseTimeline = new Timeline();
         KeyValue kvHeight = new KeyValue(prefHeightProperty(), MIN_HEIGHT);
@@ -308,6 +331,7 @@ public class NewNodeBox extends StackPane {
         });
         collapseTimeline.play();
     }
+    
     
     public boolean isExpanded() {
         return expanded;

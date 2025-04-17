@@ -2,15 +2,17 @@
     -fx-font-family: "Open Sans";
 }
 
+.spider-map-pane {
+    -fx-background-color: #192428;
+}
+
 /* Node container styling */
 .node-container {
     -fx-padding: 5px;
-
 }
 
 .node-background {
-    -fx-fill: #182030;           /* desired background color */      /* desired border color */
-    -fx-stroke-width: 1px;
+    -fx-fill: #2e383c;           /* desired background color */      /* desired border color */
     -fx-arc-width: 20px;
     -fx-arc-height: 20px;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
@@ -31,12 +33,22 @@
 }
 
 .latency-container {
-    -fx-background-color: #182030;
+    -fx-background-color: #1a1f24;
     -fx-border-color: #CCCCCC;
     -fx-border-width: 1px;
     -fx-padding: 4px;
     -fx-background-radius: 5px;
     -fx-border-radius: 5px;
+}
+
+.node-resizehitarea {
+    -fx-background-color: transparent;
+}
+
+.contextmenu {
+    -fx-background-color:rgb(39, 51, 77); 
+    -fx-text-fill: white; 
+    -fx-background-radius: 5px;
 }
 
 

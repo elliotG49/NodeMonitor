@@ -4,7 +4,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -46,10 +45,6 @@ public class NewNodeStage extends Stage {
         networkTypeBox.getItems().addAll(NetworkType.values());
         networkTypeBox.setValue(NetworkType.INTERNAL);
         
-        ColorPicker colorPicker = new ColorPicker();
-        colorPicker.setValue(Color.WHITE);
-        Label colorLabel = new Label("Node Colour:");
-        
         ComboBox<ConnectionType> connectionTypeBox = new ComboBox<>();
         connectionTypeBox.getItems().addAll(ConnectionType.values());
         connectionTypeBox.setValue(ConnectionType.ETHERNET);
@@ -63,17 +58,15 @@ public class NewNodeStage extends Stage {
         grid.add(deviceTypeBox, 1, 2);
         grid.add(new Label("Network Type:"), 0, 3);
         grid.add(networkTypeBox, 1, 3);
-        grid.add(colorLabel, 0, 4);
-        grid.add(colorPicker, 1, 4);
-        grid.add(connectionLabel, 0, 5);
-        grid.add(connectionTypeBox, 1, 5);
+        grid.add(connectionLabel, 0, 4);
+        grid.add(connectionTypeBox, 1, 4);
         
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
         Button okButton = new Button("OK");
         Button cancelButton = new Button("Cancel");
         buttonBox.getChildren().addAll(okButton, cancelButton);
-        grid.add(buttonBox, 1, 6);
+        grid.add(buttonBox, 1, 5);
         
         root.getChildren().add(grid);
         Scene scene = new Scene(root, 400, 300, Color.TRANSPARENT);
@@ -85,8 +78,6 @@ public class NewNodeStage extends Stage {
             DeviceType deviceType = deviceTypeBox.getValue();
             NetworkType networkType = networkTypeBox.getValue();
             NetworkNode node = new NetworkNode(ip, name, deviceType, networkType);
-            String colorHex = toHexString(colorPicker.getValue());
-            node.setOutlineColor(colorHex);
             node.setConnectionType(connectionTypeBox.getValue());
             result = node;
             close();
@@ -101,12 +92,5 @@ public class NewNodeStage extends Stage {
     public NetworkNode showAndGetResult() {
         showAndWait();
         return result;
-    }
-    
-    private String toHexString(Color color) {
-        return String.format("#%02X%02X%02X",
-            (int)(color.getRed() * 255),
-            (int)(color.getGreen() * 255),
-            (int)(color.getBlue() * 255));
     }
 }

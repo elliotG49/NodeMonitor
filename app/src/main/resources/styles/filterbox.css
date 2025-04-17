@@ -1,0 +1,135 @@
+/* Container */
+.filterbox-panel {
+    /* same as .newnodebox-panel */
+    -fx-background-color: #5593a5;
+    -fx-background-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
+}
+
+
+.filterbox-panel.expanded {
+    /* same as .newnodebox-panel.expanded */
+    -fx-background-color: #382f2d;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: #424242;
+    -fx-effect: dropshadow(gaussian, rgba(17,17,17,0.25), 10, 0.5, 0, 0);
+}
+
+/* Minimized icon (unchanged) */
+.filterbox-minimized-icon {
+    -fx-background-image: url("/icons/filter.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 25px 25px;
+    -fx-pref-width: 50px;
+    -fx-pref-height: 50px;
+}
+
+/* Content wrapper (optional extra styling) */
+.filterbox-content-box {
+    /* inherits the padding you set in code */
+}
+
+/* Header */
+.filterbox-header-box {
+    /* same as .newnodebox-header-box */
+    -fx-padding: 0 0 10px 0;
+    -fx-border-width: 0 0 0.5px 0;
+    -fx-border-color: #ffffff;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5px 5px 0 0;
+    -fx-min-height: 50px;
+}
+
+/* Title label */
+.filterbox-title-label {
+    /* same as .newnodebox-title-label */
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+/* Generic labels */
+.filterbox-label {
+    /* same as .newnodebox-label */
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-font-weight: 400;
+}
+
+/* TextField styling (if you ever add one) */
+.filterbox-textfield {
+    /* same as .newnodebox-textfield */
+    -fx-font-size: 14px;
+    -fx-background-color: #0D1317;
+    -fx-border-width: 1px;
+    -fx-border-color: #424242;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-text-fill: white;
+}
+.filterbox-textfield:hover {
+    -fx-border-color: #6564DB;
+}
+
+/* ComboBox styling */
+.filterbox-combobox {
+    /* same as .newnodebox-combobox */
+    -fx-font-size: 14px;
+    -fx-background-color: #0D1317;
+    -fx-border-width: 1px;
+    -fx-border-color: #424242;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-text-fill: white;
+}
+.filterbox-combobox:hover {
+    -fx-border-color: #6564DB;
+}
+
+/* Drop‑down arrow override */
+.filterbox-combobox .arrow-button {
+    /* same as in .newnodebox-combobox */
+    -fx-background-image: url("/icons/dropdown.png");
+    -fx-background-size: 12px 12px;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-color: transparent;
+}
+.filterbox-combobox .list-cell:hover {
+    -fx-background-color: #7A7BE0;
+    -fx-text-fill: black;
+}
+
+/* Apply / Reset buttons */
+.filterbox-apply-button,
+.filterbox-reset-button {
+    /* same shape & text style as .newnodebox-create-button */
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-insets: 0;
+    -fx-padding: 5 15 5 15;
+}
+.filterbox-apply-button {
+    /* same as .newnodebox-create-button */
+    -fx-background-color: #121A20;
+    -fx-border-color: #6564DB;
+}
+.filterbox-apply-button:hover {
+    -fx-background-color: #6564DB;
+    -fx-border-width: 0;
+}
+.filterbox-reset-button {
+    /* mimic a “cancel” style */
+    -fx-background-color: #8B0000;
+    -fx-border-color: #8B0000;
+}
+.filterbox-reset-button:hover {
+    -fx-background-color: #6E0000;
+}

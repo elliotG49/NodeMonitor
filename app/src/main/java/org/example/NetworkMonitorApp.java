@@ -85,7 +85,7 @@ public class NetworkMonitorApp extends Application {
         }
 
         Scene scene = new Scene(root);
-        scene.getStylesheets().add(getClass().getResource("/styles/style.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/styles/main.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -99,6 +99,7 @@ public class NetworkMonitorApp extends Application {
         newNodeBox.setLayoutX(10);
 
         FilterBox filterBox = new FilterBox();
+        scene.getStylesheets().add(getClass().getResource("/styles/filterbox.css").toExternalForm());
         spiderMapPane.getChildren().add(filterBox);
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
 
@@ -258,8 +259,8 @@ public class NetworkMonitorApp extends Application {
 
     private Pane createSpiderMapPane() {
         Pane pane = new Pane();
-        pane.setStyle("-fx-background-color: #182030;");
-        return pane;
+        pane.getStyleClass().add("spider-map-pane");
+        return pane; 
     }
 
     private void createDefaultMainNodes() {
@@ -314,8 +315,6 @@ public class NetworkMonitorApp extends Application {
                 for (NodeConfig config : configs) {
                     double absoluteX = config.getRelativeX() * paneWidth;
                     double absoluteY = config.getRelativeY() * paneHeight;
-                    System.out.println("Loading node: relativeX=" + config.getRelativeX() +
-                                       ", paneWidth=" + paneWidth + ", computed X=" + absoluteX);
                     NetworkNode node = new NetworkNode(
                             config.getIpOrHostname(),
                             config.getDisplayName(),
@@ -327,25 +326,19 @@ public class NetworkMonitorApp extends Application {
                     node.setLayoutX(absoluteX);
                     node.setLayoutY(absoluteY);
                     node.setMainNode(config.isMainNode());
-                    if (config.getNodeColour() != null) {
-                        node.setOutlineColor(config.getNodeColour());
-                    }
                     if (config.getConnectionType() != null) {
                         node.setConnectionType(config.getConnectionType());
                     }
-                    // Set the route switch value from config.
                     node.setRouteSwitch(config.getRouteSwitch());
                     addDetailPanelHandler(node);
                     persistentNodes.add(node);
                     persistentNodesStatic.add(node);
                     spiderMapPane.getChildren().add(node);
-        
+    
                     // Create connection lines for non–main nodes.
                     if (!node.isMainNode()) {
-                        // Check if the node has a route switch configured.
                         if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
                             NetworkNode switchNode = null;
-                            // Search for a switch in persistentNodesStatic with a matching display name.
                             for (NetworkNode n : persistentNodesStatic) {
                                 if (n.getDeviceType() == DeviceType.SWITCH &&
                                     n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
@@ -354,20 +347,15 @@ public class NetworkMonitorApp extends Application {
                                 }
                             }
                             if (switchNode != null) {
-                                // Create two segments:
-                                // 1. From the upstream node (e.g. gateway) to the switch (grey line)
                                 ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
                                 line1.setLineColor(Color.GREY);
-                                // 2. From the switch to the node (status-based)
                                 ConnectionLine line2 = new ConnectionLine(switchNode, node);
                                 spiderMapPane.getChildren().add(0, line1);
                                 spiderMapPane.getChildren().add(0, line2);
                             } else {
-                                // Fallback: if route switch is set but the switch node wasn't found, use default logic.
                                 addDefaultConnectionLine(node);
                             }
                         } else {
-                            // No route switch set: use default connection line.
                             addDefaultConnectionLine(node);
                         }
                     }
@@ -387,11 +375,20 @@ public class NetworkMonitorApp extends Application {
                     ConnectionLine connection = new ConnectionLine(mainNodes.get(i), mainNodes.get(i + 1));
                     spiderMapPane.getChildren().add(0, connection);
                 }
+                // --- Deferred update: Iterate through nodes with a route switch and update their connection lines ---
+                for (NetworkNode node : persistentNodes) {
+                    if (!node.isMainNode() &&
+                        node.getRouteSwitch() != null &&
+                        !node.getRouteSwitch().isEmpty()) {
+                        updateConnectionLineForNode(node);
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
     }
+    
     
     /**
      * Helper method to add a default connection line to a node (without a route switch).
@@ -444,9 +441,8 @@ public class NetworkMonitorApp extends Application {
         );
         
         if (!node.isMainNode()) {
-            ConnectionLine connection;
+            // Check for a route switch.
             if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-                // Find the switch node that matches the routeSwitch
                 NetworkNode switchNode = null;
                 for (NetworkNode n : persistentNodesStatic) {
                     if (n.getDeviceType() == DeviceType.SWITCH &&
@@ -457,13 +453,15 @@ public class NetworkMonitorApp extends Application {
                 }
                 if (switchNode != null) {
                     ConnectionLine line1 = new ConnectionLine(getUpstreamNode(node), switchNode);
-                    line1.setLineColor(Color.GREY); // grey for router-to-switch segment.
+                    line1.setLineColor(Color.GREY); // Indicates a route (status not monitored)
                     ConnectionLine line2 = new ConnectionLine(switchNode, node);
                     instance.spiderMapPane.getChildren().add(0, line1);
                     instance.spiderMapPane.getChildren().add(0, line2);
                     return;
                 }
             }
+            // Default connection line logic.
+            ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
                 connection = new ConnectionLine(host, node);
@@ -501,7 +499,6 @@ public class NetworkMonitorApp extends Application {
                                     relativeX,
                                     relativeY,
                                     node.isMainNode(),
-                                    node.getOutlineColor(),
                                     node.getConnectionType(),
                                     node.getPrefWidth(),
                                     node.getPrefHeight(),
@@ -605,6 +602,8 @@ public class NetworkMonitorApp extends Application {
         double y;
         boolean isVirtual = false;
     }
+
+    
     
     public static void performTraceroute(NetworkNode source) {
         Pane spiderPane = instance.spiderMapPane;

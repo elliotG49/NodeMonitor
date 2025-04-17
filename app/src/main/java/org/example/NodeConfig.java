@@ -10,17 +10,17 @@ public class NodeConfig {
     private double relativeX;
     private double relativeY;
     private boolean mainNode;
-    private String nodeColour;
+    // Removed nodeColour field.
     private ConnectionType connectionType;
     private double width;
     private double height;
-    private String routeSwitch;  // New field
+    private String routeSwitch;  // Remains
 
     public NodeConfig() { }
 
     public NodeConfig(String ipOrHostname, String displayName, DeviceType deviceType, NetworkType networkType,
                     double layoutX, double layoutY, double relativeX, double relativeY, boolean mainNode,
-                    String nodeColour, ConnectionType connectionType, double width, double height, String routeSwitch) {
+                    ConnectionType connectionType, double width, double height, String routeSwitch) {
         this.ipOrHostname = ipOrHostname;
         this.displayName = displayName;
         this.deviceType = deviceType;
@@ -30,7 +30,6 @@ public class NodeConfig {
         this.relativeX = relativeX;
         this.relativeY = relativeY;
         this.mainNode = mainNode;
-        this.nodeColour = nodeColour;
         this.connectionType = connectionType;
         this.width = width;
         this.height = height;
@@ -115,14 +114,6 @@ public class NodeConfig {
 
     public void setMainNode(boolean mainNode) {
         this.mainNode = mainNode;
-    }
-
-    public String getNodeColour() {
-        return nodeColour;
-    }
-
-    public void setNodeColour(String nodeColour) {
-        this.nodeColour = nodeColour;
     }
 
     public ConnectionType getConnectionType() {

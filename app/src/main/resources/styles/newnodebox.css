@@ -1,138 +1,147 @@
 /* Overall container for NewNodeBox */
 .newnodebox-panel {
-    -fx-background-color: #182030;
-    -fx-border-color: #3B3B3B;
-    -fx-border-width: 1px;
+    -fx-background-color: #5593a5;
     -fx-border-radius: 10px;
     -fx-background-radius: 10px;
+
 }
 
-.newnodebox-panel.collapsed:hover {
-    -fx-background-color: #2c384a;
+.newnodebox-panel.expanded {
+    -fx-background-color: #0D1317;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: #424242;
+    -fx-effect: dropshadow(gaussian, rgba(17, 17, 17, 0.25), 10, 0.5, 0, 0);
 }
+
 
 /* Minimized label style */
 .newnodebox-minimized-label {
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
+    -fx-text-fill: black;
+    -fx-font-size: 20px;
     -fx-font-weight: bold;
 }
 
-.newnodebox-minimized-label:hover {
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-}
 
 /* Header box that holds the title */
 .newnodebox-header-box {
-    -fx-border-color: transparent transparent #b8d4f1 transparent;
+    -fx-padding: 10px 0 0 0; /* Remove padding */
     -fx-border-width: 0 0 0.5px 0;
-    -fx-padding: 0 0 10px 0;
-    -fx-alignment: center-left;
+    -fx-border-color: #ffffff;
+    -fx-background-insets: 0; /* Ensure background extends fully */
+    -fx-background-radius: 5px 5px 0 0;
+    -fx-min-height: 50px;
+
 }
 
 /* Title label inside header */
 .newnodebox-title-label {
     -fx-text-fill: white;
-    -fx-font-size: 18px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
 }
 
 /* General label styling in NewNodeBox */
 .newnodebox-label {
-    -fx-text-fill: #b8d4f1;
+    -fx-text-fill: #ffffff;
     -fx-font-size: 14px;
+    -fx-font-weight: 400;
 }
 
 /* TextField styling for NewNodeBox fields */
 .newnodebox-textfield {
     -fx-font-size: 14px;
-    -fx-background-color: #1b2433;
-    -fx-border-color: #3B3B3B;
-    -fx-border-width: 1px;
-    -fx-background-radius: 5;
-    -fx-border-radius: 5;
+    -fx-background-color: #0D1317;
+    -fx-border-size: 1px;
+    -fx-border-color: #424242;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
     -fx-text-fill: white;
 }
 
-/* ComboBox styling for NewNodeBox */
+.newnodebox-textfield:hover {
+    -fx-font-size: 14px;
+    -fx-border-color: #6564DB;
+    -fx-background-radius: 5;
+    -fx-text-fill: white;
+}
+
 .newnodebox-combobox {
     -fx-font-size: 14px;
-    -fx-background-color: #1b2433;
-    -fx-border-color: #3B3B3B;
-    -fx-border-width: 1px;
+    -fx-background-color: #0D1317;
+    -fx-border-size: 1px;
+    -fx-border-color: #424242;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-text-fill: white; /* Text inside the field remains white */
+}
+
+.newnodebox-combobox:hover {
+    -fx-border-size: 1px;
+    -fx-border-color: #6564DB;
+}
+
+
+/* Base style for the ComboBox field: 
+   The entire field always uses the background color #6564DB, with no changes. */
+
+
+/* Style for the drop-down list container can be left transparent so each cell's style shows */
+.newnodebox-combobox .list-view {
+    -fx-background-color: transparent;
     -fx-background-radius: 5;
-    -fx-border-radius: 5;
-    -fx-text-fill: white;
-    -fx-pref-width: 200px;
+}
+
+.newnodebox-combobox .list-cell:hover {
+    -fx-background-color: #7A7BE0;
+    -fx-text-fill: black;
+}
+
+
+/* Default style for each drop-down list cell: 
+   Off white background (#F0F0F0) with black text. */
+/* Remove the default arrow graphic */
+.newnodebox-combobox .arrow-button .arrow {
+    -fx-background-color: transparent;
+    -fx-background-image: none;
+}
+
+/* Set your custom arrow image and define its size */
+.newnodebox-combobox .arrow-button {
+    -fx-background-image: url("/icons/dropdown.png");
+    -fx-background-size: 12px 12px; /* Set width and height as desired */
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-color: transparent;
 }
 
 /* Buttons in NewNodeBox */
 .newnodebox-create-button {
-    -fx-background-color: #317756;
+    -fx-background-insets: 0; /* Ensure background extends fully */
+    -fx-background-color: #121A20;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-border-size: 1px;
+    -fx-border-color: #6564DB;
     -fx-text-fill: white;
-    -fx-font-size: 14px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+
 }
 
 .newnodebox-create-button:hover {
-    -fx-background-color: #3b8d4c;
+    -fx-background-color: #6564DB;
+    -fx-border-size: 0px;
     -fx-text-fill: white;
-    -fx-font-size: 14px;
-}
-.newnodebox-cancel-button {
-    -fx-background-color: red;
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
 }
 
-.newnodebox-cancel-button:hover {
-    -fx-background-color: rgb(138, 0, 0);
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
-}
 
-.newnodebox-combobox .list-cell,
-.newnodebox-combobox .button {
-    -fx-text-fill: white;
-}
 
-.newnodebox-combobox .list-view {
-    -fx-background-color: #1b2433; /* set the background of the list */
-    -fx-border-color: #3B3B3B;
-    -fx-border-width: 1px;
-    -fx-background-insets: 0;
-    -fx-background-radius: 5px;
-}
+/* When a drop-down list cell is hovered, change its background to a slightly lighter shade (#7A7BE0) 
+   while keeping the text black. */
 
-/* Style each cell in the dropdown */
-.newnodebox-combobox .list-cell {
-    -fx-background-color: transparent;
-    -fx-text-fill: white;
-    -fx-padding: 5px;
-}
-
-/* Style for selected cells */
-.newnodebox-combobox .list-cell:selected,
-.newnodebox-combobox .list-cell:filled:selected {
-    -fx-background-color: #1b2433;
-    -fx-text-fill: white;
-}
-
-.newnodebox-combobox .list-cell:hover {
-    -fx-background-color: #2c3a52;
-    -fx-text-fill: white;
-}
-
-.newnodebox-combobox:hover {
-    -fx-font-size: 14px;
-    -fx-background-color: #2c3a52;
-    -fx-border-color: #3B3B3B;
-    -fx-border-width: 1px;
-    -fx-background-radius: 5;
-    -fx-border-radius: 5;
-    -fx-text-fill: white;
-    -fx-pref-width: 200px;  /* Adjust width as needed */
-}
 
 /* You can add hover effects, transitions, etc., as desired */

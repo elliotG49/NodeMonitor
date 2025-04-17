@@ -200,7 +200,7 @@ public class ConnectionLine extends Pane {
                         ImageView icon = new ImageView();
                         // Choose the appropriate icon based on the connection type.
                         if (to.getConnectionType() == ConnectionType.ETHERNET || to.getConnectionType() == ConnectionType.VIRTUAL) {
-                            icon.setImage(new Image(getClass().getResourceAsStream("/icons/ethernet.png")));
+                            icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
                         } else if (to.getConnectionType() == ConnectionType.WIRELESS) {
                             icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
                         }  
