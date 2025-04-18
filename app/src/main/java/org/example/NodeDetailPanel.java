@@ -113,7 +113,7 @@ public class NodeDetailPanel extends BorderPane {
         connectionTypeBox.getItems().addAll(ConnectionType.values());
         connectionTypeBox.setValue(ConnectionType.ETHERNET);
 
-        Label routeSwitchLabel = new Label("Route via Switch:");
+        Label routeSwitchLabel = new Label("Network Route:");
         routeSwitchLabel.getStyleClass().add("nodedetail-label");
 
         routeSwitchBox = new ComboBox<>();
