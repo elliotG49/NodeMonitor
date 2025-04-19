@@ -1,101 +1,67 @@
+/* NodeDetailPanel overall container */
 .nodedetail-panel {
-    -fx-background-color: #382f2d; /* #13213F with opacity */
-    -fx-border-color: #424242;
+    -fx-background-color: #2E383C;
+    -fx-border-color: #3B3B3B;
     -fx-border-width: 1px;
-    -fx-border-radius: 10px;
-    -fx-background-radius: 10px;
-    -fx-effect: dropshadow(gaussian, rgba(17, 17, 17, 0.25), 10, 0.5, 0, 0);
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
+    -fx-padding: 10px;
 }
 
-/* Header container style: replicates the inline styles for headerBox */
-.nodedetail-header-box {
-    -fx-border-color: #ffffff ;
-    -fx-border-width: 0 0 0.5px 0;
-    -fx-padding: 0 0 10px 0;
-    -fx-alignment: center-left;
+/* Section labels (above fields) */
+.nodedetail-label {
+    -fx-text-fill: #5593A5;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
 }
 
-/* Title label inside header */
+.nodedetail-namefield {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+}
+
+.nodedetail-namefield:focused {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;      /* change this to your desired edit‐mode size */
+  }
+
+
+/* The big “title” label (display name) */
 .nodedetail-title-label {
     -fx-text-fill: white;
-    -fx-font-size: 18px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
 }
 
-
-/* Title label style: replicates the inline styles for the title label */
-.nodedetail-label {
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 14px;
-    -fx-font-weight: 400;
-}
-
-
-/* For labels (IP, Display Name, Device Type, etc.) */
-.nodedetail-label {
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 14px;
-}
-
-/* For text fields (e.g. ipField, displayNameField) */
-/* TextField styling for nodedetail fields */
-.nodedetail-textfield {
-    -fx-font-size: 14px;
-    -fx-background-color: #0D1317;
-    -fx-border-size: 1px;
-    -fx-border-color: #424242;
-    -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
-    -fx-text-fill: white;
-}
-
-.nodedetail-textfield:hover {
-    -fx-font-size: 14px;
-    -fx-border-color: #6564DB;
-    -fx-background-radius: 5;
-    -fx-text-fill: white;
-}
-
+/* Value labels (MAC, uptime) */
 .nodedetail-value-label {
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
+    -fx-text-fill: #979797;
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
 }
-/* For ComboBoxes that follow the same style */
+
+/* TextFields & ComboBoxes: background, border, rounding, font */
+.nodedetail-textfield,
 .nodedetail-combobox {
-    -fx-font-size: 14px;
-    -fx-background-color: #0D1317;
-    -fx-border-size: 1px;
-    -fx-border-color: #424242;
+    -fx-background-color: #2E383C;
     -fx-background-radius: 10px;
+    -fx-border-color: #979797;
+    -fx-border-width: 1px;
     -fx-border-radius: 10px;
-    -fx-text-fill: white; /* Text inside the field remains white */
+    -fx-text-fill: #979797;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+
+}
+.nodedetail-combobox {
+    -fx-padding: 2px;
 }
 
-.nodedetail-combobox:hover {
-    -fx-border-size: 1px;
-    -fx-border-color: #6564DB;
-}
-
-
-/* Base style for the ComboBox field: 
-   The entire field always uses the background color #6564DB, with no changes. */
-
-
-/* Style for the drop-down list container can be left transparent so each cell's style shows */
-.nodedetail-combobox .list-view {
-    -fx-background-color: transparent;
-    -fx-background-radius: 5;
-}
-
-.nodedetail-combobox .list-cell:hover {
-    -fx-background-color: #7A7BE0;
-    -fx-text-fill: black;
-}
-
-
-/* Default style for each drop-down list cell: 
-   Off white background (#F0F0F0) with black text. */
-/* Remove the default arrow graphic */
 .nodedetail-combobox .arrow-button .arrow {
     -fx-background-color: transparent;
     -fx-background-image: none;
@@ -110,41 +76,58 @@
     -fx-background-color: transparent;
 }
 
+.nodedetail-textfield {
+    -fx-padding: 6px;
+}
+
+
+/* Keep the combobox arrow transparent so the border shows */
+.nodedetail-combobox > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+/* Dropdown popup background & rounding */
+.nodedetail-combobox .list-view {
+    -fx-background-color: #2E383C;
+    -fx-background-radius: 10px;
+}
+
+/* Dropdown items */
+.nodedetail-combobox .list-cell {
+    -fx-background-color: #2E383C;
+    -fx-background-radius: 10px;
+    -fx-text-fill: #979797;
+    -fx-padding: 4px 8px;
+}
+
+/* Hover state for items */
+.nodedetail-combobox .list-cell:hover {
+    -fx-background-color: #38444A;
+    -fx-background-radius: 10px;
+}
+
+/* Update button styling */
 .nodedetail-updatebutton {
-    -fx-background-insets: 0; /* Ensure background extends fully */
-    -fx-background-color: #121A20;
-    -fx-border-radius: 10px;
-    -fx-background-radius: 10px;
-    -fx-border-size: 1px;
-    -fx-border-color: #6564DB;
+    -fx-background-color: #317756;
     -fx-text-fill: white;
-    -fx-font-size: 16px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    -fx-padding: 6px 12px;
 }
 
-.nodedetail-updatebutton:hover {
-    -fx-background-color: #6564DB;
-    -fx-border-size: 0px;
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
-}
-
+/* Delete (bin) button styling */
 .nodedetail-binbutton {
-    -fx-background-insets: 0; /* Ensure background extends fully */
-    -fx-background-color: #121A20;
-    -fx-border-radius: 10px;
-    -fx-background-radius: 10px;
-    -fx-border-size: 1px;
-    -fx-border-color: #6564DB;
+    -fx-background-color: #8B0000;
     -fx-text-fill: white;
-    -fx-font-size: 16px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    -fx-padding: 6px 12px;
 }
 
-.nodedetail-binbutton:hover {
-    -fx-background-color: #6564DB;
-    -fx-border-size: 0px;
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
+/* Separator styling */
+.separator {
+    -fx-background-color: #979797;
+    -fx-padding: 0; /* let layout handle margins */
 }
-

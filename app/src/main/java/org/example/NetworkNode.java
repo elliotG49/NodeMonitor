@@ -51,7 +51,7 @@ public class NetworkNode extends Pane {
     // Removed ipLabel entirely.
     // Resize icon for resizing the node.
     private ImageView resizeIcon;
-    
+
     // For dragging.
     private double dragDeltaX;
     private double dragDeltaY;
@@ -261,7 +261,7 @@ public class NetworkNode extends Pane {
     });
     }
     
-    private String getIconFileName() {
+    public String getIconFileName() {
         switch (deviceType) {
             case COMPUTER: return "host.png";
             case SWITCH: return "switch.png";
@@ -342,7 +342,6 @@ public class NetworkNode extends Pane {
     public void setConnected(boolean connected) {
         this.connected = connected;
     }
-    
     /**
      * Updates this node's properties from another instance.
      * For main nodes, no change is made to the border as it is removed.

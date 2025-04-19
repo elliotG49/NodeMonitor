@@ -11,6 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -48,6 +49,8 @@ public class NetworkMonitorApp extends Application {
     private static final String CONFIG_FILE = CONFIG_DIR + File.separator + "nodes.json";
     private static final String ZONES_FILE = CONFIG_DIR + File.separator + "zones.json";
     private static final String WINDOW_CONFIG_FILE = CONFIG_DIR + File.separator + "window.config";
+    private static final double DETAIL_PANEL_WIDTH = 350;
+    private NodeDetailPanel currentDetailPanel;  // tracks the open panel
 
     // Static instance reference.
     private static NetworkMonitorApp instance;
@@ -56,6 +59,7 @@ public class NetworkMonitorApp extends Application {
     // Variables to store previous scene dimensions for scaling.
     private double prevSceneWidth = 0;
     private double prevSceneHeight = 0;
+    
 
     @Override
     public void start(Stage primaryStage) {
@@ -85,8 +89,9 @@ public class NetworkMonitorApp extends Application {
         }
 
         Scene scene = new Scene(root);
+        centerStack.setStyle("-fx-background-color: #192428;");
         scene.getStylesheets().add(getClass().getResource("/styles/main.css").toExternalForm());
-
+        scene.getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.show();
 
@@ -169,6 +174,10 @@ public class NetworkMonitorApp extends Application {
         });
     }
 
+    public static NetworkMonitorApp getInstance() {
+        return instance;
+    }
+
     
     
     public static void removeNode(NetworkNode node) {
@@ -230,6 +239,8 @@ public class NetworkMonitorApp extends Application {
         return instance.getMainNodeByDisplayName("Google DNS");
     }
     
+    // NetworkMonitorApp.java
+
     private void loadWindowSize() {
         try {
             if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
@@ -237,6 +248,10 @@ public class NetworkMonitorApp extends Application {
                 Gson gson = new Gson();
                 WindowConfig wc = gson.fromJson(json, WindowConfig.class);
                 if (wc != null) {
+                    // Restore position first (puts stage on the same monitor)
+                    primaryStage.setX(wc.getX());
+                    primaryStage.setY(wc.getY());
+                    // Then restore size
                     primaryStage.setWidth(wc.getWidth());
                     primaryStage.setHeight(wc.getHeight());
                 }
@@ -246,9 +261,17 @@ public class NetworkMonitorApp extends Application {
         }
     }
 
+
+    // NetworkMonitorApp.java
+
     private void saveWindowSize() {
         try {
-            WindowConfig wc = new WindowConfig(primaryStage.getWidth(), primaryStage.getHeight());
+            WindowConfig wc = new WindowConfig(
+                primaryStage.getX(),
+                primaryStage.getY(),
+                primaryStage.getWidth(),
+                primaryStage.getHeight()
+            );
             Gson gson = new Gson();
             String json = gson.toJson(wc);
             Files.write(Paths.get(WINDOW_CONFIG_FILE), json.getBytes());
@@ -256,6 +279,7 @@ public class NetworkMonitorApp extends Application {
             e.printStackTrace();
         }
     }
+
 
     private Pane createSpiderMapPane() {
         Pane pane = new Pane();
@@ -300,6 +324,8 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane.getChildren().add(0, line1);
         spiderMapPane.getChildren().add(0, line2);
     }
+
+    
 
     private void loadNodesFromFile() {
         Platform.runLater(() -> {
@@ -409,28 +435,9 @@ public class NetworkMonitorApp extends Application {
     
     private void addDetailPanelHandler(NetworkNode node) {
         node.setOnMouseClicked(e -> {
-            if (e.getButton() != MouseButton.PRIMARY) {
-                return;
+            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+                showDetailPanel(node);
             }
-            StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
-            rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
-            NodeDetailPanel detailPanel = new NodeDetailPanel(node);
-            primaryStage.getScene().getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
-            detailPanel.showPanel();
-            StackPane.setAlignment(detailPanel, Pos.BOTTOM_RIGHT);
-            StackPane.setMargin(detailPanel, new Insets(20));
-            rootStack.getChildren().add(detailPanel);
-            javafx.event.EventHandler<MouseEvent> filter = new javafx.event.EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent ev) {
-                    if (!detailPanel.getBoundsInParent().contains(ev.getX(), ev.getY())) {
-                        detailPanel.hidePanel();
-                        // Remove the filter using the local variable 'filter', not "this".
-                        rootStack.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
-                    }
-                }
-            };
-            rootStack.addEventFilter(MouseEvent.MOUSE_PRESSED, filter);
         });
     }
 
@@ -605,7 +612,56 @@ public class NetworkMonitorApp extends Application {
         boolean isVirtual = false;
     }
 
+    public void showDetailPanel(NetworkNode node) {
+        // 1) Remove any existing panel
+        StackPane rootStack = (StackPane)((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+        rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
     
+        // 2) Create & configure the panel
+        NodeDetailPanel panel = new NodeDetailPanel(node);
+        panel.setPrefWidth(DETAIL_PANEL_WIDTH);
+        panel.setMaxWidth(DETAIL_PANEL_WIDTH);
+        panel.setMinWidth(DETAIL_PANEL_WIDTH);
+        panel.prefHeightProperty().bind(primaryStage.getScene().heightProperty());
+        panel.setTranslateX(DETAIL_PANEL_WIDTH);
+    
+        // 3) Add it & align to right
+        rootStack.getChildren().add(panel);
+        StackPane.setAlignment(panel, Pos.TOP_RIGHT);
+        panel.requestFocus();
+    
+        // 4) Defer the slide animation to the next pulse so the initial translateX is applied
+        Platform.runLater(() -> {
+            Timeline slide = new Timeline(
+                new KeyFrame(Duration.millis(200),
+                    new KeyValue(panel.translateXProperty(), 0),
+                    new KeyValue(spiderMapPane.translateXProperty(), -DETAIL_PANEL_WIDTH)
+                )
+            );
+            slide.play();
+        });
+    
+        currentDetailPanel = panel;
+    }
+
+    public void hideDetailPanel() {
+        if (currentDetailPanel == null) return;
+
+        StackPane rootStack = (StackPane)((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+
+        Timeline slide = new Timeline(
+        new KeyFrame(Duration.millis(200),
+            new KeyValue(currentDetailPanel.translateXProperty(), DETAIL_PANEL_WIDTH),
+            new KeyValue(spiderMapPane.translateXProperty(), 0)
+        )
+        );
+        slide.setOnFinished(e -> {
+            rootStack.getChildren().remove(currentDetailPanel);
+            currentDetailPanel = null;
+        });
+        slide.play();
+    }
+
     
     public static void performTraceroute(NetworkNode source) {
         Pane spiderPane = instance.spiderMapPane;
