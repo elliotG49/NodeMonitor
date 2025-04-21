@@ -2,8 +2,6 @@ package org.example;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
-import javafx.animation.PauseTransition;
-import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -18,345 +16,306 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
-
 public class NewNodeBox extends StackPane {
-    private final double FIELD_WIDTH = 200;
-    private final double WIDTH = 50;
-    private final double MIN_HEIGHT = 50;
-    // Expanded height remains the same.
-    private final double EXPANDED_HEIGHT = 575;
-    // Expanded width updated to match NodeDetailPanel (350).
-    private final double EXPANDED_WIDTH = 250;
-    private final double NODE_BOX_GAP = 10;
+    private static final double FIELD_WIDTH = 200;
+    private static final double GAP = 10;
+
+    private final Label minimizedLabel = new Label("+");
+    private final VBox contentBox = new VBox(GAP);
+    private final Button createButton;
+    private final TextField ipField;
+    private final TextField displayNameField;
+    private final ComboBox<DeviceType> deviceTypeBox;
+    private final ComboBox<NetworkType> networkTypeBox;
+    private final ComboBox<ConnectionType> connectionTypeBox;
+    private final ComboBox<String> routeSwitchBox;
+
     private boolean expanded = false;
 
-    // Minimized state content.
-    private Label minimizedLabel;
-    // Expanded state content.
-    private VBox contentBox;
-
-    private TextField ipField;
-    private TextField displayNameField;
-    private ComboBox<DeviceType> deviceTypeBox;
-    private ComboBox<NetworkType> networkTypeBox;
-    private ComboBox<ConnectionType> connectionTypeBox;
-    // Removed nodeColorBox.
-    private ComboBox<String> routeSwitchBox;
-
-    private final Button createButton;
-
-
     public NewNodeBox() {
-        setPrefWidth(WIDTH);
-        setPrefHeight(MIN_HEIGHT);
+        // Allow dynamic sizing
+        setPrefHeight(Region.USE_COMPUTED_SIZE);
+        setMinHeight(Region.USE_COMPUTED_SIZE);
+        setMaxHeight(Region.USE_COMPUTED_SIZE);
+        setPrefWidth(Region.USE_COMPUTED_SIZE);
         getStyleClass().add("newnodebox-panel");
 
-        // Minimized label.
-        minimizedLabel = new Label("+");
+        // Collapsed “+”
         minimizedLabel.getStyleClass().add("newnodebox-minimized-label");
         setAlignment(minimizedLabel, Pos.CENTER);
         getChildren().add(minimizedLabel);
 
-        // Build expanded view.
-        contentBox = new VBox(NODE_BOX_GAP);
+        // Expanded content
         contentBox.getStyleClass().add("newnodebox-content-box");
         contentBox.setAlignment(Pos.TOP_CENTER);
+        contentBox.setVisible(false);          // start hidden
+        contentBox.managedProperty().bind(contentBox.visibleProperty());
 
-        // Header section.
-        // Header section.
-        VBox headerBox = new VBox();
-        headerBox.getStyleClass().add("newnodebox-header-box");
+        // Start in collapsed state
+        getStyleClass().add("collapsed");
+
+        // Build the form…
+
+        // Header
         Label titleLabel = new Label("Add Node");
-        VBox.setMargin(headerBox, new Insets(0, 20, 0, 20));  // 25px from far left edge
         titleLabel.getStyleClass().add("newnodebox-title-label");
-        titleLabel.setAlignment(Pos.CENTER);
-        headerBox.getChildren().add(titleLabel);
+        VBox headerBox = new VBox(titleLabel);
+        headerBox.getStyleClass().add("newnodebox-header-box");
 
-                // DEVICE TYPE Section.
-        VBox deviceSection = new VBox(10);
-        deviceSection.setAlignment(Pos.TOP_LEFT);  // Let the VBox align its children to the left by default.
+        // Device Type
         Label deviceLabel = new Label("Device Type:");
         deviceLabel.getStyleClass().add("newnodebox-label");
-        VBox.setMargin(deviceLabel, new Insets(0, 0, 0, 25));  // 25px from far left edge
-        // Create an HBox to center the control.
-        HBox deviceControlContainer = new HBox();
-        deviceControlContainer.setAlignment(Pos.CENTER);
         deviceTypeBox = new ComboBox<>();
         deviceTypeBox.getStyleClass().add("newnodebox-combobox");
         deviceTypeBox.setPrefWidth(FIELD_WIDTH);
         deviceTypeBox.getItems().addAll(DeviceType.values());
-        deviceControlContainer.getChildren().add(deviceTypeBox);
-        deviceSection.getChildren().addAll(deviceLabel, deviceControlContainer);
+        HBox deviceContainer = new HBox(deviceTypeBox);
+        deviceContainer.setAlignment(Pos.CENTER);
+        VBox deviceSection = new VBox(5, deviceLabel, deviceContainer);
+        deviceSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(deviceLabel, new Insets(0,0,0,25));
 
-        // DISPLAY NAME Section.
-        VBox nameSection = new VBox(10);
-        nameSection.setAlignment(Pos.TOP_LEFT);
+        // Display Name
         Label nameLabel = new Label("Display Name:");
         nameLabel.getStyleClass().add("newnodebox-label");
-        VBox.setMargin(nameLabel, new Insets(0, 0, 0, 25));
-        HBox nameControlContainer = new HBox();
-        nameControlContainer.setAlignment(Pos.CENTER);
         displayNameField = new TextField();
-        displayNameField.setPromptText("eg PC-1");
+        displayNameField.setPromptText("eg PC1");
         displayNameField.setPrefWidth(FIELD_WIDTH);
-        displayNameField.setMinWidth(FIELD_WIDTH);
-        displayNameField.setMaxWidth(FIELD_WIDTH);
         displayNameField.getStyleClass().add("newnodebox-textfield");
-        nameControlContainer.getChildren().add(displayNameField);
-        nameSection.getChildren().addAll(nameLabel, nameControlContainer);
+        HBox nameContainer = new HBox(displayNameField);
+        nameContainer.setAlignment(Pos.CENTER);
+        VBox nameSection = new VBox(5, nameLabel, nameContainer);
+        nameSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(nameLabel, new Insets(0,0,0,25));
 
-        // HOSTNAME/IP Section.
-        VBox ipSection = new VBox(10);
-        ipSection.setAlignment(Pos.TOP_LEFT);
+        // Hostname/IP
         Label ipLabel = new Label("Hostname/IP:");
         ipLabel.getStyleClass().add("newnodebox-label");
-        VBox.setMargin(ipLabel, new Insets(0, 0, 0, 25));
-        HBox ipControlContainer = new HBox();
-        ipControlContainer.setAlignment(Pos.CENTER);
         ipField = new TextField();
         ipField.setPromptText("eg 192.168.1.1");
         ipField.setPrefWidth(FIELD_WIDTH);
-        ipField.setMinWidth(FIELD_WIDTH);
-        ipField.setMaxWidth(FIELD_WIDTH);
-        ipField.setPromptText("eg 192.168.1.1");
         ipField.getStyleClass().add("newnodebox-textfield");
-        ipControlContainer.getChildren().add(ipField);
-        ipSection.getChildren().addAll(ipLabel, ipControlContainer);
+        HBox ipContainer = new HBox(ipField);
+        ipContainer.setAlignment(Pos.CENTER);
+        VBox ipSection = new VBox(5, ipLabel, ipContainer);
+        ipSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(ipLabel, new Insets(0,0,0,25));
 
-        // NETWORK TYPE Section.
-        VBox networkSection = new VBox(10);
-        networkSection.setAlignment(Pos.TOP_LEFT);
-        Label networkLabel = new Label("Network Type:");
-        networkLabel.getStyleClass().add("newnodebox-label");
-        VBox.setMargin(networkLabel, new Insets(0, 0, 0, 25));
-        HBox networkControlContainer = new HBox();
-        networkControlContainer.setAlignment(Pos.CENTER);
+        // Network Type
+        Label netLabel = new Label("Network Type:");
+        netLabel.getStyleClass().add("newnodebox-label");
         networkTypeBox = new ComboBox<>();
         networkTypeBox.getStyleClass().add("newnodebox-combobox");
         networkTypeBox.setPrefWidth(FIELD_WIDTH);
         networkTypeBox.getItems().addAll(NetworkType.values());
-        networkControlContainer.getChildren().add(networkTypeBox);
-        networkSection.getChildren().addAll(networkLabel, networkControlContainer);
+        HBox netContainer = new HBox(networkTypeBox);
+        netContainer.setAlignment(Pos.CENTER);
+        VBox netSection = new VBox(5, netLabel, netContainer);
+        netSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(netLabel, new Insets(0,0,0,25));
 
-        // ROUTE VIA SWITCH Section.
-        VBox routeSection = new VBox(10);
-        routeSection.setAlignment(Pos.TOP_LEFT);
+        // Route via Switch
         Label routeLabel = new Label("Network Route:");
         routeLabel.getStyleClass().add("newnodebox-label");
-        VBox.setMargin(routeLabel, new Insets(0, 0, 0, 25));
-        HBox routeControlContainer = new HBox();
-        routeControlContainer.setAlignment(Pos.CENTER);
         routeSwitchBox = new ComboBox<>();
         routeSwitchBox.getStyleClass().add("newnodebox-combobox");
         routeSwitchBox.setPrefWidth(FIELD_WIDTH);
         updateRouteSwitchList();
         routeSwitchBox.setValue("None");
-        routeControlContainer.getChildren().add(routeSwitchBox);
-        routeSection.getChildren().addAll(routeLabel, routeControlContainer);
+        HBox routeContainer = new HBox(routeSwitchBox);
+        routeContainer.setAlignment(Pos.CENTER);
+        VBox routeSection = new VBox(5, routeLabel, routeContainer);
+        routeSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(routeLabel, new Insets(0,0,0,25));
 
-        // CONNECTION TYPE Section.
-        VBox connectionSection = new VBox(10);
-        connectionSection.setAlignment(Pos.TOP_LEFT);
-        Label connectionLabel = new Label("Connection Type:");
-        connectionLabel.getStyleClass().add("newnodebox-label");
-        VBox.setMargin(connectionLabel, new Insets(0, 0, 0, 25));
-        HBox connectionControlContainer = new HBox();
-        connectionControlContainer.setAlignment(Pos.CENTER);
+        // Connection Type
+        Label connLabel = new Label("Connection Type:");
+        connLabel.getStyleClass().add("newnodebox-label");
         connectionTypeBox = new ComboBox<>();
         connectionTypeBox.getStyleClass().add("newnodebox-combobox");
         connectionTypeBox.setPrefWidth(FIELD_WIDTH);
         connectionTypeBox.getItems().addAll(ConnectionType.values());
-        connectionControlContainer.getChildren().add(connectionTypeBox);
-        connectionSection.getChildren().addAll(connectionLabel, connectionControlContainer);
+        HBox connContainer = new HBox(connectionTypeBox);
+        connContainer.setAlignment(Pos.CENTER);
+        VBox connSection = new VBox(5, connLabel, connContainer);
+        connSection.setAlignment(Pos.TOP_LEFT);
+        VBox.setMargin(connLabel, new Insets(0,0,0,25));
 
-
-
-        // Button container.
-        VBox buttonSection = new VBox(10);
-        buttonSection.setAlignment(Pos.CENTER);
+        // Create button
         createButton = new Button("Create");
-        VBox.setMargin(createButton, new Insets(20, 0, 0, 0));
         createButton.getStyleClass().add("newnodebox-create-button");
         createButton.setPrefWidth(150);
         createButton.setDisable(true);
-        buttonSection.getChildren().addAll(createButton);
+        VBox buttonSection = new VBox(10, createButton);
+        buttonSection.setAlignment(Pos.CENTER);
+        VBox.setMargin(createButton, new Insets(20,0,0,0));
 
-        // Assemble all sections into the content box.
-        contentBox.getChildren().addAll(headerBox, deviceSection, nameSection, ipSection, networkSection, routeSection, connectionSection, buttonSection);
+        // Assemble
+        contentBox.getChildren().addAll(
+            headerBox,
+            deviceSection,
+            nameSection,
+            ipSection,
+            netSection,
+            routeSection,
+            connSection,
+            buttonSection
+        );
+        getChildren().add(contentBox);
 
-        contentBox.setAlignment(Pos.TOP_CENTER);
+        // Enable Create
+        ipField.textProperty().addListener((o,a,b)-> updateCreateButtonState());
+        displayNameField.textProperty().addListener((o,a,b)-> updateCreateButtonState());
+        deviceTypeBox.valueProperty().addListener((o,a,b)-> updateCreateButtonState());
+        networkTypeBox.valueProperty().addListener((o,a,b)-> updateCreateButtonState());
+        connectionTypeBox.valueProperty().addListener((o,a,b)-> updateCreateButtonState());
+        routeSwitchBox.valueProperty().addListener((o,a,b)-> updateCreateButtonState());
 
-        sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene != null && getParent() != null) {
-                layoutYProperty().bind(((Region) getParent()).heightProperty()
-                        .subtract(prefHeightProperty())
-                        .subtract(15));
-            }
-        });
-
+        // Create action
         createButton.setOnAction(e -> {
-            String ip = ipField.getText().trim();
-            String displayName = displayNameField.getText().trim();
-            DeviceType deviceType = deviceTypeBox.getValue();
-            NetworkType networkType = networkTypeBox.getValue();
-            ConnectionType connectionType = connectionTypeBox.getValue();
-            String routeSwitch = routeSwitchBox.getValue();
-            if ("None".equals(routeSwitch)) {
-                routeSwitch = "";
-            }
-            NetworkNode newNode = new NetworkNode(ip, displayName, deviceType, networkType);
-            newNode.setConnectionType(connectionType);
-            newNode.setRouteSwitch(routeSwitch);
+            String ip    = ipField.getText().trim();
+            String name  = displayNameField.getText().trim();
+            DeviceType dt= deviceTypeBox.getValue();
+            NetworkType nt= networkTypeBox.getValue();
+            ConnectionType ct= connectionTypeBox.getValue();
+            String route = "None".equals(routeSwitchBox.getValue()) ? "" : routeSwitchBox.getValue();
+
+            NetworkNode newNode = new NetworkNode(ip, name, dt, nt);
+            newNode.setConnectionType(ct);
+            newNode.setRouteSwitch(route);
             NetworkMonitorApp.addNewNode(newNode);
             collapse();
-
-            
         });
 
-        ipField.textProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-        displayNameField.textProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-        deviceTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-        networkTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-        connectionTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-        routeSwitchBox.valueProperty().addListener((obs, oldVal, newVal) -> updateCreateButtonState());
-
-        setOnMouseClicked(e -> {
-            if (!expanded) {
-                expand();
-            }
-        });
+        // Toggle expand/collapse
+        setOnMouseClicked(e -> toggle());
         setOnKeyPressed(e -> {
-            if (expanded && e.getCode() == KeyCode.ESCAPE) {
-                collapse();
-            }
-        });
-        // ――― Hover + Press effects ―――
-        this.setOnMouseEntered(e -> {
-            if (!expanded) {
-                ScaleTransition st = new ScaleTransition(Duration.millis(200), this);
-                st.setToX(1.05);
-                st.setToY(1.05);
-                st.play();
-            }
-        });
-        this.setOnMouseExited(e -> {
-            if (!expanded) {
-                ScaleTransition st = new ScaleTransition(Duration.millis(200), this);
-                st.setToX(1.0);
-                st.setToY(1.0);
-                st.play();
-            }
-        });
-        this.setOnMousePressed(e -> {
-            ScaleTransition st = new ScaleTransition(Duration.millis(100), this);
-            st.setToX(0.95);
-            st.setToY(0.95);
-            st.play();
-        });
-        this.setOnMouseReleased(e -> {
-            ScaleTransition st = new ScaleTransition(Duration.millis(100), this);
-            st.setToX(1.0);
-            st.setToY(1.0);
-            st.play();
+            if (expanded && e.getCode() == KeyCode.ESCAPE) collapse();
         });
 
-    }
-    
-    private void updateRouteSwitchList() {
-        routeSwitchBox.getItems().clear();
-        routeSwitchBox.getItems().add("None");
-        for (NetworkNode node : NetworkMonitorApp.getPersistentNodesStatic()) {
-            if (node.getDeviceType() == DeviceType.SWITCH) {
-                routeSwitchBox.getItems().add(node.getDisplayName());
+        // Init size for “+”
+        minimizedLabel.applyCss();
+        minimizedLabel.layout();
+        setPrefWidth(minimizedLabel.prefWidth(-1));
+        setPrefHeight(minimizedLabel.prefHeight(-1));
+
+        // Pin to bottom and enforce initial collapse
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null && getParent() instanceof Region) {
+                // 1) Collapse immediately so the CSS classes & sizing are correct
+                collapse();
+                // 2) Bind vertical position to actual height
+                layoutYProperty().bind(
+                    ((Region)getParent()).heightProperty()
+                        .subtract(heightProperty())
+                        .subtract(15)
+                );
             }
-        }
+        });
     }
-    
-    private void updateCreateButtonState() {
-        boolean enable = !ipField.getText().trim().isEmpty()
-                && !displayNameField.getText().trim().isEmpty()
-                && deviceTypeBox.getValue() != null
-                && networkTypeBox.getValue() != null
-                && connectionTypeBox.getValue() != null
-                && routeSwitchBox.getValue() != null;
-        createButton.setDisable(!enable);
-    }
-    
-    private void expand() {
-    // Delay the expand animation by 100ms
-    PauseTransition delay = new PauseTransition(Duration.millis(100));
-    delay.setOnFinished(evt -> {
-        updateRouteSwitchList();
+
+    public void expand() {
+        if (expanded) return;
         expanded = true;
+
         getStyleClass().remove("collapsed");
         if (!getStyleClass().contains("expanded")) {
             getStyleClass().add("expanded");
         }
+
+        updateRouteSwitchList();
         getChildren().remove(minimizedLabel);
+        if (!getChildren().contains(contentBox)) {
+            getChildren().add(contentBox);
+        }
+        contentBox.setVisible(true);
 
-        Timeline expandTimeline = new Timeline();
-        KeyValue kvHeight = new KeyValue(prefHeightProperty(), EXPANDED_HEIGHT);
-        KeyValue kvWidth = new KeyValue(prefWidthProperty(), EXPANDED_WIDTH);
-        KeyFrame kf = new KeyFrame(Duration.millis(200), kvHeight, kvWidth);
-        expandTimeline.getKeyFrames().add(kf);
-        expandTimeline.setOnFinished(e -> {
-            if (!getChildren().contains(contentBox)) {
-                getChildren().add(contentBox);
-            }
-            this.requestFocus();
-        });
-        expandTimeline.play();
-    });
-    delay.play();
-}
+        contentBox.applyCss();
+        contentBox.layout();
 
-    
-    
-    
+        double targetH = contentBox.prefHeight(-1);
+        double targetW = contentBox.prefWidth(-1);
+
+        new Timeline(
+          new KeyFrame(Duration.ZERO,
+            new KeyValue(prefHeightProperty(), getHeight()),
+            new KeyValue(prefWidthProperty(),  getWidth())
+          ),
+          new KeyFrame(Duration.millis(200),
+            new KeyValue(prefHeightProperty(), targetH),
+            new KeyValue(prefWidthProperty(),  targetW)
+          )
+        ).play();
+    }
+
     public void collapse() {
+        if (!expanded) {
+            // Ensure collapsed size if never expanded
+            minimizedLabel.applyCss();
+            minimizedLabel.layout();
+            setPrefWidth(minimizedLabel.prefWidth(-1));
+            setPrefHeight(minimizedLabel.prefHeight(-1));
+            contentBox.setVisible(false);
+            return;
+        }
         expanded = false;
+
+        getStyleClass().remove("expanded");
         if (!getStyleClass().contains("collapsed")) {
             getStyleClass().add("collapsed");
         }
-        // Remove the "expanded" style class
-        getStyleClass().remove("expanded");
-        getChildren().remove(contentBox);
-        Timeline collapseTimeline = new Timeline();
-        KeyValue kvHeight = new KeyValue(prefHeightProperty(), MIN_HEIGHT);
-        KeyValue kvWidth = new KeyValue(prefWidthProperty(), WIDTH);
-        KeyFrame kf = new KeyFrame(Duration.millis(200), kvHeight, kvWidth);
-        collapseTimeline.getKeyFrames().add(kf);
-        collapseTimeline.setOnFinished(e -> {
+
+        minimizedLabel.applyCss();
+        minimizedLabel.layout();
+        double minH = minimizedLabel.prefHeight(-1);
+        double minW = minimizedLabel.prefWidth(-1);
+
+        Timeline tl = new Timeline(
+          new KeyFrame(Duration.ZERO,
+            new KeyValue(prefHeightProperty(), getHeight()),
+            new KeyValue(prefWidthProperty(),  getWidth())
+          ),
+          new KeyFrame(Duration.millis(200),
+            new KeyValue(prefHeightProperty(), minH),
+            new KeyValue(prefWidthProperty(), minW)
+          )
+        );
+        tl.setOnFinished(e -> {
+            getChildren().remove(contentBox);
+            contentBox.setVisible(false);
             if (!getChildren().contains(minimizedLabel)) {
                 getChildren().add(minimizedLabel);
             }
         });
-        collapseTimeline.play();
+        tl.play();
     }
-    
-    
+
     public boolean isExpanded() {
         return expanded;
     }
-    
-    {
-        setOnMouseClicked(e -> {
-            if (!expanded || e.getTarget().equals(this)) {
-                toggle();
-            }
-        });
-        setOnKeyPressed(e -> {
-            if (expanded && e.getCode() == KeyCode.ESCAPE) {
-                collapse();
-            }
-        });
-    }
-    
+
     public void toggle() {
-        if (expanded) {
-            collapse();
-        } else {
-            expand();
+        if (expanded) collapse();
+        else expand();
+    }
+
+    private void updateRouteSwitchList() {
+        routeSwitchBox.getItems().setAll("None");
+        for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+            if (n.getDeviceType() == DeviceType.SWITCH) {
+                routeSwitchBox.getItems().add(n.getDisplayName());
+            }
         }
+    }
+
+    private void updateCreateButtonState() {
+        boolean ok =
+             !ipField.getText().trim().isEmpty()
+          && !displayNameField.getText().trim().isEmpty()
+          && deviceTypeBox.getValue()     != null
+          && networkTypeBox.getValue()    != null
+          && connectionTypeBox.getValue() != null
+          && routeSwitchBox.getValue()    != null;
+        createButton.setDisable(!ok);
     }
 }

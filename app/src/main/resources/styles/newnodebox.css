@@ -1,22 +1,22 @@
 /* Overall container for NewNodeBox */
 .newnodebox-panel {
-    -fx-background-color: #6fa2b1;
+    -fx-background-color: #5FB0B7;
     -fx-border-radius: 10px;
     -fx-background-radius: 10px;
 }
 
 .newnodebox-panel.expanded {
-    -fx-background-color: #2e383c;
-    -fx-background-radius: 10px;
-    -fx-effect: dropshadow(gaussian, rgba(17, 17, 17, 0.25), 10, 0.5, 0, 0);
+    -fx-background-color: #2E383C;
+    -fx-background-radius: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
+    -fx-padding: 20px;
 }
-
-
 /* Minimized label style */
 .newnodebox-minimized-label {
-    -fx-text-fill: black;
+    -fx-text-fill: rgb(255, 255, 255);
     -fx-font-size: 20px;
     -fx-font-weight: bold;
+    -fx-padding: 10px 20px 10px 20px;
 }
 
 
@@ -24,7 +24,7 @@
 .newnodebox-header-box {
     -fx-padding: 10px 0 0 0; /* Remove padding */
     -fx-border-width: 0 0 0.5px 0;
-    -fx-border-color: #ffffff;
+    -fx-border-color: #979797;
     -fx-background-insets: 0; /* Ensure background extends fully */
     -fx-background-radius: 5px 5px 0 0;
     -fx-min-height: 50px;
@@ -40,48 +40,49 @@
 
 /* General label styling in NewNodeBox */
 .newnodebox-label {
-    -fx-text-fill: #ffffff;
+    -fx-text-fill: #5593A5;
     -fx-font-size: 14px;
-    -fx-font-weight: 400;
+    -fx-font-weight: 700;
 }
 
 /* TextField styling for NewNodeBox fields */
-.newnodebox-textfield {
-    -fx-font-size: 14px;
-    -fx-background-color: #0D1317;
-    -fx-border-size: 1px;
-    -fx-border-color: #424242;
-    -fx-background-radius: 15px;
-    -fx-border-radius: 15px;
-    -fx-text-fill: white;
-}
-
-.newnodebox-textfield:hover {
-    -fx-font-size: 14px;
-    -fx-border-color: #5593a5;
-    -fx-background-radius: 15px;
-    -fx-text-fill: white;
+.newnodebox-textfield,
+.newnodebox-combobox {
+    -fx-background-color: #2E383C;
+    -fx-background-radius: 10px;
+    -fx-border-color: #979797;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-text-fill: #979797;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
 }
 
 .newnodebox-combobox {
-    -fx-font-size: 14px;
-    -fx-background-color: #0D1317;
-    -fx-border-size: 1px;
-    -fx-border-color: #424242;
-    -fx-background-radius: 15px;
-    -fx-border-radius: 15px;
-    -fx-text-fill: white; /* Text inside the field remains white */
+    -fx-padding: 0px;
 }
 
-.newnodebox-combobox:hover {
-    -fx-border-size: 1px;
-    -fx-border-color: #5593a5;
+.newnodebox-textfield {
+    -fx-padding: 4px;
 }
 
+.newnodebox-combobox .list-view {
+    -fx-background-color: #2E383C;
+    -fx-background-radius: 10px;
+}
 
-/* Base style for the ComboBox field: 
-   The entire field always uses the background color #6564DB, with no changes. */
+/* Dropdown items */
+.newnodebox-combobox .list-cell {
+    -fx-background-color: #2E383C;
+    -fx-text-fill: #979797;
+    -fx-padding: 4px 8px;
+}
 
+/* Hover state for items */
+.newnodebox-combobox .list-cell:hover {
+    -fx-background-color: #38444A;
+    -fx-background-radius: 10px;
+}
 
 /* Style for the drop-down list container can be left transparent so each cell's style shows */
 .newnodebox-combobox .list-view {
@@ -115,11 +116,8 @@
 /* Buttons in NewNodeBox */
 .newnodebox-create-button {
     -fx-background-insets: 0; /* Ensure background extends fully */
-    -fx-background-color: #121A15;
-    -fx-border-radius: 15px;
+    -fx-background-color: #5FB0B7;
     -fx-background-radius: 15px;
-    -fx-border-size: 1px;
-    -fx-border-color: #6fa2b1;
     -fx-text-fill: white;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
@@ -134,10 +132,13 @@
     -fx-font-weight: bold;
 }
 
-
-
-/* When a drop-down list cell is hovered, change its background to a slightly lighter shade (#7A7BE0) 
-   while keeping the text black. */
-
-
-/* You can add hover effects, transitions, etc., as desired */
+/* Hide the contentBox when the panel is collapsed */
+.newnoddebox-panel.collapsed .newnoebox-content-box {
+    -fx-visibility: hidden;
+  }
+  
+  /* Show it when expanded */
+  .newnodebox-panel.expanded .newnodebox-content-box {
+    -fx-visibility: visible;
+  }
+  

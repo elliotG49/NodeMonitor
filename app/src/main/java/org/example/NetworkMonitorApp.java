@@ -7,8 +7,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.example.NetworkUtils;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.sun.javafx.sg.prism.GrowableDataBuffer;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -301,7 +304,13 @@ public class NetworkMonitorApp extends Application {
         persistentNodesStatic.add(hostNode);
         spiderMapPane.getChildren().add(hostNode);
 
-        NetworkNode gatewayNode = new NetworkNode("192.168.1.254", "Gateway", DeviceType.GATEWAY, NetworkType.INTERNAL);
+        String gw = NetworkUtils.getDefaultGateway();
+        if (gw == null) {
+            // fallback if we couldn’t parse it:
+            gw = "192.168.0.1";
+        }
+
+        NetworkNode gatewayNode = new NetworkNode(gw, "Gateway", DeviceType.GATEWAY, NetworkType.INTERNAL);
         gatewayNode.setLayoutX(centerX - gatewayNode.getPrefWidth() / 2);
         gatewayNode.setLayoutY(centerY - gatewayNode.getPrefHeight() / 2);
         gatewayNode.setMainNode(true);
@@ -594,6 +603,8 @@ public class NetworkMonitorApp extends Application {
         }
         return null;
     }
+
+    
     
     public static List<NetworkNode> getPersistentNodesStatic() {
         return persistentNodesStatic;
