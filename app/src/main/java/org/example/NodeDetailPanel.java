@@ -395,10 +395,13 @@ public class NodeDetailPanel extends BorderPane {
         routeSwitchBox.getItems().clear();
         routeSwitchBox.getItems().add("None");
         for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
-            if (n.getDeviceType() == DeviceType.SWITCH) {
+            DeviceType dt = n.getDeviceType();
+            if (dt == DeviceType.SWITCH
+             || dt == DeviceType.WIRELESS_ACCESS_POINT) {
                 routeSwitchBox.getItems().add(n.getDisplayName());
             }
         }
+        
     }
 
     private void enableUpdate() {

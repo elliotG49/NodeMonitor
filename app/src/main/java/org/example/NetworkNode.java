@@ -273,6 +273,7 @@ public class NetworkNode extends Pane {
             case TV: return "tv.png";
             case SECURITY_CAMERA: return "security_camera.png";
             case VIRTUAL_MACHINE: return "virtual_machine.png";
+            case WIRELESS_ACCESS_POINT: return "wap.png";
             default: return "host.png";
         }
     }

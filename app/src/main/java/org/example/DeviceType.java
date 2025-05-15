@@ -10,5 +10,6 @@ public enum DeviceType {
     PHONE,
     TV,
     SECURITY_CAMERA,
-    VIRTUAL_MACHINE
+    VIRTUAL_MACHINE,
+    WIRELESS_ACCESS_POINT
 }

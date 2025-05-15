@@ -42,7 +42,6 @@ test-results/
 reports/
 
 # === Kotlin specific (if applicable) ===
-*.kts~
 out/
 
 # === Misc ===
