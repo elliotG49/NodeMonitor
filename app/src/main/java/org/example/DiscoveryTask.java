@@ -11,17 +11,26 @@ public class DiscoveryTask extends Task<List<DiscoveredNode>> {
     @Override
     protected List<DiscoveredNode> call() throws Exception {
         // 1) Determine a single IPv4 subnet from your main interface
-        NetworkInterface ni = Collections.list(NetworkInterface.getNetworkInterfaces())
-            .stream()
-            .filter(n -> n.isUp() && !n.isLoopback())
-            .flatMap(n -> n.getInterfaceAddresses().stream())
-            .filter(ia -> ia.getAddress() instanceof Inet4Address)
-            .findFirst()
-            .map(InterfaceAddress::getNetworkInterface)
-            .orElseThrow(() -> new IOException("No suitable interface"));
-        InterfaceAddress ia = ni.getInterfaceAddresses().stream()
-            .filter(a -> a.getAddress() instanceof Inet4Address)
-            .findFirst().get();
+    NetworkInterface foundNi = null;
+    InterfaceAddress foundIa = null;
+    for (NetworkInterface cand : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+        if (!cand.isUp() || cand.isLoopback()) continue;
+        for (InterfaceAddress addr : cand.getInterfaceAddresses()) {
+            if (addr.getAddress() instanceof Inet4Address) {
+                foundNi = cand;
+                foundIa = addr;
+                break;
+            }
+        }
+        if (foundNi != null) break;
+    }
+    if (foundNi == null || foundIa == null) {
+        throw new IOException("No suitable interface with IPv4 address");
+    }
+
+    // 2) Now assign to final locals so they can be captured by lambdas
+    final NetworkInterface ni = foundNi;
+    final InterfaceAddress ia = foundIa;
 
         byte[] base = ia.getAddress().getAddress();
         int prefix = ia.getNetworkPrefixLength();

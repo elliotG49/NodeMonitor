@@ -1,28 +1,42 @@
 package org.example;
 
-import java.util.List;
-
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.text.Text;
+
+import java.util.List;
 
 public class DiscoveryResultsPanel extends StackPane {
     private final VBox contentBox = new VBox(10);
 
     public DiscoveryResultsPanel() {
-        setStyle("-fx-background-color: #182030; -fx-border-color: #3B3B3B; "
-               + "-fx-border-width: 1px; -fx-border-radius: 10px; "
-               + "-fx-background-radius: 10px; -fx-padding: 10px;");
-        contentBox.setAlignment(Pos.TOP_LEFT);
-        getChildren().add(contentBox);
+        // ── Panel styling ──
+        setStyle(
+            "-fx-background-color: #182030; " +
+            "-fx-border-color: #3B3B3B; " +
+            "-fx-border-width: 1px; " +
+            "-fx-border-radius: 10px; " +
+            "-fx-background-radius: 10px;"
+        );
+        setPadding(new Insets(10));
 
-        // Close button
+        // ── Make the panel shrink to its content, not fill the screen ──
+        setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+
+        // ── Configure contentBox ──
+        contentBox.setAlignment(Pos.TOP_LEFT);
+        contentBox.setPadding(new Insets(10));
+        contentBox.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        getChildren().add(contentBox);
+        StackPane.setAlignment(contentBox, Pos.TOP_LEFT);
+
+        // ── Close button ──
         Button close = new Button("×");
-        close.setOnAction(e -> ((Pane)getParent()).getChildren().remove(this));
+        close.setOnAction(e -> ((Pane) getParent()).getChildren().remove(this));
         StackPane.setAlignment(close, Pos.TOP_RIGHT);
         getChildren().add(close);
     }
