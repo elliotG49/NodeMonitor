@@ -18,6 +18,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
@@ -136,6 +137,31 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane.getChildren().add(filterBox);
         if (DEBUG) System.out.println("Added FilterBox");
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
+
+        Button autoAddBtn = new Button();
+        autoAddBtn.getStyleClass().addAll("newnodebox-panel", "autoadd-button");
+        autoAddBtn.setOnAction(e -> {
+            // 1) Disable & give feedback
+            autoAddBtn.setDisable(true);
+            autoAddBtn.getStyleClass().add("scanning");
+            // 2) Show the results panel
+            DiscoveryResultsPanel panel = new DiscoveryResultsPanel();
+            StackPane rootStack = (StackPane)((BorderPane)primaryStage.getScene().getRoot()).getCenter();
+            rootStack.getChildren().add(panel);
+            StackPane.setAlignment(panel, Pos.TOP_LEFT);
+            // 3) Kick off background discovery
+            DiscoveryTask task = new DiscoveryTask();
+            task.setOnSucceeded(ev -> {
+                panel.setDevices(task.getValue());
+                autoAddBtn.setDisable(false);
+                autoAddBtn.getStyleClass().remove("scanning");
+            });
+            new Thread(task).start();
+        });
+        spiderMapPane.getChildren().add(autoAddBtn);
+        autoAddBtn.layoutXProperty().bind(filterBox.layoutXProperty().add(filterBox.widthProperty()).add(10));
+        autoAddBtn.layoutYProperty().bind(newNodeBox.layoutYProperty());
+
 
         spiderMapPane.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
             if (DEBUG) System.out.println("Mouse pressed on spiderMapPane");

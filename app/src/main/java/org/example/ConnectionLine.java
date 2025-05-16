@@ -1,5 +1,10 @@
 package org.example;
 
+import java.net.Inet4Address;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+
 import javafx.animation.AnimationTimer;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
@@ -21,6 +26,7 @@ public class ConnectionLine extends Pane {
     private final CubicCurve curve;
     private final StackPane latencyContainer; // Container for latency label.
     private final Label latencyLabel;
+    private final Label interfaceLabel;
     private final NetworkNode from;
     private final NetworkNode to;
 
@@ -46,6 +52,8 @@ public class ConnectionLine extends Pane {
         // Create the latency label and wrap it in its container.
         latencyLabel = new Label("...");
         latencyLabel.getStyleClass().add("latency-label");
+        interfaceLabel = new Label(); 
+        interfaceLabel.getStyleClass().add("latency-label");  // reuse the same styling
         latencyContainer = new StackPane();
         latencyContainer.getStyleClass().add("latency-container");
         latencyContainer.getChildren().add(latencyLabel);
@@ -184,39 +192,64 @@ public class ConnectionLine extends Pane {
     new Thread(() -> {
         try {
             String ip = to.getIpOrHostname();
-            java.net.InetAddress address = java.net.InetAddress.getByName(ip);
+            java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
+
+            // 0) Find the local interface whose subnet contains destAddr
+            String interfaceName = "";
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+                    if (!(ia.getAddress() instanceof Inet4Address)) continue;
+                    int prefix = ia.getNetworkPrefixLength();
+                    byte[] localBytes = ia.getAddress().getAddress();
+                    byte[] destBytes  = destAddr.getAddress();
+                    int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
+                                |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
+                    int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
+                                |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
+                    int mask = prefix==0 ? 0 : 0xFFFFFFFF << (32 - prefix);
+                    if ((localInt & mask) == (destInt & mask)) {
+                        interfaceName = ni.getName();
+                        break;
+                    }
+                }
+                if (!interfaceName.isEmpty()) break;
+            }
+            final String iface = interfaceName;
+
+            // 1) Ping it
             long start = System.currentTimeMillis();
-            boolean reachable = address.isReachable(2000);
+            boolean reachable = destAddr.isReachable(2000);
             long elapsed = System.currentTimeMillis() - start;
+
             Platform.runLater(() -> {
                 connected = reachable;
                 if (reachable) {
-                    // Use green stroke for reachable.
                     curve.setStroke(Color.web("#2E8B57"));
                     latencyLabel.setText(elapsed + " ms");
-                    
-                    // If the target is an internal node, add the connection type icon.
+                    interfaceLabel.setText(iface);
+
                     if (to.getNetworkType() == NetworkType.INTERNAL) {
                         ImageView icon = new ImageView();
-                        // Choose the appropriate icon based on the connection type.
-                        if (to.getConnectionType() == ConnectionType.ETHERNET || to.getConnectionType() == ConnectionType.VIRTUAL) {
+                        if (to.getConnectionType() == ConnectionType.ETHERNET
+                            || to.getConnectionType() == ConnectionType.VIRTUAL) {
                             icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
-                        } else if (to.getConnectionType() == ConnectionType.WIRELESS) {
+                        } else {
                             icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
-                        }  
+                        }
                         icon.setFitWidth(15);
                         icon.setFitHeight(15);
-                        
-                        // Create an HBox to hold the icon and the latency label.
-                        HBox hbox = new HBox(5);
+
+                        HBox hbox = new HBox(5, icon, latencyLabel, interfaceLabel);
                         hbox.setAlignment(Pos.CENTER);
-                        hbox.getChildren().setAll(icon, latencyLabel);
                         latencyContainer.getChildren().setAll(hbox);
+
                     } else {
-                        // For non-internal nodes, just show the latency label.
-                        latencyContainer.getChildren().setAll(latencyLabel);
+                        HBox hbox = new HBox(5, latencyLabel, interfaceLabel);
+                        hbox.setAlignment(Pos.CENTER);
+                        latencyContainer.getChildren().setAll(hbox);
                     }
                     latencyContainer.setVisible(true);
+
                 } else {
                     curve.setStroke(Color.RED);
                     latencyLabel.setText("");
@@ -230,9 +263,12 @@ public class ConnectionLine extends Pane {
                 latencyLabel.setText("Error");
                 connected = false;
                 latencyContainer.setVisible(false);
-                });
-            }   
-        }).start();
+            });
+        }
+    }).start();
+
+
+
     }
     
 
