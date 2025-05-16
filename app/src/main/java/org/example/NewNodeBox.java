@@ -3,6 +3,7 @@ package org.example;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -253,6 +254,33 @@ public class NewNodeBox extends StackPane {
             }
             if (expanded) resizeToContent();
         });
+
+                createButton.setOnAction(e -> {
+            // Gather inputs
+            DeviceType dt = deviceTypeBox.getValue();
+            String name = nameField.getText().trim();
+            String ip   = ipField.getText().trim();
+            NetworkType nt = networkTypeBox.getValue();
+            ConnectionType ct = connectionTypeBox.getValue();
+            String routeVia = routeSwitchBox.getValue();
+
+            // Basic validation
+            if (dt == null || name.isEmpty() || ip.isEmpty() || nt == null || routeVia == null) {
+                return; // you could flash an error here
+            }
+
+            // Create and configure the node
+            NetworkNode node = new NetworkNode(ip, name, dt, nt);
+            node.setConnectionType(ct);
+            node.setRouteSwitch(routeVia);
+
+            // Add to the app
+            NetworkMonitorApp.addNewNode(node);
+
+            // Collapse the form
+            collapse();
+        });
+        
     }
 
     private void resizeToContent() {
@@ -271,44 +299,138 @@ public class NewNodeBox extends StackPane {
         tl.play();
     }
 
-    public void expand() {
-        if (expanded) return;
-        minimizedLabel.setVisible(false);
-        getStyleClass().add("expanded");
-        contentBox.setVisible(true);
-        resizeToContent();
-        expanded = true;
-    }
+        private void updateRouteSwitchList() {
+            routeSwitchBox.getItems().clear();
 
-    public void collapse() {
-        if (!expanded) {
-            minimizedLabel.applyCss();
-            minimizedLabel.layout();
-            minimizedLabel.setVisible(true);
-            contentBox.setVisible(false);
-            return;
+            // 1) Always add the main Gateway first
+            String gatewayName = null;
+            for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+                if (n.isMainNode() && n.getDeviceType() == DeviceType.GATEWAY) {
+                    gatewayName = n.getDisplayName();
+                    break;
+                }
+            }
+            if (gatewayName != null) {
+                routeSwitchBox.getItems().add(gatewayName);
+            }
+
+            // 2) Then add any switches or WAPs (excluding the gateway if it was mis-typed as one)
+            for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+                DeviceType dt = n.getDeviceType();
+                String name = n.getDisplayName();
+                if ((dt == DeviceType.SWITCH || dt == DeviceType.WIRELESS_ACCESS_POINT)
+                        && !name.equals(gatewayName)) {
+                    routeSwitchBox.getItems().add(name);
+                }
+            }
+
+            // 3) Select the gateway by default (or first item if no gateway found)
+            if (!routeSwitchBox.getItems().isEmpty()) {
+                routeSwitchBox.setValue(routeSwitchBox.getItems().get(0));
+            }
         }
-        getStyleClass().remove("expanded");
-        expanded = false;
 
-        double minW = minimizedLabel.prefWidth(-1);
-        double minH = minimizedLabel.prefHeight(-1);
-        Timeline tl = new Timeline(
-            new KeyFrame(Duration.ZERO,
-                new KeyValue(prefHeightProperty(), getHeight()),
-                new KeyValue(prefWidthProperty(), getWidth())
-            ),
-            new KeyFrame(Duration.millis(200),
-                new KeyValue(prefHeightProperty(), minH),
-                new KeyValue(prefWidthProperty(), minW)
-            )
-        );
-        tl.setOnFinished(e -> {
+
+
+        public void expand() {
+            if (expanded) return;
+
+            // 0) Refresh the Route-via list
+            updateRouteSwitchList();
+
+            // 1) Apply the expanded style so padding/insets are active
+            getStyleClass().add("expanded");
+            minimizedLabel.setVisible(false);
+
+            // 2) Force a CSS+layout pass so we can read the new insets
+            applyCss();
+            layout();
+            Insets pad = getPadding();
+
+            // 3) Temporarily show the contentBox so its pref size can be measured
+            contentBox.setVisible(true);
+            contentBox.applyCss();
+            contentBox.layout();
+            double contentW = contentBox.prefWidth(-1);
+            double contentH = contentBox.prefHeight(-1);
+
+            // 4) Compute the final target panel size = content size + padding
+            double targetW = contentW + pad.getLeft() + pad.getRight();
+            double targetH = contentH + pad.getTop()  + pad.getBottom();
+
+            // 5) Hide the content while we animate
             contentBox.setVisible(false);
-            minimizedLabel.setVisible(true);
-        });
-        tl.play();
-    }
+
+            // 6) Match FilterBox timing: 100ms pause, then 200ms simultaneous resize
+            PauseTransition pause = new PauseTransition(Duration.millis(100));
+            pause.setOnFinished(e -> {
+                Timeline tl = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(prefWidthProperty(),  getWidth()),
+                        new KeyValue(prefHeightProperty(), getHeight())
+                    ),
+                    new KeyFrame(Duration.millis(200),
+                        new KeyValue(prefWidthProperty(),  targetW),
+                        new KeyValue(prefHeightProperty(), targetH)
+                    )
+                );
+                tl.setOnFinished(ev -> {
+                    // 7) Finally show the inputs
+                    contentBox.setVisible(true);
+                });
+                tl.play();
+                expanded = true;
+            });
+            pause.play();
+        }
+
+
+
+        public void collapse() {
+            if (!expanded) {
+                // If it’s already collapsed, just ensure the “+” is visible
+                minimizedLabel.applyCss();
+                minimizedLabel.layout();
+                minimizedLabel.setVisible(true);
+                contentBox.setVisible(false);
+                return;
+            }
+
+            // 1) Brief delay to match expand timing
+            PauseTransition pause = new PauseTransition(Duration.millis(100));
+            pause.setOnFinished(evt -> {
+                // 2) Flip the expanded flag & style
+                expanded = false;
+                getStyleClass().remove("expanded");
+
+                // 3) Hide the form inputs immediately
+                contentBox.setVisible(false);
+
+                // 4) Compute the final “minimized” size
+                minimizedLabel.applyCss();
+                minimizedLabel.layout();
+                double targetW = minimizedLabel.prefWidth(-1);
+                double targetH = minimizedLabel.prefHeight(-1);
+
+                // 5) Animate from current size back down
+                Timeline tl = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                        new KeyValue(prefWidthProperty(),  getWidth()),
+                        new KeyValue(prefHeightProperty(), getHeight())
+                    ),
+                    new KeyFrame(Duration.millis(200),
+                        new KeyValue(prefWidthProperty(),  targetW),
+                        new KeyValue(prefHeightProperty(), targetH)
+                    )
+                );
+                tl.setOnFinished(e -> {
+                    // 6) Finally show the “+”
+                    minimizedLabel.setVisible(true);
+                });
+                tl.play();
+            });
+            pause.play();
+        }
 
     public void toggle(MouseEvent e) {
         e.consume();

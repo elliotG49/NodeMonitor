@@ -32,6 +32,9 @@ import javafx.util.Duration;
 
 public class NetworkMonitorApp extends Application {
 
+    // Debug flag
+    private static final boolean DEBUG = true;
+
     Pane spiderMapPane;
     private List<NetworkNode> persistentNodes = new ArrayList<>();
     private static List<NetworkNode> persistentNodesStatic = new ArrayList<>();
@@ -55,32 +58,63 @@ public class NetworkMonitorApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        if (DEBUG) System.out.println("start() method reached");
         instance = this;
+        if (DEBUG) System.out.println("Instance set");
         this.primaryStage = primaryStage;
 
         primaryStage.setMinWidth(1024);
         primaryStage.setMinHeight(768);
         primaryStage.setTitle("Network Device Monitor");
-        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/node.png")));
+        if (DEBUG) System.out.println("Title set");
+        try {
+            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/node.png")));
+            if (DEBUG) System.out.println("Icon loaded");
+        } catch (Exception e) {
+            System.out.println("Failed to load icon: " + e.getMessage());
+        }
 
         File configDir = new File(CONFIG_DIR);
-        if (!configDir.exists()) configDir.mkdirs();
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+            if (DEBUG) System.out.println("Created config directory: " + CONFIG_DIR);
+        } else {
+            if (DEBUG) System.out.println("Config directory exists: " + CONFIG_DIR);
+        }
 
         BorderPane root = new BorderPane();
+        if (DEBUG) System.out.println("Created BorderPane root");
+
         spiderMapPane = createSpiderMapPane();
+        if (DEBUG) System.out.println("Created spiderMapPane");
         StackPane centerStack = new StackPane();
         centerStack.getChildren().add(spiderMapPane);
         root.setCenter(centerStack);
 
-        if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) loadWindowSize();
-        else primaryStage.setMaximized(true);
+        if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
+            if (DEBUG) System.out.println("Window config exists, loading window size");
+            loadWindowSize();
+        } else {
+            if (DEBUG) System.out.println("Window config not found, maximizing primaryStage");
+            primaryStage.setMaximized(true);
+        }
 
         Scene scene = new Scene(root);
         centerStack.setStyle("-fx-background-color: #192428;");
-        scene.getStylesheets().add(getClass().getResource("/styles/main.css").toExternalForm());
+        try {
+            scene.getStylesheets().add(getClass().getResource("/styles/main.css").toExternalForm());
+            if (DEBUG) System.out.println("Loaded main.css");
+        } catch (Exception e) {
+            System.out.println("Failed to load main.css: " + e.getMessage());
+        }
         scene.getStylesheets().add(getClass().getResource("/styles/nodedetails.css").toExternalForm());
+        if (DEBUG) System.out.println("Loaded nodedetails.css");
+
         primaryStage.setScene(scene);
+        if (DEBUG) System.out.println("Scene set on primaryStage");
+
         primaryStage.show();
+        if (DEBUG) System.out.println("primaryStage shown with dimensions: " + scene.getWidth() + "x" + scene.getHeight());
 
         prevSceneWidth = scene.getWidth();
         prevSceneHeight = scene.getHeight();
@@ -88,10 +122,9 @@ public class NetworkMonitorApp extends Application {
         NewNodeBox newNodeBox = new NewNodeBox();
         scene.getStylesheets().add(getClass().getResource("/styles/newnodebox.css").toExternalForm());
         spiderMapPane.getChildren().add(newNodeBox);
+        if (DEBUG) System.out.println("Added NewNodeBox");
 
-        // 15px from left
         newNodeBox.setLayoutX(15);
-        // 15px from bottom
         newNodeBox.layoutYProperty().bind(
             spiderMapPane.heightProperty()
                      .subtract(newNodeBox.heightProperty())
@@ -101,21 +134,37 @@ public class NetworkMonitorApp extends Application {
         FilterBox filterBox = new FilterBox();
         scene.getStylesheets().add(getClass().getResource("/styles/filterbox.css").toExternalForm());
         spiderMapPane.getChildren().add(filterBox);
+        if (DEBUG) System.out.println("Added FilterBox");
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
 
         spiderMapPane.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (DEBUG) System.out.println("Mouse pressed on spiderMapPane");
             javafx.geometry.Point2D pt = spiderMapPane.sceneToLocal(event.getSceneX(), event.getSceneY());
-            if (newNodeBox.isExpanded() && !newNodeBox.getBoundsInParent().contains(pt)) newNodeBox.collapse();
-            if (filterBox.isExpanded() && !filterBox.getBoundsInParent().contains(pt)) filterBox.collapse();
+            if (newNodeBox.isExpanded() && !newNodeBox.getBoundsInParent().contains(pt)) {
+                newNodeBox.collapse();
+                if (DEBUG) System.out.println("Collapsed NewNodeBox");
+            }
+            if (filterBox.isExpanded() && !filterBox.getBoundsInParent().contains(pt)) {
+                filterBox.collapse();
+                if (DEBUG) System.out.println("Collapsed FilterBox");
+            }
         });
 
         Platform.runLater(() -> {
-            if (!Files.exists(Paths.get(CONFIG_FILE))) createDefaultMainNodes();
-            else loadNodesFromFile();
+            if (DEBUG) System.out.println("Platform.runLater: loading nodes and zones");
+            if (!Files.exists(Paths.get(CONFIG_FILE))) {
+                if (DEBUG) System.out.println("Config file not found, creating default main nodes");
+                createDefaultMainNodes();
+            } else {
+                if (DEBUG) System.out.println("Config file found, loading nodes from file");
+                loadNodesFromFile();
+            }
+            if (DEBUG) System.out.println("Loading zones from file");
             loadZonesFromFile();
         });
 
         scene.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (DEBUG) System.out.println("Scene width changed from " + oldVal + " to " + newVal);
             double newWidth = newVal.doubleValue();
             double ratio = newWidth / prevSceneWidth;
             for (NetworkNode node : persistentNodes) {
@@ -127,6 +176,7 @@ public class NetworkMonitorApp extends Application {
         });
 
         scene.heightProperty().addListener((obs, oldVal, newVal) -> {
+            if (DEBUG) System.out.println("Scene height changed from " + oldVal + " to " + newVal);
             double newHeight = newVal.doubleValue();
             double ratio = newHeight / prevSceneHeight;
             for (NetworkNode node : persistentNodes) {
@@ -138,15 +188,18 @@ public class NetworkMonitorApp extends Application {
         });
 
         Timeline connectionTimeline = new Timeline(new KeyFrame(Duration.seconds(2), event -> {
+            if (DEBUG) System.out.println("Updating connection lines status");
             for (javafx.scene.Node node : spiderMapPane.getChildren()) {
                 if (node instanceof ConnectionLine) ((ConnectionLine) node).updateStatus();
             }
         }));
         connectionTimeline.setCycleCount(Timeline.INDEFINITE);
         connectionTimeline.play();
+        if (DEBUG) System.out.println("Started connectionTimeline");
     }
 
     public static void updateConnectionLinesVisibility() {
+        if (DEBUG) System.out.println("updateConnectionLinesVisibility called");
         instance.spiderMapPane.getChildren().forEach(child -> {
             if (child instanceof ConnectionLine) {
                 ConnectionLine line = (ConnectionLine) child;
@@ -159,6 +212,7 @@ public class NetworkMonitorApp extends Application {
     public static NetworkMonitorApp getInstance() { return instance; }
 
     public static void removeNode(NetworkNode node) {
+        if (DEBUG) System.out.println("Removing node: " + node.getDisplayName());
         instance.persistentNodes.remove(node);
         persistentNodesStatic.remove(node);
         instance.spiderMapPane.getChildren().remove(node);
@@ -169,6 +223,7 @@ public class NetworkMonitorApp extends Application {
     }
 
     public static void addNewNode(NetworkNode node) {
+        if (DEBUG) System.out.println("Adding new node: " + node.getDisplayName());
         instance.persistentNodes.add(node);
         persistentNodesStatic.add(node);
         instance.addDetailPanelHandler(node);
@@ -213,12 +268,15 @@ public class NetworkMonitorApp extends Application {
     }
 
     private void loadWindowSize() {
+        if (DEBUG) System.out.println("loadWindowSize called");
         try {
             if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
+                if (DEBUG) System.out.println("Window config file exists: " + WINDOW_CONFIG_FILE);
                 String json=new String(Files.readAllBytes(Paths.get(WINDOW_CONFIG_FILE)));
                 Gson gson=new Gson();
                 WindowConfig wc=gson.fromJson(json,WindowConfig.class);
                 if(wc!=null) {
+                    if (DEBUG) System.out.println("Loaded window config: x="+wc.getX()+", y="+wc.getY()+", w="+wc.getWidth()+", h="+wc.getHeight());
                     primaryStage.setX(wc.getX()); primaryStage.setY(wc.getY());
                     primaryStage.setWidth(wc.getWidth()); primaryStage.setHeight(wc.getHeight());
                 }
@@ -365,41 +423,55 @@ public class NetworkMonitorApp extends Application {
     }
 
     public static void updateConnectionLineForNode(NetworkNode node) {
-        instance.spiderMapPane.getChildren().removeIf(child->
-            child instanceof ConnectionLine && (((ConnectionLine)child).getFrom()==node||((ConnectionLine)child).getTo()==node)
+        // 1) Remove any existing lines touching this node
+        instance.spiderMapPane.getChildren().removeIf(child ->
+            child instanceof ConnectionLine
+            && ( ((ConnectionLine)child).getFrom() == node
+            || ((ConnectionLine)child).getTo()   == node )
         );
 
-        if(node.getRouteSwitch()!=null && !node.getRouteSwitch().isEmpty()) {
-            NetworkNode routeNode=null;
-            for(NetworkNode n:persistentNodesStatic) {
-                DeviceType dt=n.getDeviceType();
-                if((dt==DeviceType.SWITCH||dt==DeviceType.WIRELESS_ACCESS_POINT)
-                 &&n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
-                    routeNode=n; break;
+        // 2) If the node has a custom routeSwitch, draw two segments:
+        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+            NetworkNode routeNode = null;
+            for (NetworkNode n : persistentNodesStatic) {
+                DeviceType dt = n.getDeviceType();
+                if ((dt == DeviceType.SWITCH || dt == DeviceType.WIRELESS_ACCESS_POINT)
+                && n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                    routeNode = n;
+                    break;
                 }
             }
-            if(routeNode!=null) {
-                ConnectionLine line=new ConnectionLine(routeNode,node);
-                instance.spiderMapPane.getChildren().add(0,line);
+            if (routeNode != null) {
+                // a) Grey link: upstream → routeNode
+                NetworkNode upstream = getUpstreamNode(node);
+                ConnectionLine greyLine = new ConnectionLine(upstream, routeNode);
+                greyLine.setLineColor(Color.GREY);
+                instance.spiderMapPane.getChildren().add(0, greyLine);
+
+                // b) Colored link: routeNode → node
+                ConnectionLine coloredLine = new ConnectionLine(routeNode, node);
+                instance.spiderMapPane.getChildren().add(0, coloredLine);
                 return;
             }
         }
 
-        if(!node.isMainNode()) {
+        // 3) Otherwise fall back to the single default link
+        if (!node.isMainNode()) {
             ConnectionLine connection;
-            if(node.getConnectionType()==ConnectionType.VIRTUAL) {
-                NetworkNode host=instance.getMainNodeByDisplayName("Host");
-                connection=new ConnectionLine(host,node);
-            } else if(node.getNetworkType()==NetworkType.INTERNAL) {
-                NetworkNode gw=instance.getMainNodeByDisplayName("Gateway");
-                connection=new ConnectionLine(gw,node);
+            if (node.getConnectionType() == ConnectionType.VIRTUAL) {
+                NetworkNode host = instance.getMainNodeByDisplayName("Host");
+                connection = new ConnectionLine(host, node);
+            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+                NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
+                connection = new ConnectionLine(gw, node);
             } else {
-                NetworkNode internet=instance.getMainNodeByDisplayName("Google DNS");
-                connection=new ConnectionLine(internet,node);
+                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
+                connection = new ConnectionLine(internet, node);
             }
-            instance.spiderMapPane.getChildren().add(0,connection);
+            instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
+
 
     private void saveNodesToFile() {
         try {
@@ -469,7 +541,15 @@ public class NetworkMonitorApp extends Application {
         saveNodesToFile(); saveZonesToFile(); saveWindowSize(); super.stop();
     }
 
-    public static void main(String[] args) { launch(args); }
+    public static void main(String[] args) {
+        System.out.println("Launching app...");
+        try {
+            launch(args);
+        } catch (Exception e) {
+            System.out.println("Exception in launch:");
+            e.printStackTrace();
+        }
+    }
 
     private NetworkNode getMainNodeByDisplayName(String name) {
         for(NetworkNode node:persistentNodes) {
