@@ -21,6 +21,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -123,6 +124,16 @@ public class NetworkMonitorApp extends Application {
         NewNodeBox newNodeBox = new NewNodeBox();
         scene.getStylesheets().add(getClass().getResource("/styles/newnodebox.css").toExternalForm());
         spiderMapPane.getChildren().add(newNodeBox);
+        newNodeBox.setOnMouseEntered(e -> {
+            if (!newNodeBox.isExpanded()) {
+                newNodeBox.setStyle("-fx-background-color: #39424A;"); // slightly lighter
+            }
+        });
+        newNodeBox.setOnMouseExited(e -> {
+            if (!newNodeBox.isExpanded()) {
+                newNodeBox.setStyle(null); // back to default
+            }
+        });
         if (DEBUG) System.out.println("Added NewNodeBox");
 
         newNodeBox.setLayoutX(15);
@@ -135,11 +146,36 @@ public class NetworkMonitorApp extends Application {
         FilterBox filterBox = new FilterBox();
         scene.getStylesheets().add(getClass().getResource("/styles/filterbox.css").toExternalForm());
         spiderMapPane.getChildren().add(filterBox);
+        filterBox.setOnMouseEntered(e -> {
+            if (!filterBox.isExpanded()) {
+                filterBox.setStyle("-fx-background-color: #7BAABD;"); // slightly lighter
+            }
+        });
+        filterBox.setOnMouseExited(e -> {
+            if (!filterBox.isExpanded()) {
+                filterBox.setStyle(null);
+            }
+        });
         if (DEBUG) System.out.println("Added FilterBox");
         filterBox.layoutXProperty().bind(newNodeBox.layoutXProperty().add(newNodeBox.widthProperty()).add(10));
 
         Button autoAddBtn = new Button();
+        ImageView searchIcon = new ImageView(
+        new Image(getClass().getResourceAsStream("/icons/search.png"))
+        );
+        // size the icon to fit nicely (e.g. 24×24)
+        searchIcon.setFitWidth(24);
+        searchIcon.setFitHeight(24);
+
+        // set it as the button’s graphic
+        autoAddBtn.setGraphic(searchIcon);
+        // no text
+        autoAddBtn.setText("");
         autoAddBtn.getStyleClass().addAll("newnodebox-panel", "autoadd-button");
+        autoAddBtn.setPrefSize(50, 50);
+        autoAddBtn.setMinSize(50, 50);
+        autoAddBtn.setMaxSize(50, 50);
+        
         autoAddBtn.setOnAction(e -> {
             // 1) Disable & give feedback
             autoAddBtn.setDisable(true);
@@ -159,8 +195,18 @@ public class NetworkMonitorApp extends Application {
             new Thread(task).start();
         });
         spiderMapPane.getChildren().add(autoAddBtn);
+        autoAddBtn.setOnMouseEntered(e -> {
+            autoAddBtn.setStyle("-fx-background-color: #3A4650;");
+        });
+        autoAddBtn.setOnMouseExited(e -> {
+            autoAddBtn.setStyle(null);
+        });
         autoAddBtn.layoutXProperty().bind(filterBox.layoutXProperty().add(filterBox.widthProperty()).add(10));
-        autoAddBtn.layoutYProperty().bind(newNodeBox.layoutYProperty());
+        autoAddBtn.layoutYProperty().bind(
+        spiderMapPane.heightProperty()
+                 .subtract(autoAddBtn.heightProperty())
+                 .subtract(15)
+);
 
 
         spiderMapPane.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
