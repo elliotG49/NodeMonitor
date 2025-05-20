@@ -32,7 +32,7 @@ public class SlideOutPanel extends StackPane {
         setMaxWidth(panelWidth);
 
         container = new BorderPane();
-        container.setPadding(new Insets(10, 16, 16, 16)); // Top, Right, Bottom, Left
+        container.setPadding(new Insets(4, 8, 8, 8)); // Top, Right, Bottom, Left
 
         // Create close button with icon
         ImageView closeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/plus.png")));

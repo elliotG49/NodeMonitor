@@ -23,14 +23,14 @@ public class SlideOutForms {
      * @param slidePanel the SlideOutPanel that will host and hide this form
      */
     public static Node buildAddNodeForm(SlideOutPanel slidePanel) {
-        // container VBox with 16px spacing
-        VBox form = new VBox(16); // Increased spacing between elements
+        VBox form = new VBox(12);
         form.getStyleClass().add("form-container");
-        form.setPadding(new Insets(0, 8, 8, 8)); // Add padding inside the form
+        form.setPadding(new Insets(4, 8, 8, 8)); // Add padding inside the form
 
         // Title with less top margin since we handled padding in container
-        Label title = new Label("Add New Node");
+        Label title = new Label("Add Node");
         title.getStyleClass().add("title-label");
+        form.setAlignment(Pos.TOP_LEFT); // Top-level alignment
 
         ComboBox<DeviceType> deviceBox = new ComboBox<>();
         deviceBox.setPromptText("Device Type");
@@ -73,7 +73,7 @@ public class SlideOutForms {
         }
 
         // Create Button
-        Button createBtn = new Button("Create Node");
+        Button createBtn = new Button("Add");
         createBtn.getStyleClass().add("form-button");
         createBtn.setOnAction(evt -> {
             // simple validation
@@ -99,8 +99,12 @@ public class SlideOutForms {
         // Set consistent width for all controls
         Arrays.asList(deviceBox, nameField, ipField, netBox, connBox, routeBox, createBtn)
             .forEach(control -> {
-                control.setPrefWidth(150); // Slightly wider to account for padding
-                control.setMaxWidth(1500);
+                control.setPrefWidth(220); // Consistent width for all controls
+                control.setMaxWidth(220);
+                // Remove any alignment settings that might exist
+                if (control instanceof ComboBox) {
+                    ((ComboBox<?>) control).setMaxWidth(Double.MAX_VALUE);
+                }
             });
 
         // Assemble form
@@ -114,7 +118,6 @@ public class SlideOutForms {
             routeBox,
             createBtn
         );
-        form.setAlignment(Pos.TOP_CENTER);
 
         return form;
     }

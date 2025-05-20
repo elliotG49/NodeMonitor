@@ -82,7 +82,7 @@
   -fx-background-radius: 12px;
   
   /* make room for inner padding + title + fields */
-  -fx-padding: 16px;
+  -fx-padding: 3px;
   
   /* soft drop shadow per your Figma spec */
   -fx-effect: dropshadow(
@@ -107,8 +107,8 @@
 .slide-panel .title-label {
   /* if you give your heading Label the style-class “title-label” */
   -fx-text-fill: white;
-  -fx-font-size: 16px;
-  -fx-font-weight: 600;
+  -fx-font-size: 24px;
+  -fx-font-weight: 800;
   -fx-padding: 0 0 12px 0;  /* some breathing room below */
 }
 
@@ -122,7 +122,8 @@
   -fx-border-color: transparent;
   
   -fx-text-fill: white;
-  -fx-prompt-text-fill: rgba(255,255,255,1);
+  -fx-font-size: 14px;
+  -fx-prompt-text-fill: rgba(255,255,255,0.4);
   
   -fx-padding: 0 8px;       /* vertical 0, horizontal 8px */
   -fx-pref-height: 32px;    /* consistent height */
@@ -140,6 +141,11 @@
   );
 }
 
+.slide-panel .combo-box > .list-cell {
+    -fx-text-fill: rgba(255,254,255,1);
+    -fx-prompt-text-fill: rgba(255,255,255,0.4);
+}
+
 /*───────────────────────────────────────────────────────────────────────────*/
 /* “Add” button at bottom of form                                       */
 /*───────────────────────────────────────────────────────────────────────────*/
@@ -150,10 +156,13 @@
   
   -fx-padding: 8 16;      /* vertical 8px, horizontal 16px */
   -fx-font-size: 14px;
+  -fx-max-width: 75px;     /* or whatever max you prefer */
+  -fx-min-width: 75px;
   
   /* hover state */
   -fx-cursor: hand;
 }
+
 .slide-panel .form-button:hover {
   -fx-background-color: derive(#4D627E, 20%);
 }
@@ -163,7 +172,8 @@
 /*───────────────────────────────────────────────────────────────────────────*/
 .slide-panel .form-container {
   -fx-spacing: 12px;
-  -fx-alignment: top-center;
+  -fx-alignment: center-left;  /* This aligns all children to the left */
+  -fx-padding: 16px;
 }
 
 /*───────────────────────────────────────────────────────────────────────────*/

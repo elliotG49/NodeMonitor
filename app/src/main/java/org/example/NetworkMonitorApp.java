@@ -333,7 +333,7 @@ public class NetworkMonitorApp extends Application {
     btn.getStyleClass().add("mode-button");
     btn.setContentDisplay(ContentDisplay.LEFT);
     btn.setGraphicTextGap(10);
-    btn.setMinWidth(150);         // or whatever width you like
+    btn.setMinWidth(180);         // or whatever width you like
     btn.setAlignment(Pos.CENTER_LEFT);
     return btn;
 }
