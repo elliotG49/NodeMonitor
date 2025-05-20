@@ -1,0 +1,113 @@
+package org.example;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
+
+/**
+ * A slide‐out panel that animates in from the left and can show arbitrary content.
+ */
+public class SlideOutPanel extends StackPane {
+    private static final double LEFT_MARGIN = 15;    // your desired gap from the very left edge
+    private final double panelWidth;
+    private final BorderPane container;
+    private final Button closeButton;
+
+    public SlideOutPanel(double width) {
+        this.panelWidth = width;
+        getStyleClass().add("slide-panel");
+        setPrefWidth(panelWidth);
+        setMinWidth(panelWidth);
+        setMaxWidth(panelWidth);
+
+        container = new BorderPane();
+        container.setPadding(new Insets(10, 16, 16, 16)); // Top, Right, Bottom, Left
+
+        // Create close button with icon
+        ImageView closeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/plus.png")));
+        closeIcon.setFitWidth(15);
+        closeIcon.setFitHeight(15);
+        closeIcon.setRotate(45); // Rotate plus to make it an X
+        
+        closeButton = new Button();
+        closeButton.setGraphic(closeIcon);
+        closeButton.getStyleClass().addAll("close-button", "icon-button");
+        closeButton.setOnAction(e -> hide());
+
+        HBox closeBox = new HBox(closeButton);
+        closeBox.setAlignment(Pos.CENTER_RIGHT);
+        closeBox.setPadding(new Insets(0, 0, 8, 0)); // Add space below close button
+        container.setTop(closeBox);
+
+        // start fully off‐screen (to the left)
+        setTranslateX(-panelWidth - LEFT_MARGIN);
+        getChildren().add(container);
+
+        // hide if clicking outside
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.addEventFilter(MouseEvent.MOUSE_PRESSED, this::onSceneMousePressed);
+            }
+            if (oldScene != null) {
+                oldScene.removeEventFilter(MouseEvent.MOUSE_PRESSED, this::onSceneMousePressed);
+            }
+        });
+    }
+
+    /** Swap in new content (center of the panel) */
+    public void setContent(Node content) {
+        container.setCenter(content);
+        BorderPane.setAlignment(content, Pos.TOP_CENTER);
+    }
+
+    /** Slide the panel in (hiddenX → 0) */
+    public void show() {
+        double hiddenX = -panelWidth - LEFT_MARGIN;
+        Timeline showAnim = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(translateXProperty(), hiddenX)
+            ),
+            new KeyFrame(Duration.millis(200),
+                new KeyValue(translateXProperty(), 15)
+            )
+        );
+        showAnim.play();
+    }
+
+    /** Slide the panel out (0 → hiddenX) */
+    public void hide() {
+        double hiddenX = -panelWidth - LEFT_MARGIN;
+        Timeline hideAnim = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(translateXProperty(), 0)
+            ),
+            new KeyFrame(Duration.millis(200),
+                new KeyValue(translateXProperty(), hiddenX)
+            )
+        );
+        hideAnim.play();
+    }
+
+    private void onSceneMousePressed(MouseEvent event) {
+        if (getTranslateX() >= 0) {
+            double x = event.getSceneX(), y = event.getSceneY();
+            double panelX = localToScene(0,0).getX();
+            double panelY = localToScene(0,0).getY();
+            if (x < panelX || x > panelX + panelWidth ||
+                y < panelY || y > panelY + getHeight()) {
+                hide();
+            }
+        }
+    }
+}

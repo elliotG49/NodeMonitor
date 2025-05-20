@@ -3,27 +3,26 @@
 }
 
 .spider-map-pane {
-    -fx-background-color: #192428;
+    -fx-background-color: -spidermap-bg-color;
 }
 
 /* Node container styling */
-.node-container {
-    -fx-padding: 5px;
-}
 
-.node-background {
-    -fx-fill: #535d68;           /* desired background color */      /* desired border color */
-    -fx-arc-width: 20px;
-    -fx-arc-height: 20px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
-}
 
-/* Node label styling */
-.node-label {
-    -fx-text-fill: white;
-    -fx-font-weight: 600;
+.node-circle {
+  -fx-fill: -node-bg-color;
+  -fx-stroke: -node-border-color;
+  -fx-stroke-width: 2;
+  -fx-effect: dropshadow(
+    gaussian,             /* type */
+    rgba(0,235,255,0.25), /* color (00EBFF @25%) */
+    9,                    /* radius (blur) */
+    0.22,                 /* spread fraction = 2px/9px ≈ 0.22 */
+    0,                    /* offsetX */
+    0                     /* offsetY */
+  );
+  -fx-cursor: hand; /* optional */
 }
-
 /* Latency label styling */
 .latency-label {
     -fx-text-fill: white;
@@ -49,5 +48,144 @@
     -fx-text-fill: white; 
     -fx-background-radius: 5px;
 }
+
+.mode-panel {
+  -fx-background-color: -panels-bg-color;
+  -fx-background-radius: 15px;
+  -fx-padding: 10px;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
+}
+
+.mode-button {
+  -fx-background-color: transparent;
+  -fx-text-fill: white;
+  -fx-font-size: 14px;
+  -fx-background-radius: 10px;
+  -fx-cursor: hand;
+}
+
+.mode-button:hover {
+  -fx-background-color: derive(-panels-bg-color, 10%);
+}
+
+.mode-icon-container {
+  -fx-background-color: -icon-container-color;
+  -fx-background-radius: 10px;
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Slide-out panel overall container                                   */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel {
+  /* background & rounding */
+  -fx-background-color: #222E3C;  
+  -fx-background-radius: 12px;
+  
+  /* make room for inner padding + title + fields */
+  -fx-padding: 16px;
+  
+  /* soft drop shadow per your Figma spec */
+  -fx-effect: dropshadow(
+    gaussian,
+    rgba(0, 0, 0, 0.25), /* accent glow @25% */
+    9,   /* blur radius */
+    0,   /* spread exponent */
+    0,   /* offset x */
+    2    /* offset y */
+  );
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Panel title (“Add Node”)                                              */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel > .border-pane > .top > .hbox > .button {
+  /* you’re using a close “×” button at top right; keep that small */
+  -fx-font-size: 16px;
+  -fx-background-color: transparent;
+  -fx-text-fill: white;
+}
+.slide-panel .title-label {
+  /* if you give your heading Label the style-class “title-label” */
+  -fx-text-fill: white;
+  -fx-font-size: 16px;
+  -fx-font-weight: 600;
+  -fx-padding: 0 0 12px 0;  /* some breathing room below */
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Form fields (TextField, ComboBox, etc.)                              */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel .text-field,
+.slide-panel .combo-box {
+  -fx-background-color: #171F2A;
+  -fx-background-radius: 6px;
+  -fx-border-color: transparent;
+  
+  -fx-text-fill: white;
+  -fx-prompt-text-fill: rgba(255,255,255,1);
+  
+  -fx-padding: 0 8px;       /* vertical 0, horizontal 8px */
+  -fx-pref-height: 32px;    /* consistent height */
+  -fx-max-width: 150px;     /* or whatever max you prefer */
+  -fx-min-width: 150px;
+  
+  /* subtle inner shadow to make them pop */
+  -fx-effect: innershadow(
+    gaussian,
+    rgba(0,0,0,0.3),
+    3,  /* blur */
+    0,  /* spread */
+    0,  /* offsetX */
+    1   /* offsetY */
+  );
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* “Add” button at bottom of form                                       */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel .form-button {
+  -fx-background-color: #4D627E;
+  -fx-background-radius: 6px;
+  -fx-text-fill: white;
+  
+  -fx-padding: 8 16;      /* vertical 8px, horizontal 16px */
+  -fx-font-size: 14px;
+  
+  /* hover state */
+  -fx-cursor: hand;
+}
+.slide-panel .form-button:hover {
+  -fx-background-color: derive(#4D627E, 20%);
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Spacing helpers — if you need extra gaps between fields               */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel .form-container {
+  -fx-spacing: 12px;
+  -fx-alignment: top-center;
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Icon button styling                                                  */
+/*───────────────────────────────────────────────────────────────────────────*/
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-padding: 5px;
+    -fx-cursor: hand;
+}
+
+.icon-button:hover {
+    -fx-background-color: rgba(255,255,255,0.1);
+}
+
+.icon-button .image-view {
+    -fx-opacity: 0.8;
+}
+
+.icon-button:hover .image-view {
+    -fx-opacity: 1;
+}
+
 
 

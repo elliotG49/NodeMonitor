@@ -1,0 +1,14 @@
+
+.root {
+-spidermap-bg-color:       #171F2A;
+-panels-bg-color:          #222E3C;
+-icon-container-color:     #171F2A;
+-node-bg-color:            #222E3C;
+-node-border-color:        #00EBFF;
+-node-glow-color:          #007781;
+-node-glow-hovered-color:  #4fff98; /* pick whatever you like */
+-field-bg-color:           #171F2A;
+-primary-button-color:     #4D627E;
+-accent-color-1:           #5593A5;
+-text-color-1:             #FFFFFF;
+}

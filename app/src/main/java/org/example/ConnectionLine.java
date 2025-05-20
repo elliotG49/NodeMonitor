@@ -35,7 +35,7 @@ public class ConnectionLine extends Pane {
     private static final double CYCLE_DURATION = 3.0;
 
     private long lastTrailTime = 0;
-    private static final long TRAIL_INTERVAL_NANOS = 10_000_000;
+    private static final long TRAIL_INTERVAL_NANOS = 20_000_000;
 
     private final long animationStartTime;
     private volatile boolean connected = false;
@@ -224,7 +224,7 @@ public class ConnectionLine extends Pane {
             Platform.runLater(() -> {
                 connected = reachable;
                 if (reachable) {
-                    curve.setStroke(Color.web("#2E8B57"));
+                    curve.setStroke(Color.web("#0cad03"));
                     latencyLabel.setText(elapsed + " ms");
                     interfaceLabel.setText(iface);
 

@@ -1,9 +1,0 @@
-.autoadd-button {
-    -fx-background-image: url("/icons/search.png");
-    -fx-background-size: 24px 24px;
-    -fx-background-color: #2E383C;
-    -fx-background-radius: 10px;
-}
-.autoadd-button.scanning {
-    -fx-background-color: #FFD54F;
-}

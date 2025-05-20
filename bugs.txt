@@ -1,0 +1,4 @@
+1. cant press ESC to close nodedetailpanel
+2. When creating a node, if routed via a switch, the connectioline does not come from the switch, but from the gatewau, however this fixes if relaunched.
+3. Label under a added node has different padding / margin to node
+4. 
