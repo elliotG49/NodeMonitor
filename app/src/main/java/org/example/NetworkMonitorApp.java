@@ -112,7 +112,7 @@ public class NetworkMonitorApp extends Application {
             primaryStage.setMaximized(true);
         }
 
-        slidePanel = new SlideOutPanel(200);
+        slidePanel = new SlideOutPanel(300);
 
         // 2) add *before* any call to show()/hide()
         spiderMapPane.getChildren().add(slidePanel);

@@ -3,6 +3,7 @@ package org.example;
 import java.net.InetAddress;
 
 import javafx.animation.ScaleTransition;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -10,13 +11,14 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
 /**
  * Represents a network node on the spider map.
- * Displays as a circular icon with a glow and label below.
+ * Displays as a square icon with a glow and label below.
  */
 public class NetworkNode extends StackPane {
     private String ipOrHostname;
@@ -31,16 +33,14 @@ public class NetworkNode extends StackPane {
     private long startTime;
 
     // Visual components
-    private final Circle circle;
+    private static final double SQUARE_SIZE = 65; // Size of the square
+    private final Rectangle square;
     private final ImageView iconView;
     private final Label nameLabel;
 
     // Dragging support
     private double dragDeltaX;
     private double dragDeltaY;
-
-    // Circle radius
-    private static final double RADIUS = 40;
 
     public NetworkNode(String ipOrHostname, String displayName,
                        DeviceType deviceType, NetworkType networkType) {
@@ -50,28 +50,53 @@ public class NetworkNode extends StackPane {
         this.networkType  = networkType;
         this.startTime    = System.currentTimeMillis();
 
-        // --- Circle background ---
-        circle = new Circle(RADIUS);
-        circle.getStyleClass().add("node-circle");
-        getChildren().add(circle);
+        // --- Square background ---
+        square = new Rectangle(SQUARE_SIZE, SQUARE_SIZE);
+        square.setArcWidth(30);  // Border radius
+        square.setArcHeight(30);
+        square.getStyleClass().add("node-square");
+        square.setFill(Color.web("#222")); // Or use your preferred color
+        square.setStroke(Color.web("#444")); // Optional: border color
+        square.setStrokeWidth(2);           // Optional: border width
 
-        // --- Icon inside circle ---
+        // --- Icon inside square ---
         iconView = new ImageView(new Image(
             getClass().getResourceAsStream("/icons/" + getIconFileName())
         ));
-        iconView.setFitWidth(50);
-        iconView.setFitHeight(50);
-        getChildren().add(iconView);
-        setAlignment(iconView, Pos.CENTER);
+        iconView.setFitWidth(40);
+        iconView.setFitHeight(40);
 
-                ScaleTransition hoverScale = new ScaleTransition(Duration.millis(200), this);
+        // Create inner container for square and icon
+        StackPane nodeContainer = new StackPane();
+        nodeContainer.getChildren().addAll(square, iconView);
+        nodeContainer.setAlignment(Pos.CENTER);
+
+        // Create label
+        nameLabel = new Label(displayName);
+        nameLabel.setFont(Font.font(16));
+        nameLabel.setTextFill(Color.WHITE);
+        nameLabel.setStyle("-fx-font-weight: 600;");
+
+        // Use VBox to maintain consistent vertical spacing
+        VBox layout = new VBox(10); // 15px spacing between elements
+        layout.setAlignment(Pos.CENTER);
+        layout.getChildren().addAll(nodeContainer, nameLabel);
+        
+        // Add VBox to the StackPane (this)
+        getChildren().add(layout);
+
+        // Remove previous padding since we're using VBox spacing
+        setPadding(new Insets(0));
+
+        // --- Hover effect ---
+        ScaleTransition hoverScale = new ScaleTransition(Duration.millis(200), nodeContainer);
         setOnMouseEntered(e -> {
             hoverScale.stop();
             hoverScale.setToX(1.05);
             hoverScale.setToY(1.05);
             hoverScale.playFromStart();
             // override CSS effect to use hovered glow variable
-            circle.setStyle(
+            square.setStyle(
                 "-fx-effect: dropshadow(gaussian, -node-glow-hovered-color, 9, 0.5, 0, 0);"
             );
         });
@@ -81,16 +106,8 @@ public class NetworkNode extends StackPane {
             hoverScale.setToY(1.0);
             hoverScale.playFromStart();
             // clear inline style to revert to default glow
-            circle.setStyle("");
+            square.setStyle("");
         });
-
-        // --- Label beneath ---
-        nameLabel = new Label(displayName);
-        nameLabel.setFont(Font.font(16));
-        nameLabel.setTextFill(Color.WHITE);
-        getChildren().add(nameLabel);
-        setAlignment(nameLabel, Pos.BOTTOM_CENTER);
-        nameLabel.setTranslateY(20);
 
         // --- Drag handling ---
         setOnMousePressed(e -> {
@@ -181,6 +198,16 @@ public class NetworkNode extends StackPane {
 
     public long getStartTime()                  { return startTime; }
 
+        private String macAddress;
+
+    public void setMacAddress(String macAddress) {
+        this.macAddress = macAddress;
+    }
+
+    public String getMacAddress() {
+        return macAddress;
+    }
+
     /** Update all properties from another node */
     public void updateFrom(NetworkNode updated) {
         setIpOrHostname(updated.getIpOrHostname());
@@ -191,7 +218,7 @@ public class NetworkNode extends StackPane {
         setRouteSwitch(updated.getRouteSwitch());
     }
 
-    /** No-op: fixed size circle
+    /** No-op: fixed size square
      *  but retained for interface consistency */
     public void updateLayoutForSavedSize() {}
 }
