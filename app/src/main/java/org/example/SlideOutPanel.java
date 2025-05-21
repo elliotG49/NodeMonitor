@@ -6,12 +6,8 @@ import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
@@ -22,7 +18,6 @@ public class SlideOutPanel extends StackPane {
     private static final double LEFT_MARGIN = 15;    // your desired gap from the very left edge
     private final double panelWidth;
     private final BorderPane container;
-    private final Button closeButton;
 
     public SlideOutPanel(double width) {
         this.panelWidth = width;
@@ -35,20 +30,7 @@ public class SlideOutPanel extends StackPane {
         container.setPadding(new Insets(4, 8, 8, 8)); // Top, Right, Bottom, Left
 
         // Create close button with icon
-        ImageView closeIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/plus.png")));
-        closeIcon.setFitWidth(15);
-        closeIcon.setFitHeight(15);
-        closeIcon.setRotate(45); // Rotate plus to make it an X
-        
-        closeButton = new Button();
-        closeButton.setGraphic(closeIcon);
-        closeButton.getStyleClass().addAll("close-button", "icon-button");
-        closeButton.setOnAction(e -> hide());
 
-        HBox closeBox = new HBox(closeButton);
-        closeBox.setAlignment(Pos.CENTER_RIGHT);
-        closeBox.setPadding(new Insets(0, 0, 8, 0)); // Add space below close button
-        container.setTop(closeBox);
 
         // start fully off‐screen (to the left)
         setTranslateX(-panelWidth - LEFT_MARGIN);
