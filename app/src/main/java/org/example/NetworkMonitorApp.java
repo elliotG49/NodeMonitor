@@ -219,6 +219,7 @@ public class NetworkMonitorApp extends Application {
         instance.persistentNodes.add(node);
         persistentNodesStatic.add(node);
         instance.addDetailPanelHandler(node);
+        node.setViewOrder(-2); // Ensures nodes are above connection lines but below labels
         instance.spiderMapPane.getChildren().add(node);
 
         if (!node.isMainNode()) {
@@ -249,6 +250,7 @@ public class NetworkMonitorApp extends Application {
                 NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
                 connection = new ConnectionLine(internet, node);
             }
+            connection.setViewOrder(1); // Ensures connection lines stay below nodes
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
@@ -440,6 +442,7 @@ public class NetworkMonitorApp extends Application {
             NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
             connection = new ConnectionLine(internet, node);
         }
+        connection.setViewOrder(1); // Ensures connection lines stay below nodes
         spiderMapPane.getChildren().add(0, connection);
     }
 
@@ -470,9 +473,11 @@ public class NetworkMonitorApp extends Application {
                 if (routeNode.getDeviceType() == DeviceType.UNMANAGED_SWITCH) {
                     ConnectionLine greyLine = new ConnectionLine(routeNode, node);
                     greyLine.setLineColor(Color.GREY);
+                    greyLine.setViewOrder(1); // Ensures connection lines stay below nodes
                     instance.spiderMapPane.getChildren().add(0, greyLine);
                 } else {
                     ConnectionLine coloredLine = new ConnectionLine(routeNode, node);
+                    coloredLine.setViewOrder(1); // Ensures connection lines stay below nodes
                     instance.spiderMapPane.getChildren().add(0, coloredLine);
                 }
                 return;
@@ -491,6 +496,7 @@ public class NetworkMonitorApp extends Application {
                 NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
                 connection = new ConnectionLine(internet, node);
             }
+            connection.setViewOrder(1); // Ensures connection lines stay below nodes
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
@@ -500,6 +506,7 @@ public class NetworkMonitorApp extends Application {
         if (to.getDeviceType() == DeviceType.MANAGED_SWITCH) {
             // Create standard connection line but still allow routing
             ConnectionLine line = new ConnectionLine(from, to);
+            line.setViewOrder(1); // Ensures connection lines stay below nodes
             spiderMapPane.getChildren().add(line);
         }
     }

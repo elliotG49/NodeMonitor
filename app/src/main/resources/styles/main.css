@@ -114,8 +114,8 @@
 /*───────────────────────────────────────────────────────────────────────────*/
 .slide-panel .text-field,
 .slide-panel .combo-box {
-  -fx-background-color: -input-background;
-  -fx-background-radius: 15px;  /* Changed from 6px */
+  -fx-background-color: -icon-container-color;
+  -fx-background-radius: 10px;  /* Changed from 6px */
   -fx-border-color: transparent;
   
   -fx-text-fill: -text-primary;
@@ -128,14 +128,7 @@
   -fx-min-width: 260px;
   
   /* subtle inner shadow to make them pop */
-  -fx-effect: innershadow(
-    gaussian,
-    rgba(0,0,0,0.3),
-    3,  /* blur */
-    0,  /* spread */
-    0,  /* offsetX */
-    1   /* offsetY */
-  );
+
   -fx-cursor: hand;  /* Add this line */
 }
 
@@ -172,7 +165,7 @@
 
 /* ComboBox Popup styling */
 .slide-panel .combo-box-popup > .list-view {
-    -fx-background-color: -slide-panel-background;
+    -fx-background-color: -icon-container-color;
     -fx-background-radius: 15px;  /* Changed from 6px */
     -fx-border-color: #607694;
     -fx-border-width: 1px;

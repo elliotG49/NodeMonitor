@@ -28,6 +28,8 @@ public class ConnectionLine extends Pane {
 
     private final Circle pingParticle;
     private final AnimationTimer pingTimer;
+    private final Label latencyLabel; // Label to display latency
+
     private static final double CYCLE_DURATION = 3.0;
 
     private long lastTrailTime = 0;
@@ -101,12 +103,28 @@ public class ConnectionLine extends Pane {
         statsPanel = new PopupPanel();
         getChildren().add(statsPanel);
 
+        // Add latency label
+        latencyLabel = new Label();
+        latencyLabel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-text-fill: black; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+        latencyLabel.setVisible(false); // Initially hidden
+        getChildren().add(latencyLabel);
+
+        // Add hover behavior to the latency label
+        latencyLabel.setOnMouseEntered(e -> {
+            latencyLabel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-text-fill: black; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+        });
+
+        latencyLabel.setOnMouseExited(e -> {
+            latencyLabel.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+        });
+
         animationStartTime = System.nanoTime();
 
         pingTimer = new AnimationTimer() {
             @Override
             public void handle(long now) {
                 updateCurve();
+                updateLatencyLabelPosition();
 
                 double elapsedSeconds = (now - animationStartTime) / 1e9;
                 double normalizedTime = (elapsedSeconds % CYCLE_DURATION) / CYCLE_DURATION;
@@ -177,6 +195,33 @@ public class ConnectionLine extends Pane {
         curve.setControlY2(cy2);
     }
 
+    private void updateLatencyLabelPosition() {
+        // Calculate the midpoint of the cubic curve using Bézier formula at t = 0.5
+        double t = 0.5;
+        double oneMinusT = 1 - t;
+
+        double midX = Math.pow(oneMinusT, 3) * curve.getStartX() +
+                      3 * Math.pow(oneMinusT, 2) * t * curve.getControlX1() +
+                      3 * oneMinusT * Math.pow(t, 2) * curve.getControlX2() +
+                      Math.pow(t, 3) * curve.getEndX();
+
+        double midY = Math.pow(oneMinusT, 3) * curve.getStartY() +
+                      3 * Math.pow(oneMinusT, 2) * t * curve.getControlY1() +
+                      3 * oneMinusT * Math.pow(t, 2) * curve.getControlY2() +
+                      Math.pow(t, 3) * curve.getEndY();
+
+        // Ensure the label is within the bounds of the parent container
+        double labelWidth = latencyLabel.getWidth();
+        double labelHeight = latencyLabel.getHeight();
+
+        // Adjust position to keep the label within bounds
+        double adjustedX = Math.max(0, midX - labelWidth / 2);
+        double adjustedY = Math.max(0, midY - labelHeight / 2);
+
+        latencyLabel.setLayoutX(adjustedX);
+        latencyLabel.setLayoutY(adjustedY);
+    }
+
     private void spawnTrail(double x, double y) {
         for (int i = 0; i < TRAIL_COUNT; i++) {
             final int trailIndex = i; // Create a final copy of i for this iteration
@@ -240,17 +285,17 @@ public class ConnectionLine extends Pane {
         }
     }
 
-    // Modify updateStatus to respect hover state
     public void updateStatus() {
         // Special handling for virtual machines
         if (to.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
             setLineColor(Color.web("#0cad03")); // Green for virtual machines
-            return; // Exit early to avoid other logic
+            // Continue with the ping logic for virtual machines
         }
 
         // Only make the line grey if it's going TO an unmanaged switch FROM a main node
         if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
             setLineColor(Color.GRAY);
+            latencyLabel.setVisible(false); // Hide latency label for unmanaged switches
             return; // Exit early
         }
 
@@ -298,12 +343,16 @@ public class ConnectionLine extends Pane {
                                 curve.setStroke(defaultColor);
                             }
                             statsPanel.updateStats(elapsed + " ms", iface);
+                            latencyLabel.setText(elapsed + " ms");
+                            latencyLabel.setVisible(true);
                         } else {
                             defaultColor = Color.RED;
                             if (!isHovered) {
                                 curve.setStroke(defaultColor);
                             }
                             statsPanel.updateStats("Not Connected", "");
+                            latencyLabel.setText("");
+                            latencyLabel.setVisible(false);
                         }
                     });
                 } catch (Exception ex) {
@@ -314,6 +363,8 @@ public class ConnectionLine extends Pane {
                             curve.setStroke(defaultColor);
                         }
                         statsPanel.updateStats("Error", "");
+                        latencyLabel.setText("");
+                        latencyLabel.setVisible(false);
                         connected = false;
                     });
                 }
@@ -324,6 +375,7 @@ public class ConnectionLine extends Pane {
         // For all other cases, continue with normal ping logic
         if (!from.isMainNode() && !to.isMainNode()) {
             setLineColor(Color.GREY);
+            latencyLabel.setVisible(false); // Hide latency label for non-main nodes
             return;
         }
 
@@ -367,12 +419,16 @@ public class ConnectionLine extends Pane {
                             curve.setStroke(defaultColor);
                         }
                         statsPanel.updateStats(elapsed + " ms", iface);
+                        latencyLabel.setText(elapsed + " ms");
+                        latencyLabel.setVisible(true);
                     } else {
                         defaultColor = Color.RED;
                         if (!isHovered) {
                             curve.setStroke(defaultColor);
                         }
                         statsPanel.updateStats("Not Connected", "");
+                        latencyLabel.setText("");
+                        latencyLabel.setVisible(false);
                     }
                 });
             } catch (Exception ex) {
@@ -383,6 +439,8 @@ public class ConnectionLine extends Pane {
                         curve.setStroke(defaultColor);
                     }
                     statsPanel.updateStats("Error", "");
+                    latencyLabel.setText("");
+                    latencyLabel.setVisible(false);
                     connected = false;
                 });
             }
@@ -413,10 +471,14 @@ public class ConnectionLine extends Pane {
                 defaultColor = Color.web("#0cad03");
                 curve.setStroke(defaultColor);
                 statsPanel.updateStats("Connected", "");
+                latencyLabel.setText("Connected");
+                latencyLabel.setVisible(true);
             } else {
                 defaultColor = Color.RED;
                 curve.setStroke(defaultColor);
                 statsPanel.updateStats("", "");
+                latencyLabel.setText("");
+                latencyLabel.setVisible(false);
             }
         });
     }

@@ -77,7 +77,8 @@ public class NetworkNode extends StackPane {
         nameLabel = new Label(displayName);
         nameLabel.setFont(Font.font(16));
         nameLabel.setTextFill(Color.WHITE);
-        nameLabel.setStyle("-fx-font-weight: 600;");
+        nameLabel.setStyle("-fx-font-weight: 700; -fx-background-color: rgba(104, 104, 104, 0.4); -fx-padding: 2 6; -fx-background-radius: 10;");
+        nameLabel.setViewOrder(-1); // Ensures label stays on top of other elements
 
         // Use VBox to maintain consistent vertical spacing
         VBox layout = new VBox(10); // 15px spacing between elements
@@ -109,7 +110,7 @@ public class NetworkNode extends StackPane {
                     ConnectionLine line = (ConnectionLine) child;
                     if (line.getFrom() == this || line.getTo() == this) {
                         ColorAdjust brighten = new ColorAdjust();
-                        brighten.setBrightness(0.75); // Adjust brightness level
+                        brighten.setBrightness(0.6); // Adjust brightness level
                         line.setEffect(brighten);
                     }
                 }
