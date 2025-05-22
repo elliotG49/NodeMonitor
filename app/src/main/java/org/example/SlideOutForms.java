@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.example.NetworkMonitorApp.getPersistentNodesStatic;
-
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -265,23 +263,15 @@ public class SlideOutForms {
     }
 
     private static void populateRouteBox(ComboBox<String> routeBox) {
-        // Add Gateway first
-        getPersistentNodesStatic().stream()
-            .filter(n -> n.isMainNode() && n.getDeviceType() == DeviceType.GATEWAY)
+        routeBox.getItems().clear();
+        routeBox.getItems().add("None");
+        
+        NetworkMonitorApp.getPersistentNodesStatic().stream()
+            .filter(n -> (n.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
+                         n.getDeviceType() == DeviceType.MANAGED_SWITCH || 
+                         n.getDeviceType() == DeviceType.WIRELESS_ACCESS_POINT) 
+                    && !n.isMainNode())
             .map(NetworkNode::getDisplayName)
-            .findFirst()
-            .ifPresent(routeBox.getItems()::add);
-
-        // Then add switches and WAPs
-        getPersistentNodesStatic().stream()
-            .filter(n -> n.getDeviceType() == DeviceType.SWITCH 
-                     || n.getDeviceType() == DeviceType.WIRELESS_ACCESS_POINT)
-            .map(NetworkNode::getDisplayName)
-            .filter(name -> !routeBox.getItems().contains(name))
             .forEach(routeBox.getItems()::add);
-
-        if (!routeBox.getItems().isEmpty()) {
-            routeBox.setValue(routeBox.getItems().get(0));
-        }
     }
 }

@@ -12,48 +12,58 @@ import java.util.Map;
  */
 public class DeviceFormConfig {
     
-    // Common fields that appear for all devices
+    // Common fields that appear for all devices (modified to remove IP_HOSTNAME)
     private static final List<DeviceField> COMMON_REQUIRED_FIELDS = Arrays.asList(
         DeviceField.DISPLAY_NAME,
-        DeviceField.IP_HOSTNAME,
         DeviceField.NETWORK_TYPE,
         DeviceField.CONNECTION_TYPE,
         DeviceField.NODE_ROUTING
     );
 
-    // Maps device types to their required fields (beyond common fields)
+    // Modified constructor to add IP_HOSTNAME as required for specific devices
     private static final Map<DeviceType, List<DeviceField>> REQUIRED_FIELDS = new HashMap<>() {{
         // Computer required fields
         put(DeviceType.COMPUTER, Arrays.asList(
+            DeviceField.IP_HOSTNAME
         ));
         
         // Router required fields
         put(DeviceType.ROUTER, Arrays.asList(
+            DeviceField.IP_HOSTNAME,
             DeviceField.MANAGED,
             DeviceField.DHCP_ENABLED
         ));
         
-        // Switch required fields
-        put(DeviceType.SWITCH, Arrays.asList(
+        // Switch required fields - remove IP_HOSTNAME from here
+        put(DeviceType.UNMANAGED_SWITCH, Arrays.asList(
             DeviceField.MANAGED
         ));
         
+        // Add Managed Switch required fields
+        put(DeviceType.MANAGED_SWITCH, Arrays.asList(
+            DeviceField.IP_HOSTNAME,
+            DeviceField.SWITCH_PORTS,
+            DeviceField.FIRMWARE_VERSION
+        ));
+
         // Server required fields
         put(DeviceType.SERVER, Arrays.asList(
+            DeviceField.IP_HOSTNAME
         ));
         
         // Security Camera required fields
         put(DeviceType.SECURITY_CAMERA, Arrays.asList(
-
+            DeviceField.IP_HOSTNAME
         ));
         
         // Phone required fields
         put(DeviceType.PHONE, Arrays.asList(
+            DeviceField.IP_HOSTNAME
         ));
         
         // VM required fields
         put(DeviceType.VIRTUAL_MACHINE, Arrays.asList(
-
+            DeviceField.IP_HOSTNAME
         ));
     }};
 
@@ -72,10 +82,19 @@ public class DeviceFormConfig {
         ));
         
         // Switch optional fields
-        put(DeviceType.SWITCH, Arrays.asList(
-            DeviceField.MAC_ADDRESS
+        put(DeviceType.UNMANAGED_SWITCH, Arrays.asList(
+            DeviceField.MAC_ADDRESS,
+            DeviceField.IP_HOSTNAME  // Add this line
         ));
         
+        // Add Managed Switch optional fields
+        put(DeviceType.MANAGED_SWITCH, Arrays.asList(
+            DeviceField.MAC_ADDRESS,
+            DeviceField.VLANS,
+            DeviceField.POE_SUPPORTED,
+            DeviceField.UPLINK_DEVICE
+        ));
+
         // Server optional fields
         put(DeviceType.SERVER, Arrays.asList(
             DeviceField.HOSTING_PROVIDER,
@@ -131,10 +150,12 @@ public class DeviceFormConfig {
                 }
                 break;
                 
-            case SWITCH:
-                if (!"Yes".equals(currentValues.get(DeviceField.MANAGED))) {
+            case UNMANAGED_SWITCH:
+                String managedValue = currentValues.get(DeviceField.MANAGED);
+                if (!"Yes".equals(managedValue)) {
                     disabledFields.add(DeviceField.VLANS);
                     disabledFields.add(DeviceField.FIRMWARE_VERSION);
+                    disabledFields.add(DeviceField.IP_HOSTNAME);
                 }
                 break;
                 
@@ -146,5 +167,17 @@ public class DeviceFormConfig {
         }
         
         return disabledFields;
+    }
+
+    // Add new method to check if a field should be required based on current values
+    public static boolean isFieldRequired(DeviceType deviceType, DeviceField field, Map<DeviceField, String> currentValues) {
+        // For switches, IP_HOSTNAME is conditionally required based on MANAGED status
+        if (deviceType == DeviceType.UNMANAGED_SWITCH && field == DeviceField.IP_HOSTNAME) {
+            String managedValue = currentValues.get(DeviceField.MANAGED);
+            return "Yes".equals(managedValue);
+        }
+        
+        // Otherwise use the standard required field check
+        return isFieldRequired(deviceType, field);
     }
 }

@@ -147,7 +147,8 @@ public class NetworkNode extends StackPane {
     private String getIconFileName() {
         switch (deviceType) {
             case COMPUTER:            return "host.png";
-            case SWITCH:              return "switch.png";
+            case UNMANAGED_SWITCH:    return "switch.png";
+            case MANAGED_SWITCH:      return "switch.png";  // Add this line
             case LAPTOP:              return "laptop.png";
             case SERVER:              return "server.png";
             case ROUTER:              return "internet.png";

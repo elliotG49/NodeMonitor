@@ -2,7 +2,8 @@ package org.example;
 
 public enum DeviceType {
     COMPUTER,
-    SWITCH,
+    UNMANAGED_SWITCH,  // Fixed typo from UMANAGED_SWITCH
+    MANAGED_SWITCH,
     LAPTOP,
     SERVER,
     ROUTER,

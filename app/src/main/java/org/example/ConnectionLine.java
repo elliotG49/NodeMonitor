@@ -35,7 +35,10 @@ public class ConnectionLine extends Pane {
     private static final double CYCLE_DURATION = 3.0;
 
     private long lastTrailTime = 0;
-    private static final long TRAIL_INTERVAL_NANOS = 20_000_000;
+    private static final long TRAIL_INTERVAL_NANOS = 10_000_000; // Reduced from 20_000_000
+    private static final int TRAIL_COUNT = 8; // Number of trails to create
+    private static final double TRAIL_BASE_RADIUS = 2.0;
+    private static final double TRAIL_FADE_FACTOR = 0.8;
 
     private final long animationStartTime;
     private volatile boolean connected = false;
@@ -161,15 +164,22 @@ public class ConnectionLine extends Pane {
     }
 
     private void spawnTrail(double x, double y) {
-        Circle trail = new Circle(2, Color.WHITE);
-        trail.setLayoutX(x);
-        trail.setLayoutY(y);
-        getChildren().add(trail);
-        FadeTransition ft = new FadeTransition(Duration.seconds(0.3), trail);
-        ft.setFromValue(1.0);
-        ft.setToValue(0.0);
-        ft.setOnFinished(e -> getChildren().remove(trail));
-        ft.play();
+        // Create multiple overlapping circles with decreasing size and opacity
+        for (int i = 0; i < TRAIL_COUNT; i++) {
+            Circle trail = new Circle(
+                TRAIL_BASE_RADIUS * (1 - (i * 0.1)), // Gradually decrease size
+                Color.WHITE.deriveColor(0, 1, 1, 1 - (i * TRAIL_FADE_FACTOR / TRAIL_COUNT))
+            );
+            trail.setLayoutX(x);
+            trail.setLayoutY(y);
+            getChildren().add(0, trail); // Add at index 0 to appear behind newer trails
+
+            FadeTransition ft = new FadeTransition(Duration.seconds(0.4), trail);
+            ft.setFromValue(1.0);
+            ft.setToValue(0.0);
+            ft.setOnFinished(e -> getChildren().remove(trail));
+            ft.play();
+        }
     }
 
     public void setLineColor(Color color) {
@@ -178,97 +188,180 @@ public class ConnectionLine extends Pane {
     
 
     public void updateStatus() {
-    // If the target node is a switch, just set grey and hide the latency label.
-    if (to.getDeviceType() == DeviceType.SWITCH) {
-        Platform.runLater(() -> {
-            curve.setStroke(Color.GREY);
-            latencyLabel.setText("");
-            latencyContainer.setVisible(false);
-            connected = true;
-        });
-        return;
-    }
-    
-    new Thread(() -> {
-        try {
-            String ip = to.getIpOrHostname();
-            java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
+        // Only make the line grey if it's going TO an unmanaged switch FROM a main node
+        if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
+            setLineColor(Color.GRAY);
+            latencyLabel.setVisible(false);
+            return;  // Exit early
+        }
+        
+        // Handle devices connected through either type of switch
+        if (from.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
+            from.getDeviceType() == DeviceType.MANAGED_SWITCH) {
+            // Do ping check for devices connected to switches
+            new Thread(() -> {
+                try {
+                    String ip = to.getIpOrHostname();
+                    java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
 
-            // 0) Find the local interface whose subnet contains destAddr
-            String interfaceName = "";
-            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
-                    if (!(ia.getAddress() instanceof Inet4Address)) continue;
-                    int prefix = ia.getNetworkPrefixLength();
-                    byte[] localBytes = ia.getAddress().getAddress();
-                    byte[] destBytes  = destAddr.getAddress();
-                    int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
-                                |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
-                    int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
-                                |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
-                    int mask = prefix==0 ? 0 : 0xFFFFFFFF << (32 - prefix);
-                    if ((localInt & mask) == (destInt & mask)) {
-                        interfaceName = ni.getName();
-                        break;
-                    }
-                }
-                if (!interfaceName.isEmpty()) break;
-            }
-            final String iface = interfaceName;
-
-            // 1) Ping it
-            long start = System.currentTimeMillis();
-            boolean reachable = destAddr.isReachable(2000);
-            long elapsed = System.currentTimeMillis() - start;
-
-            Platform.runLater(() -> {
-                connected = reachable;
-                if (reachable) {
-                    curve.setStroke(Color.web("#0cad03"));
-                    latencyLabel.setText(elapsed + " ms");
-                    interfaceLabel.setText(iface);
-
-                    if (to.getNetworkType() == NetworkType.INTERNAL) {
-                        ImageView icon = new ImageView();
-                        if (to.getConnectionType() == ConnectionType.ETHERNET
-                            || to.getConnectionType() == ConnectionType.VIRTUAL) {
-                            icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
-                        } else {
-                            icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
+                    // 0) Find the local interface whose subnet contains destAddr
+                    String interfaceName = "";
+                    for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                        for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+                            if (!(ia.getAddress() instanceof Inet4Address)) continue;
+                            int prefix = ia.getNetworkPrefixLength();
+                            byte[] localBytes = ia.getAddress().getAddress();
+                            byte[] destBytes  = destAddr.getAddress();
+                            int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
+                                        |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
+                            int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
+                                        |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
+                            int mask = prefix==0 ? 0 : 0xFFFFFFFF << (32 - prefix);
+                            if ((localInt & mask) == (destInt & mask)) {
+                                interfaceName = ni.getName();
+                                break;
+                            }
                         }
-                        icon.setFitWidth(15);
-                        icon.setFitHeight(15);
+                        if (!interfaceName.isEmpty()) break;
+                    }
+                    final String iface = interfaceName;
 
-                        HBox hbox = new HBox(5, icon, latencyLabel, interfaceLabel);
-                        hbox.setAlignment(Pos.CENTER);
-                        latencyContainer.getChildren().setAll(hbox);
+                    // 1) Ping it
+                    long start = System.currentTimeMillis();
+                    boolean reachable = destAddr.isReachable(2000);
+                    long elapsed = System.currentTimeMillis() - start;
+
+                    Platform.runLater(() -> {
+                        connected = reachable;
+                        if (reachable) {
+                            curve.setStroke(Color.web("#0cad03"));
+                            latencyLabel.setText(elapsed + " ms");
+                            interfaceLabel.setText(iface);
+
+                            if (to.getNetworkType() == NetworkType.INTERNAL) {
+                                ImageView icon = new ImageView();
+                                if (to.getConnectionType() == ConnectionType.ETHERNET
+                                    || to.getConnectionType() == ConnectionType.VIRTUAL) {
+                                    icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
+                                } else {
+                                    icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
+                                }
+                                icon.setFitWidth(15);
+                                icon.setFitHeight(15);
+
+                                HBox hbox = new HBox(5, icon, latencyLabel, interfaceLabel);
+                                hbox.setAlignment(Pos.CENTER);
+                                latencyContainer.getChildren().setAll(hbox);
+
+                            } else {
+                                HBox hbox = new HBox(5, latencyLabel, interfaceLabel);
+                                hbox.setAlignment(Pos.CENTER);
+                                latencyContainer.getChildren().setAll(hbox);
+                            }
+                            latencyContainer.setVisible(true);
+
+                        } else {
+                            curve.setStroke(Color.RED);
+                            latencyLabel.setText("");
+                            latencyContainer.setVisible(false);
+                        }
+                    });
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    Platform.runLater(() -> {
+                        curve.setStroke(Color.RED);
+                        latencyLabel.setText("Error");
+                        connected = false;
+                        latencyContainer.setVisible(false);
+                    });
+                }
+            }).start();
+            return;
+        }
+
+        // For all other cases, continue with normal ping logic
+        if (!from.isMainNode() && !to.isMainNode()) {
+            setLineColor(Color.GREY);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                String ip = to.getIpOrHostname();
+                java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
+
+                // 0) Find the local interface whose subnet contains destAddr
+                String interfaceName = "";
+                for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                    for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+                        if (!(ia.getAddress() instanceof Inet4Address)) continue;
+                        int prefix = ia.getNetworkPrefixLength();
+                        byte[] localBytes = ia.getAddress().getAddress();
+                        byte[] destBytes  = destAddr.getAddress();
+                        int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
+                                    |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
+                        int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
+                                    |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
+                        int mask = prefix==0 ? 0 : 0xFFFFFFFF << (32 - prefix);
+                        if ((localInt & mask) == (destInt & mask)) {
+                            interfaceName = ni.getName();
+                            break;
+                        }
+                    }
+                    if (!interfaceName.isEmpty()) break;
+                }
+                final String iface = interfaceName;
+
+                // 1) Ping it
+                long start = System.currentTimeMillis();
+                boolean reachable = destAddr.isReachable(2000);
+                long elapsed = System.currentTimeMillis() - start;
+
+                Platform.runLater(() -> {
+                    connected = reachable;
+                    if (reachable) {
+                        curve.setStroke(Color.web("#0cad03"));
+                        latencyLabel.setText(elapsed + " ms");
+                        interfaceLabel.setText(iface);
+
+                        if (to.getNetworkType() == NetworkType.INTERNAL) {
+                            ImageView icon = new ImageView();
+                            if (to.getConnectionType() == ConnectionType.ETHERNET
+                                || to.getConnectionType() == ConnectionType.VIRTUAL) {
+                                icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
+                            } else {
+                                icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
+                            }
+                            icon.setFitWidth(15);
+                            icon.setFitHeight(15);
+
+                            HBox hbox = new HBox(5, icon, latencyLabel, interfaceLabel);
+                            hbox.setAlignment(Pos.CENTER);
+                            latencyContainer.getChildren().setAll(hbox);
+
+                        } else {
+                            HBox hbox = new HBox(5, latencyLabel, interfaceLabel);
+                            hbox.setAlignment(Pos.CENTER);
+                            latencyContainer.getChildren().setAll(hbox);
+                        }
+                        latencyContainer.setVisible(true);
 
                     } else {
-                        HBox hbox = new HBox(5, latencyLabel, interfaceLabel);
-                        hbox.setAlignment(Pos.CENTER);
-                        latencyContainer.getChildren().setAll(hbox);
+                        curve.setStroke(Color.RED);
+                        latencyLabel.setText("");
+                        latencyContainer.setVisible(false);
                     }
-                    latencyContainer.setVisible(true);
-
-                } else {
+                });
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Platform.runLater(() -> {
                     curve.setStroke(Color.RED);
-                    latencyLabel.setText("");
+                    latencyLabel.setText("Error");
+                    connected = false;
                     latencyContainer.setVisible(false);
-                }
-            });
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            Platform.runLater(() -> {
-                curve.setStroke(Color.RED);
-                latencyLabel.setText("Error");
-                connected = false;
-                latencyContainer.setVisible(false);
-            });
-        }
-    }).start();
-
-
-
+                });
+            }
+        }).start();
     }
     
 
@@ -286,5 +379,21 @@ public class ConnectionLine extends Pane {
 
     public boolean toEquals(NetworkNode node) {
         return to == node;
+    }
+
+    // Add this method to allow setting the connected state and updating the UI accordingly
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+        Platform.runLater(() -> {
+            if (connected) {
+                curve.setStroke(Color.web("#0cad03"));
+                latencyLabel.setText("Connected");
+                latencyContainer.setVisible(true);
+            } else {
+                curve.setStroke(Color.RED);
+                latencyLabel.setText("");
+                latencyContainer.setVisible(false);
+            }
+        });
     }
 }

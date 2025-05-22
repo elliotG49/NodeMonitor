@@ -15,6 +15,7 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -24,6 +25,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -48,10 +50,8 @@ public class NetworkMonitorApp extends Application {
     private static final double DETAIL_PANEL_WIDTH = 350;
     private static final double PANEL_WIDTH = 300;
 
-
     private NodeDetailPanel currentDetailPanel;
-
-    
+    private EventHandler<MouseEvent> panelCloseHandler;
 
     private static NetworkMonitorApp instance;
     private Stage primaryStage;
@@ -222,18 +222,25 @@ public class NetworkMonitorApp extends Application {
         instance.spiderMapPane.getChildren().add(node);
 
         if (!node.isMainNode()) {
-            ConnectionLine connection;
-            if (node.getConnectionType() == ConnectionType.VIRTUAL) {
-                NetworkNode host = instance.getMainNodeByDisplayName("Host");
-                connection = new ConnectionLine(host, node);
-            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
-                NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
-                connection = new ConnectionLine(gw, node);
+            // Check if node should be routed through a switch first
+            if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                // This will handle creating the correct connection lines for switch routing
+                updateConnectionLineForNode(node);
             } else {
-                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
-                connection = new ConnectionLine(internet, node);
+                // Original default connection logic
+                ConnectionLine connection;
+                if (node.getConnectionType() == ConnectionType.VIRTUAL) {
+                    NetworkNode host = instance.getMainNodeByDisplayName("Host");
+                    connection = new ConnectionLine(host, node);
+                } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+                    NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
+                    connection = new ConnectionLine(gw, node);
+                } else {
+                    NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
+                    connection = new ConnectionLine(internet, node);
+                }
+                instance.spiderMapPane.getChildren().add(0, connection);
             }
-            instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
 
@@ -423,22 +430,39 @@ public class NetworkMonitorApp extends Application {
             || ((ConnectionLine) child).getTo() == node)
         );
 
+        DeviceType dt = node.getDeviceType();
+        // Allow routing through both switch types
+        if ((dt == DeviceType.UNMANAGED_SWITCH || 
+             dt == DeviceType.MANAGED_SWITCH || 
+             dt == DeviceType.WIRELESS_ACCESS_POINT) 
+            && !node.isMainNode()) {
+            // This device can be used for routing
+            // (routeBox reference removed as it is undefined)
+        }
+
         if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
             NetworkNode routeNode = null;
             for (NetworkNode n : persistentNodesStatic) {
-                DeviceType dt = n.getDeviceType();
-                if ((dt == DeviceType.SWITCH || dt == DeviceType.WIRELESS_ACCESS_POINT)
-                && n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                DeviceType dtRoute = n.getDeviceType();
+                // Allow routing through both switch types
+                if ((dtRoute == DeviceType.UNMANAGED_SWITCH || 
+                     dtRoute == DeviceType.MANAGED_SWITCH || 
+                     dtRoute == DeviceType.WIRELESS_ACCESS_POINT)
+                    && n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
                     routeNode = n;
                     break;
                 }
             }
             if (routeNode != null) {
                 NetworkNode upstream = getUpstreamNode(node);
+                // Line TO the switch should only be grey for unmanaged switches
                 ConnectionLine greyLine = new ConnectionLine(upstream, routeNode);
-                greyLine.setLineColor(Color.GREY);
+                if (routeNode.getDeviceType() == DeviceType.UNMANAGED_SWITCH) {
+                    greyLine.setLineColor(Color.GREY);
+                }
                 instance.spiderMapPane.getChildren().add(0, greyLine);
 
+                // Line FROM the switch
                 ConnectionLine coloredLine = new ConnectionLine(routeNode, node);
                 instance.spiderMapPane.getChildren().add(0, coloredLine);
                 return;
@@ -458,6 +482,15 @@ public class NetworkMonitorApp extends Application {
                 connection = new ConnectionLine(internet, node);
             }
             instance.spiderMapPane.getChildren().add(0, connection);
+        }
+    }
+
+    private void createConnectionLine(NetworkNode from, NetworkNode to) {
+        // Special handling for managed switches
+        if (to.getDeviceType() == DeviceType.MANAGED_SWITCH) {
+            // Create standard connection line but still allow routing
+            ConnectionLine line = new ConnectionLine(from, to);
+            spiderMapPane.getChildren().add(line);
         }
     }
 
@@ -526,14 +559,16 @@ public class NetworkMonitorApp extends Application {
         StackPane.setAlignment(currentDetailPanel, Pos.TOP_RIGHT);
         currentDetailPanel.requestFocus();
 
-        // Add click handler to spider map to close panel
-        spiderMapPane.setOnMouseClicked(e -> {
+        // Store the handler reference and use addEventFilter instead of setOnMouseClicked
+        panelCloseHandler = e -> {
             if (!(e.getPickResult().getIntersectedNode() instanceof NetworkNode)) {
                 hideDetailPanel();
             }
-        });
+        };
+        
+        // Add click handler using addEventFilter to maintain other handlers
+        spiderMapPane.addEventFilter(MouseEvent.MOUSE_CLICKED, panelCloseHandler);
 
-        // Slide in panel
         Timeline panelSlide = new Timeline(
             new KeyFrame(Duration.millis(200),
                 new KeyValue(currentDetailPanel.translateXProperty(), 0)
@@ -547,8 +582,11 @@ public class NetworkMonitorApp extends Application {
         
         StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
         
-        // Reset spider map click handler
-        spiderMapPane.setOnMouseClicked(null);
+        // Remove only the panel close handler using removeEventFilter
+        if (panelCloseHandler != null) {
+            spiderMapPane.removeEventFilter(MouseEvent.MOUSE_CLICKED, panelCloseHandler);
+            panelCloseHandler = null;
+        }
 
         Timeline slide = new Timeline(
             new KeyFrame(Duration.millis(200),
