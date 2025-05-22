@@ -105,7 +105,7 @@ public class ConnectionLine extends Pane {
 
         // Add latency label
         latencyLabel = new Label();
-        latencyLabel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-text-fill: black; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+        latencyLabel.setStyle("-fx-background-color: rgba(0, 68, 6, 0.9); -fx-text-fill: black; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
         latencyLabel.setVisible(false); // Initially hidden
         getChildren().add(latencyLabel);
 
@@ -115,7 +115,7 @@ public class ConnectionLine extends Pane {
         });
 
         latencyLabel.setOnMouseExited(e -> {
-            latencyLabel.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+            latencyLabel.setStyle("-fx-background-color: rgba(0, 68, 6, 0.9); -fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
         });
 
         animationStartTime = System.nanoTime();
@@ -302,35 +302,11 @@ public class ConnectionLine extends Pane {
         // Handle devices connected through either type of switch
         if (from.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
             from.getDeviceType() == DeviceType.MANAGED_SWITCH) {
-            // Do ping check for devices connected to switches
             new Thread(() -> {
                 try {
                     String ip = to.getIpOrHostname();
                     java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
 
-                    // 0) Find the local interface whose subnet contains destAddr
-                    String interfaceName = "";
-                    for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                        for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
-                            if (!(ia.getAddress() instanceof Inet4Address)) continue;
-                            int prefix = ia.getNetworkPrefixLength();
-                            byte[] localBytes = ia.getAddress().getAddress();
-                            byte[] destBytes  = destAddr.getAddress();
-                            int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
-                                        |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
-                            int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
-                                        |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
-                            int mask = prefix == 0 ? 0 : 0xFFFFFFFF << (32 - prefix);
-                            if ((localInt & mask) == (destInt & mask)) {
-                                interfaceName = ni.getName();
-                                break;
-                            }
-                        }
-                        if (!interfaceName.isEmpty()) break;
-                    }
-                    final String iface = interfaceName;
-
-                    // 1) Ping it
                     long start = System.currentTimeMillis();
                     boolean reachable = destAddr.isReachable(2000);
                     long elapsed = System.currentTimeMillis() - start;
@@ -339,18 +315,12 @@ public class ConnectionLine extends Pane {
                         connected = reachable;
                         if (reachable) {
                             defaultColor = Color.web("#0cad03");
-                            if (!isHovered) {
-                                curve.setStroke(defaultColor);
-                            }
-                            statsPanel.updateStats(elapsed + " ms", iface);
+                            curve.setStroke(defaultColor);
                             latencyLabel.setText(elapsed + " ms");
                             latencyLabel.setVisible(true);
                         } else {
                             defaultColor = Color.RED;
-                            if (!isHovered) {
-                                curve.setStroke(defaultColor);
-                            }
-                            statsPanel.updateStats("Not Connected", "");
+                            curve.setStroke(defaultColor);
                             latencyLabel.setText("");
                             latencyLabel.setVisible(false);
                         }
@@ -359,13 +329,9 @@ public class ConnectionLine extends Pane {
                     ex.printStackTrace();
                     Platform.runLater(() -> {
                         defaultColor = Color.RED;
-                        if (!isHovered) {
-                            curve.setStroke(defaultColor);
-                        }
-                        statsPanel.updateStats("Error", "");
+                        curve.setStroke(defaultColor);
                         latencyLabel.setText("");
                         latencyLabel.setVisible(false);
-                        connected = false;
                     });
                 }
             }).start();
