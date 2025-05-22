@@ -12,58 +12,62 @@ import java.util.Map;
  */
 public class DeviceFormConfig {
     
-    // Common fields that appear for all devices (modified to remove IP_HOSTNAME)
+    // Common fields that appear for all devices (modified to remove NODE_ROUTING)
     private static final List<DeviceField> COMMON_REQUIRED_FIELDS = Arrays.asList(
         DeviceField.DISPLAY_NAME,
         DeviceField.NETWORK_TYPE,
-        DeviceField.CONNECTION_TYPE,
-        DeviceField.NODE_ROUTING
+        DeviceField.CONNECTION_TYPE
     );
 
-    // Modified constructor to add IP_HOSTNAME as required for specific devices
+    // Modified constructor to add NODE_ROUTING as required for specific devices
     private static final Map<DeviceType, List<DeviceField>> REQUIRED_FIELDS = new HashMap<>() {{
         // Computer required fields
         put(DeviceType.COMPUTER, Arrays.asList(
-            DeviceField.IP_HOSTNAME
+            DeviceField.IP_HOSTNAME,
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
         
         // Router required fields
         put(DeviceType.ROUTER, Arrays.asList(
             DeviceField.IP_HOSTNAME,
-            DeviceField.MANAGED,
-            DeviceField.DHCP_ENABLED
+            DeviceField.DHCP_ENABLED,
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
         
-        // Switch required fields - remove IP_HOSTNAME from here
+        // Switch required fields
         put(DeviceType.UNMANAGED_SWITCH, Arrays.asList(
-            DeviceField.MANAGED
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
         
-        // Add Managed Switch required fields
+        // Managed Switch required fields
         put(DeviceType.MANAGED_SWITCH, Arrays.asList(
             DeviceField.IP_HOSTNAME,
-            DeviceField.SWITCH_PORTS,
-            DeviceField.FIRMWARE_VERSION
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
 
         // Server required fields
         put(DeviceType.SERVER, Arrays.asList(
-            DeviceField.IP_HOSTNAME
+            DeviceField.IP_HOSTNAME,
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
         
         // Security Camera required fields
         put(DeviceType.SECURITY_CAMERA, Arrays.asList(
-            DeviceField.IP_HOSTNAME
+            DeviceField.IP_HOSTNAME,
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
         
         // Phone required fields
         put(DeviceType.PHONE, Arrays.asList(
-            DeviceField.IP_HOSTNAME
+            DeviceField.IP_HOSTNAME,
+            DeviceField.NODE_ROUTING // Add Node Route here
         ));
         
-        // VM required fields
+        // VM required fields (exclude Node Route)
         put(DeviceType.VIRTUAL_MACHINE, Arrays.asList(
-            DeviceField.IP_HOSTNAME
+            DeviceField.IP_HOSTNAME,
+            DeviceField.NETWORK_ADAPTER_TYPE
+
         ));
     }};
 
@@ -78,6 +82,7 @@ public class DeviceFormConfig {
         // Router optional fields
         put(DeviceType.ROUTER, Arrays.asList(
             DeviceField.PORTS,
+            DeviceField.MAC_ADDRESS,
             DeviceField.WAN_IP
         ));
         
@@ -98,12 +103,13 @@ public class DeviceFormConfig {
         // Server optional fields
         put(DeviceType.SERVER, Arrays.asList(
             DeviceField.HOSTING_PROVIDER,
-            DeviceField.REGION
+            DeviceField.REGION,
+            DeviceField.MAC_ADDRESS
         ));
         
         // Security Camera optional fields
         put(DeviceType.SECURITY_CAMERA, Arrays.asList(
-
+            DeviceField.MAC_ADDRESS
         ));
         
         // Phone optional fields
@@ -113,6 +119,7 @@ public class DeviceFormConfig {
         
         // VM optional fields
         put(DeviceType.VIRTUAL_MACHINE, Arrays.asList(
+            DeviceField.HOST_NODE,
             DeviceField.MAC_ADDRESS,
             DeviceField.OPERATING_SYSTEM
         ));

@@ -222,25 +222,34 @@ public class NetworkMonitorApp extends Application {
         instance.spiderMapPane.getChildren().add(node);
 
         if (!node.isMainNode()) {
-            // Check if node should be routed through a switch first
-            if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-                // This will handle creating the correct connection lines for switch routing
-                updateConnectionLineForNode(node);
-            } else {
-                // Original default connection logic
-                ConnectionLine connection;
-                if (node.getConnectionType() == ConnectionType.VIRTUAL) {
-                    NetworkNode host = instance.getMainNodeByDisplayName("Host");
-                    connection = new ConnectionLine(host, node);
-                } else if (node.getNetworkType() == NetworkType.INTERNAL) {
-                    NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
-                    connection = new ConnectionLine(gw, node);
-                } else {
-                    NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
-                    connection = new ConnectionLine(internet, node);
+            // Check if a host node is selected
+            String hostNodeName = node.getRouteSwitch(); // Assuming HOST_NODE is stored in routeSwitch
+            NetworkNode hostNode = null;
+            if (hostNodeName != null && !hostNodeName.isEmpty()) {
+                for (NetworkNode n : persistentNodesStatic) {
+                    if (n.getDisplayName().equalsIgnoreCase(hostNodeName)) {
+                        hostNode = n;
+                        break;
+                    }
                 }
-                instance.spiderMapPane.getChildren().add(0, connection);
             }
+
+            // Create connection line
+            ConnectionLine connection;
+            if (hostNode != null) {
+                connection = new ConnectionLine(hostNode, node);
+                // Ensure the line is not grey for virtual machines
+                if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
+                    connection.setLineColor(Color.web("#0cad03")); // Set to green or another color
+                }
+            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+                NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
+                connection = new ConnectionLine(gw, node);
+            } else {
+                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
+                connection = new ConnectionLine(internet, node);
+            }
+            instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
 
@@ -448,41 +457,24 @@ public class NetworkMonitorApp extends Application {
             || ((ConnectionLine) child).getTo() == node)
         );
 
-        DeviceType dt = node.getDeviceType();
-        // Allow routing through both switch types
-        if ((dt == DeviceType.UNMANAGED_SWITCH || 
-             dt == DeviceType.MANAGED_SWITCH || 
-             dt == DeviceType.WIRELESS_ACCESS_POINT) 
-            && !node.isMainNode()) {
-            // This device can be used for routing
-            // (routeBox reference removed as it is undefined)
-        }
-
         if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
             NetworkNode routeNode = null;
             for (NetworkNode n : persistentNodesStatic) {
-                DeviceType dtRoute = n.getDeviceType();
-                // Allow routing through both switch types
-                if ((dtRoute == DeviceType.UNMANAGED_SWITCH || 
-                     dtRoute == DeviceType.MANAGED_SWITCH || 
-                     dtRoute == DeviceType.WIRELESS_ACCESS_POINT)
-                    && n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
+                if (n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
                     routeNode = n;
                     break;
                 }
             }
             if (routeNode != null) {
-                NetworkNode upstream = getUpstreamNode(node);
                 // Line TO the switch should only be grey for unmanaged switches
-                ConnectionLine greyLine = new ConnectionLine(upstream, routeNode);
                 if (routeNode.getDeviceType() == DeviceType.UNMANAGED_SWITCH) {
+                    ConnectionLine greyLine = new ConnectionLine(routeNode, node);
                     greyLine.setLineColor(Color.GREY);
+                    instance.spiderMapPane.getChildren().add(0, greyLine);
+                } else {
+                    ConnectionLine coloredLine = new ConnectionLine(routeNode, node);
+                    instance.spiderMapPane.getChildren().add(0, coloredLine);
                 }
-                instance.spiderMapPane.getChildren().add(0, greyLine);
-
-                // Line FROM the switch
-                ConnectionLine coloredLine = new ConnectionLine(routeNode, node);
-                instance.spiderMapPane.getChildren().add(0, coloredLine);
                 return;
             }
         }

@@ -131,7 +131,7 @@ public class ConnectionLine extends Pane {
                            Math.pow(t, 3) * ex;
                 double y = Math.pow(oneMinusT, 3) * sy +
                            3 * Math.pow(oneMinusT, 2) * t * cy1 +
-                           3 * oneMinusT * Math.pow(t, 2) * cy2 +
+                           3 * oneMinusT * Math.pow(t, 2) * cy2 +   
                            Math.pow(t, 3) * ey;
 
                 pingParticle.setLayoutX(x);
@@ -242,10 +242,16 @@ public class ConnectionLine extends Pane {
 
     // Modify updateStatus to respect hover state
     public void updateStatus() {
+        // Special handling for virtual machines
+        if (to.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
+            setLineColor(Color.web("#0cad03")); // Green for virtual machines
+            return; // Exit early to avoid other logic
+        }
+
         // Only make the line grey if it's going TO an unmanaged switch FROM a main node
         if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
             setLineColor(Color.GRAY);
-            return;  // Exit early
+            return; // Exit early
         }
 
         // Handle devices connected through either type of switch
@@ -269,7 +275,7 @@ public class ConnectionLine extends Pane {
                                         |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
                             int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
                                         |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
-                            int mask = prefix==0 ? 0 : 0xFFFFFFFF << (32 - prefix);
+                            int mask = prefix == 0 ? 0 : 0xFFFFFFFF << (32 - prefix);
                             if ((localInt & mask) == (destInt & mask)) {
                                 interfaceName = ni.getName();
                                 break;
@@ -338,7 +344,7 @@ public class ConnectionLine extends Pane {
                                     |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
                         int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
                                     |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
-                        int mask = prefix==0 ? 0 : 0xFFFFFFFF << (32 - prefix);
+                        int mask = prefix == 0 ? 0 : 0xFFFFFFFF << (32 - prefix);
                         if ((localInt & mask) == (destInt & mask)) {
                             interfaceName = ni.getName();
                             break;

@@ -1,5 +1,8 @@
 package org.example;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Enum representing all possible device fields that can appear in device forms.
  * Each field has a display label and can be required or optional based on device type.
@@ -60,7 +63,9 @@ public enum DeviceField {
     HOST_MACHINE("Host Machine Name"),
     VIRTUALIZATION_PLATFORM("Virtualization Platform"),
     HYPERVISOR_MANAGED("Managed by Hypervisor"),
-    HYPERVISOR_IP("Hypervisor IP");
+    HYPERVISOR_IP("Hypervisor IP"),
+    NETWORK_ADAPTER_TYPE("Network Adapter Type"),
+    HOST_NODE("Host Node");
 
     private final String label;
     
@@ -94,5 +99,16 @@ public enum DeviceField {
     public boolean isTextArea() {
         return this == ROUTING_TABLE 
             || this == VLANS;
+    }
+    
+    /**
+     * Returns a list of predefined options for fields that require them.
+     * Returns null for fields without predefined options.
+     */
+    public List<String> getOptions() {
+        if (this == NETWORK_ADAPTER_TYPE) {
+            return Arrays.asList("NAT", "Bridged", "Host-Only", "Internal");
+        }
+        return null; // No options for other fields
     }
 }

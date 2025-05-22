@@ -109,7 +109,7 @@ public class NetworkNode extends StackPane {
                     ConnectionLine line = (ConnectionLine) child;
                     if (line.getFrom() == this || line.getTo() == this) {
                         ColorAdjust brighten = new ColorAdjust();
-                        brighten.setBrightness(0.5); // Adjust brightness level
+                        brighten.setBrightness(0.75); // Adjust brightness level
                         line.setEffect(brighten);
                     }
                 }

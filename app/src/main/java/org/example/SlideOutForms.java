@@ -77,6 +77,15 @@ public class SlideOutForms {
                 if (!mac.isEmpty()) newNode.setMacAddress(mac);
             }
 
+            // Get the selected host node
+            ComboBox<String> hostNodeBox = (ComboBox<String>) formFields.get(DeviceField.HOST_NODE);
+            if (hostNodeBox != null) {
+                String selectedHostNode = hostNodeBox.getValue();
+                if (selectedHostNode != null && !selectedHostNode.isEmpty()) {
+                    newNode.setRouteSwitch(selectedHostNode); // Store the selected host node
+                }
+            }
+
             // Add the node to the network
             NetworkMonitorApp.addNewNode(newNode);
 
@@ -132,7 +141,13 @@ public class SlideOutForms {
         // Create other device-specific fields
         for (DeviceField field : DeviceField.values()) {
             if (!fields.containsKey(field)) {
-                if (field.isYesNoField()) {
+                if (field.getOptions() != null) {
+                    // Render a ComboBox for fields with predefined options
+                    ComboBox<String> comboBox = new ComboBox<>();
+                    comboBox.setPromptText(field.getLabel());
+                    comboBox.getItems().addAll(field.getOptions());
+                    fields.put(field, comboBox);
+                } else if (field.isYesNoField()) {
                     ComboBox<String> yesNo = new ComboBox<>();
                     yesNo.setPromptText(field.getLabel());
                     yesNo.getItems().addAll("Yes", "No");
@@ -149,6 +164,15 @@ public class SlideOutForms {
                 }
             }
         }
+
+        // Add Host Node dropdown for virtual machines
+        ComboBox<String> hostNodeBox = new ComboBox<>();
+        hostNodeBox.setPromptText("Host Node");
+        List<NetworkNode> allNodes = NetworkMonitorApp.getPersistentNodesStatic();
+        for (NetworkNode node : allNodes) {
+            hostNodeBox.getItems().add(node.getDisplayName());
+        }
+        fields.put(DeviceField.HOST_NODE, hostNodeBox);
 
         // Set consistent width for all controls
         fields.values().forEach(control -> {
