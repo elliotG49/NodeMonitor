@@ -515,38 +515,53 @@ public class NetworkMonitorApp extends Application {
     public void showDetailPanel(NetworkNode node) {
         StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
         rootStack.getChildren().removeIf(n -> n instanceof NodeDetailPanel);
-        NodeDetailPanel panel = new NodeDetailPanel(node);
-        panel.setPrefWidth(DETAIL_PANEL_WIDTH);
-        panel.setMaxWidth(DETAIL_PANEL_WIDTH);
-        panel.setMinWidth(DETAIL_PANEL_WIDTH);
-        panel.prefHeightProperty().bind(primaryStage.getScene().heightProperty());
-        panel.setTranslateX(DETAIL_PANEL_WIDTH);
-        rootStack.getChildren().add(panel);
-        StackPane.setAlignment(panel, Pos.TOP_RIGHT);
-        panel.requestFocus();
-        Platform.runLater(() -> {
-            Timeline slide = new Timeline(
-                new KeyFrame(Duration.millis(200),
-                    new KeyValue(panel.translateXProperty(), 0),
-                    new KeyValue(spiderMapPane.translateXProperty(), -DETAIL_PANEL_WIDTH)
-                )
-            );
-            slide.play();
+        
+        currentDetailPanel = new NodeDetailPanel(node);
+        currentDetailPanel.setPrefWidth(DETAIL_PANEL_WIDTH);
+        currentDetailPanel.setMaxWidth(DETAIL_PANEL_WIDTH);
+        currentDetailPanel.setMinWidth(DETAIL_PANEL_WIDTH);
+        currentDetailPanel.prefHeightProperty().bind(primaryStage.getScene().heightProperty());
+        currentDetailPanel.setTranslateX(DETAIL_PANEL_WIDTH);
+        rootStack.getChildren().add(currentDetailPanel);
+        StackPane.setAlignment(currentDetailPanel, Pos.TOP_RIGHT);
+        currentDetailPanel.requestFocus();
+
+        // Add click handler to spider map to close panel
+        spiderMapPane.setOnMouseClicked(e -> {
+            if (!(e.getPickResult().getIntersectedNode() instanceof NetworkNode)) {
+                hideDetailPanel();
+            }
         });
+
+        // Slide in panel
+        Timeline panelSlide = new Timeline(
+            new KeyFrame(Duration.millis(200),
+                new KeyValue(currentDetailPanel.translateXProperty(), 0)
+            )
+        );
+        panelSlide.play();
     }
 
     public void hideDetailPanel() {
         if (currentDetailPanel == null) return;
+        
         StackPane rootStack = (StackPane) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();
+        
+        // Reset spider map click handler
+        spiderMapPane.setOnMouseClicked(null);
+
         Timeline slide = new Timeline(
             new KeyFrame(Duration.millis(200),
-                new KeyValue(currentDetailPanel.translateXProperty(), DETAIL_PANEL_WIDTH),
-                new KeyValue(spiderMapPane.translateXProperty(), 0)
+                new KeyValue(currentDetailPanel.translateXProperty(), DETAIL_PANEL_WIDTH)
             )
         );
-        slide.setOnFinished(e -> rootStack.getChildren().remove(currentDetailPanel));
+        slide.setOnFinished(e -> {
+            rootStack.getChildren().remove(currentDetailPanel);
+            currentDetailPanel = null;
+        });
         slide.play();
     }
+    
 
     public static void performTraceroute(NetworkNode source) {
         Pane spiderPane = instance.spiderMapPane;
@@ -561,7 +576,12 @@ public class NetworkMonitorApp extends Application {
         NetworkNode tempHost = instance.getMainNodeByDisplayName("Host");
         hostFinal = (tempHost == null) ? source : tempHost;
 
-        class Origin { NetworkNode node; double x, y; boolean isVirtual = false; }
+        class Origin { 
+            NetworkNode node; 
+            double x, y; 
+            boolean isVirtual = false; 
+        }
+        
         Origin origin = new Origin();
         origin.node = hostFinal;
         origin.x = hostFinal.getLayoutX() + hostFinal.getWidth() / 2;
@@ -576,6 +596,7 @@ public class NetworkMonitorApp extends Application {
             int index = hopCounter.incrementAndGet();
             panel.addHop("Hop " + index + ": " + hop);
             NetworkNode targetNode = null;
+            
             for (NetworkNode node : getPersistentNodesStatic()) {
                 String ip = (node.getResolvedIp() != null && !node.getResolvedIp().isEmpty())
                     ? node.getResolvedIp() : node.getIpOrHostname();
@@ -584,6 +605,7 @@ public class NetworkMonitorApp extends Application {
                     break;
                 }
             }
+
             TracerouteLine tLine;
             if (targetNode != null) {
                 tLine = origin.isVirtual
@@ -599,6 +621,7 @@ public class NetworkMonitorApp extends Application {
                 origin.node = null;
                 origin.isVirtual = true;
             }
+
             tLine.setLineColor(Color.web("#C9EB78"));
             tracerouteLines.add(tLine);
             spiderPane.getChildren().add(0, tLine);
@@ -613,6 +636,7 @@ public class NetworkMonitorApp extends Application {
             });
             pause.play();
         });
+
         task.setOnFailed(e -> System.err.println("Traceroute failed: " + task.getException()));
         new Thread(task).start();
     }
