@@ -9,7 +9,7 @@
 
 .node-square {
     -fx-fill: #222E3C;
-    -fx-stroke: #00383d;
+    -fx-stroke: #008b97;
     -fx-stroke-width: 2;
     -fx-effect: dropshadow(gaussian, -node-glow-color, 9, 0.5, 0, 0);
 }
@@ -272,6 +272,17 @@
     -fx-text-fill: -text-secondary;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
+}
+
+.connection-stats-popup {
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0.5, 0, 0);
+}
+
+.connection-stats-popup .latency-label,
+.connection-stats-popup .interface-label {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
 }
 
 

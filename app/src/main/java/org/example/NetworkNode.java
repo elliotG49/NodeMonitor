@@ -5,9 +5,11 @@ import java.net.InetAddress;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
@@ -95,18 +97,42 @@ public class NetworkNode extends StackPane {
             hoverScale.setToX(1.05);
             hoverScale.setToY(1.05);
             hoverScale.playFromStart();
-            // override CSS effect to use hovered glow variable
             square.setStyle(
                 "-fx-effect: dropshadow(gaussian, -node-glow-hovered-color, 9, 0.5, 0, 0);"
             );
+
+            setCursor(Cursor.HAND);
+
+            // Increase brightness of connected lines
+            NetworkMonitorApp.getInstance().spiderMapPane.getChildren().forEach(child -> {
+                if (child instanceof ConnectionLine) {
+                    ConnectionLine line = (ConnectionLine) child;
+                    if (line.getFrom() == this || line.getTo() == this) {
+                        ColorAdjust brighten = new ColorAdjust();
+                        brighten.setBrightness(0.5); // Adjust brightness level
+                        line.setEffect(brighten);
+                    }
+                }
+            });
         });
         setOnMouseExited(e -> {
             hoverScale.stop();
             hoverScale.setToX(1.0);
             hoverScale.setToY(1.0);
             hoverScale.playFromStart();
-            // clear inline style to revert to default glow
             square.setStyle("");
+
+            setCursor(Cursor.DEFAULT);
+
+            // Reset brightness of connected lines
+            NetworkMonitorApp.getInstance().spiderMapPane.getChildren().forEach(child -> {
+                if (child instanceof ConnectionLine) {
+                    ConnectionLine line = (ConnectionLine) child;
+                    if (line.getFrom() == this || line.getTo() == this) {
+                        line.setEffect(null); // Remove the effect
+                    }
+                }
+            });
         });
 
         // --- Drag handling ---

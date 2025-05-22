@@ -10,23 +10,19 @@ import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.CubicCurve;
+import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.StrokeLineJoin;
 import javafx.util.Duration;
-
 
 public class ConnectionLine extends Pane {
 
     private final CubicCurve curve;
-    private final StackPane latencyContainer; // Container for latency label.
-    private final Label latencyLabel;
-    private final Label interfaceLabel;
     private final NetworkNode from;
     private final NetworkNode to;
 
@@ -43,30 +39,67 @@ public class ConnectionLine extends Pane {
     private final long animationStartTime;
     private volatile boolean connected = false;
 
+    private final PopupPanel statsPanel;
+    private Color defaultColor = Color.RED;
+    private Color hoveredColor;
+
+    // Add a field to track hover state
+    private boolean isHovered = false;
+
+    private class PopupPanel extends StackPane {
+        private final Label latencyLabel;
+        private final Label interfaceLabel;
+
+        public PopupPanel() {
+            getStyleClass().add("connection-stats-popup");
+            setVisible(false);
+
+            latencyLabel = new Label("...");
+            latencyLabel.getStyleClass().add("latency-label");
+            interfaceLabel = new Label();
+            interfaceLabel.getStyleClass().add("interface-label");
+
+            VBox content = new VBox(5);
+            content.setAlignment(Pos.CENTER);
+            content.getChildren().addAll(latencyLabel, interfaceLabel);
+            getChildren().add(content);
+
+            // Style popup panel
+            setStyle("-fx-background-color: #333333; -fx-padding: 10; " +
+                     "-fx-border-color: #666666; -fx-border-width: 1; " +
+                     "-fx-border-radius: 5; -fx-background-radius: 5;");
+        }
+
+        public void updateStats(String latency, String iface) {
+            latencyLabel.setText(latency);
+            interfaceLabel.setText(iface);
+        }
+    }
+
     public ConnectionLine(NetworkNode from, NetworkNode to) {
         this.from = from;
         this.to = to;
 
+        // Create a container pane for better event handling
+        Pane curveContainer = new Pane();
+        curveContainer.setPickOnBounds(false);
+
         curve = new CubicCurve();
         curve.setStrokeWidth(4);
-        curve.setStroke(Color.RED);
+        curve.setStroke(defaultColor);
         curve.setFill(Color.TRANSPARENT);
+        curve.setStrokeLineCap(StrokeLineCap.ROUND);
+        curve.setStrokeLineJoin(StrokeLineJoin.ROUND);
 
-        // Create the latency label and wrap it in its container.
-        latencyLabel = new Label("...");
-        latencyLabel.getStyleClass().add("latency-label");
-        interfaceLabel = new Label(); 
-        interfaceLabel.getStyleClass().add("latency-label");  // reuse the same styling
-        latencyContainer = new StackPane();
-        latencyContainer.getStyleClass().add("latency-container");
-        latencyContainer.getChildren().add(latencyLabel);
-        // Initially hide the latency container if there's no connection.
-        latencyContainer.setVisible(false);
+        // Add the curve directly to the container
+        curveContainer.getChildren().add(curve);
+        getChildren().add(curveContainer);
 
         pingParticle = new Circle(2, Color.WHITE);
+        getChildren().add(pingParticle);
 
-        // Add children in proper order.
-        getChildren().addAll(curve, latencyContainer, pingParticle);
+        statsPanel = new PopupPanel();
+        getChildren().add(statsPanel);
 
         animationStartTime = System.nanoTime();
 
@@ -108,25 +141,6 @@ public class ConnectionLine extends Pane {
                     spawnTrail(x, y);
                     lastTrailTime = now;
                 }
-
-                // Reposition the latency container so that its center is at the midpoint of the curve.
-                double midT = 0.5;
-                double omt = 1 - midT;
-                double lx = Math.pow(omt, 3) * sx +
-                            3 * Math.pow(omt, 2) * midT * cx1 +
-                            3 * omt * Math.pow(midT, 2) * cx2 +
-                            Math.pow(midT, 3) * ex;
-                double ly = Math.pow(omt, 3) * sy +
-                            3 * Math.pow(omt, 2) * midT * cy1 +
-                            3 * omt * Math.pow(midT, 2) * cy2 +
-                            Math.pow(midT, 3) * ey;
-                
-                latencyContainer.autosize();
-                latencyContainer.setLayoutX(lx - latencyContainer.getWidth() / 2);
-                latencyContainer.setLayoutY(ly - latencyContainer.getHeight() / 2);
-                
-                // Bring the latency container to the front so it appears above the ping particles.
-                latencyContainer.toFront();
             }
         };
         pingTimer.start();
@@ -164,37 +178,76 @@ public class ConnectionLine extends Pane {
     }
 
     private void spawnTrail(double x, double y) {
-        // Create multiple overlapping circles with decreasing size and opacity
         for (int i = 0; i < TRAIL_COUNT; i++) {
+            final int trailIndex = i; // Create a final copy of i for this iteration
             Circle trail = new Circle(
-                TRAIL_BASE_RADIUS * (1 - (i * 0.1)), // Gradually decrease size
-                Color.WHITE.deriveColor(0, 1, 1, 1 - (i * TRAIL_FADE_FACTOR / TRAIL_COUNT))
+                TRAIL_BASE_RADIUS * (1 - (trailIndex * 0.1)), // Gradually decrease size
+                Color.WHITE.deriveColor(0, 1, 1, 1 - (trailIndex * TRAIL_FADE_FACTOR / TRAIL_COUNT))
             );
             trail.setLayoutX(x);
             trail.setLayoutY(y);
             getChildren().add(0, trail); // Add at index 0 to appear behind newer trails
 
+            // Bind the trail's position to the curve dynamically
+            AnimationTimer trailUpdater = new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    double t = 1.0 - (trailIndex / (double) TRAIL_COUNT); // Calculate the position along the curve
+                    double oneMinusT = 1 - t;
+
+                    double sx = curve.getStartX();
+                    double sy = curve.getStartY();
+                    double cx1 = curve.getControlX1();
+                    double cy1 = curve.getControlY1();
+                    double cx2 = curve.getControlX2();
+                    double cy2 = curve.getControlY2();
+                    double ex = curve.getEndX();
+                    double ey = curve.getEndY();
+
+                    double newX = Math.pow(oneMinusT, 3) * sx +
+                                  3 * Math.pow(oneMinusT, 2) * t * cx1 +
+                                  3 * oneMinusT * Math.pow(t, 2) * cx2 +
+                                  Math.pow(t, 3) * ex;
+                    double newY = Math.pow(oneMinusT, 3) * sy +
+                                  3 * Math.pow(oneMinusT, 2) * t * cy1 +
+                                  3 * oneMinusT * Math.pow(t, 2) * cy2 +
+                                  Math.pow(t, 3) * ey;
+
+                    trail.setLayoutX(newX);
+                    trail.setLayoutY(newY);
+                }
+            };
+
+            trailUpdater.start();
+
+            // Fade out the trail and stop updating after the animation
             FadeTransition ft = new FadeTransition(Duration.seconds(0.4), trail);
             ft.setFromValue(1.0);
             ft.setToValue(0.0);
-            ft.setOnFinished(e -> getChildren().remove(trail));
+            ft.setOnFinished(e -> {
+                getChildren().remove(trail);
+                trailUpdater.stop(); // Stop updating the trail after it fades out
+            });
             ft.play();
         }
     }
 
+    // Modify setLineColor to respect hover state
     public void setLineColor(Color color) {
-        curve.setStroke(color);
+        if (!isHovered) {
+            defaultColor = color;
+            curve.setStroke(color);
+        }
     }
-    
 
+    // Modify updateStatus to respect hover state
     public void updateStatus() {
         // Only make the line grey if it's going TO an unmanaged switch FROM a main node
         if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
             setLineColor(Color.GRAY);
-            latencyLabel.setVisible(false);
             return;  // Exit early
         }
-        
+
         // Handle devices connected through either type of switch
         if (from.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
             from.getDeviceType() == DeviceType.MANAGED_SWITCH) {
@@ -234,45 +287,28 @@ public class ConnectionLine extends Pane {
                     Platform.runLater(() -> {
                         connected = reachable;
                         if (reachable) {
-                            curve.setStroke(Color.web("#0cad03"));
-                            latencyLabel.setText(elapsed + " ms");
-                            interfaceLabel.setText(iface);
-
-                            if (to.getNetworkType() == NetworkType.INTERNAL) {
-                                ImageView icon = new ImageView();
-                                if (to.getConnectionType() == ConnectionType.ETHERNET
-                                    || to.getConnectionType() == ConnectionType.VIRTUAL) {
-                                    icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
-                                } else {
-                                    icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
-                                }
-                                icon.setFitWidth(15);
-                                icon.setFitHeight(15);
-
-                                HBox hbox = new HBox(5, icon, latencyLabel, interfaceLabel);
-                                hbox.setAlignment(Pos.CENTER);
-                                latencyContainer.getChildren().setAll(hbox);
-
-                            } else {
-                                HBox hbox = new HBox(5, latencyLabel, interfaceLabel);
-                                hbox.setAlignment(Pos.CENTER);
-                                latencyContainer.getChildren().setAll(hbox);
+                            defaultColor = Color.web("#0cad03");
+                            if (!isHovered) {
+                                curve.setStroke(defaultColor);
                             }
-                            latencyContainer.setVisible(true);
-
+                            statsPanel.updateStats(elapsed + " ms", iface);
                         } else {
-                            curve.setStroke(Color.RED);
-                            latencyLabel.setText("");
-                            latencyContainer.setVisible(false);
+                            defaultColor = Color.RED;
+                            if (!isHovered) {
+                                curve.setStroke(defaultColor);
+                            }
+                            statsPanel.updateStats("Not Connected", "");
                         }
                     });
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     Platform.runLater(() -> {
-                        curve.setStroke(Color.RED);
-                        latencyLabel.setText("Error");
+                        defaultColor = Color.RED;
+                        if (!isHovered) {
+                            curve.setStroke(defaultColor);
+                        }
+                        statsPanel.updateStats("Error", "");
                         connected = false;
-                        latencyContainer.setVisible(false);
                     });
                 }
             }).start();
@@ -320,50 +356,32 @@ public class ConnectionLine extends Pane {
                 Platform.runLater(() -> {
                     connected = reachable;
                     if (reachable) {
-                        curve.setStroke(Color.web("#0cad03"));
-                        latencyLabel.setText(elapsed + " ms");
-                        interfaceLabel.setText(iface);
-
-                        if (to.getNetworkType() == NetworkType.INTERNAL) {
-                            ImageView icon = new ImageView();
-                            if (to.getConnectionType() == ConnectionType.ETHERNET
-                                || to.getConnectionType() == ConnectionType.VIRTUAL) {
-                                icon.setImage(new Image(getClass().getResourceAsStream("/icons/power-cable.png")));
-                            } else {
-                                icon.setImage(new Image(getClass().getResourceAsStream("/icons/wireless.png")));
-                            }
-                            icon.setFitWidth(15);
-                            icon.setFitHeight(15);
-
-                            HBox hbox = new HBox(5, icon, latencyLabel, interfaceLabel);
-                            hbox.setAlignment(Pos.CENTER);
-                            latencyContainer.getChildren().setAll(hbox);
-
-                        } else {
-                            HBox hbox = new HBox(5, latencyLabel, interfaceLabel);
-                            hbox.setAlignment(Pos.CENTER);
-                            latencyContainer.getChildren().setAll(hbox);
+                        defaultColor = Color.web("#0cad03");
+                        if (!isHovered) {
+                            curve.setStroke(defaultColor);
                         }
-                        latencyContainer.setVisible(true);
-
+                        statsPanel.updateStats(elapsed + " ms", iface);
                     } else {
-                        curve.setStroke(Color.RED);
-                        latencyLabel.setText("");
-                        latencyContainer.setVisible(false);
+                        defaultColor = Color.RED;
+                        if (!isHovered) {
+                            curve.setStroke(defaultColor);
+                        }
+                        statsPanel.updateStats("Not Connected", "");
                     }
                 });
             } catch (Exception ex) {
                 ex.printStackTrace();
                 Platform.runLater(() -> {
-                    curve.setStroke(Color.RED);
-                    latencyLabel.setText("Error");
+                    defaultColor = Color.RED;
+                    if (!isHovered) {
+                        curve.setStroke(defaultColor);
+                    }
+                    statsPanel.updateStats("Error", "");
                     connected = false;
-                    latencyContainer.setVisible(false);
                 });
             }
         }).start();
     }
-    
 
     public NetworkNode getFrom() {
         return from;
@@ -386,13 +404,13 @@ public class ConnectionLine extends Pane {
         this.connected = connected;
         Platform.runLater(() -> {
             if (connected) {
-                curve.setStroke(Color.web("#0cad03"));
-                latencyLabel.setText("Connected");
-                latencyContainer.setVisible(true);
+                defaultColor = Color.web("#0cad03");
+                curve.setStroke(defaultColor);
+                statsPanel.updateStats("Connected", "");
             } else {
-                curve.setStroke(Color.RED);
-                latencyLabel.setText("");
-                latencyContainer.setVisible(false);
+                defaultColor = Color.RED;
+                curve.setStroke(defaultColor);
+                statsPanel.updateStats("", "");
             }
         });
     }

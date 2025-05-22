@@ -357,6 +357,8 @@ public class NetworkMonitorApp extends Application {
                 double paneHeight = spiderMapPane.getHeight();
                 if (paneWidth < 100) paneWidth = primaryStage.getScene().getWidth();
                 if (paneHeight < 100) paneHeight = primaryStage.getScene().getHeight();
+
+                // First, create nodes without any connections
                 for (NodeConfig config : configs) {
                     double absoluteX = config.getRelativeX() * paneWidth;
                     double absoluteY = config.getRelativeY() * paneHeight;
@@ -375,26 +377,42 @@ public class NetworkMonitorApp extends Application {
                     persistentNodes.add(node);
                     persistentNodesStatic.add(node);
                     spiderMapPane.getChildren().add(node);
-
-                    if (!node.isMainNode()) {
-                        addDefaultConnectionLine(node);
-                    }
                 }
 
+                // Then connect main nodes
                 List<NetworkNode> mainNodes = new ArrayList<>();
-                for (NetworkNode node : persistentNodes)
-                    if (node.isMainNode()) mainNodes.add(node);
+                for (NetworkNode node : persistentNodes) {
+                    // Skip Host node if it's routed through a switch
+                    if (node.isMainNode() && 
+                        !(node.getDisplayName().equals("Host") && 
+                          node.getRouteSwitch() != null && 
+                          !node.getRouteSwitch().isEmpty())) {
+                        mainNodes.add(node);
+                    }
+                }
                 mainNodes.sort((a, b) -> Double.compare(a.getLayoutY(), b.getLayoutY()));
                 for (int i = 0; i < mainNodes.size() - 1; i++) {
                     ConnectionLine c = new ConnectionLine(mainNodes.get(i), mainNodes.get(i + 1));
                     spiderMapPane.getChildren().add(0, c);
                 }
 
+                // Finally, create all other connections
                 for (NetworkNode node : persistentNodes) {
-                    if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-                        updateConnectionLineForNode(node);
+                    // Include Host node here if it's routed through a switch
+                    if (!node.isMainNode() || 
+                        (node.getDisplayName().equals("Host") && 
+                         node.getRouteSwitch() != null && 
+                         !node.getRouteSwitch().isEmpty())) {
+                        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                            // Handle switch routing
+                            updateConnectionLineForNode(node);
+                        } else {
+                            // Create default connection only if not routed through switch
+                            addDefaultConnectionLine(node);
+                        }
                     }
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
