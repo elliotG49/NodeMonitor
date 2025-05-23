@@ -71,19 +71,7 @@
   /* background & rounding */
   -fx-background-color: -slide-panel-background;  
   -fx-background-radius: 12px;
-  
-  /* make room for inner padding + title + fields */
-  -fx-padding: 5px; /* Increase padding to create more space */
-  
-  /* soft drop shadow per your Figma spec */
-  -fx-effect: dropshadow(
-    gaussian,
-    rgba(0, 0, 0, 0.25), /* accent glow @25% */
-    9,   /* blur radius */
-    0,   /* spread exponent */
-    0,   /* offset x */
-    2    /* offset y */
-  );
+  -fx-padding: 5px; /* Reduce side padding to allow wider content */
 }
 
 
@@ -245,8 +233,8 @@
 /*───────────────────────────────────────────────────────────────────────────*/
 .slide-panel .form-container {
   -fx-spacing: 12px;
-  -fx-alignment: center-left;  /* This aligns all children to the left */
-  -fx-padding: 16px;
+  -fx-alignment: center-left;
+  -fx-padding: 8px; /* Reduce padding to allow wider content */
   -fx-background-color: transparent;
 }
 
@@ -311,5 +299,138 @@
     -fx-text-fill: #808080;
     -fx-font-size: 12;
     -fx-padding: 4 0 0 0;
+}
+
+.discovery-status-label {
+    -fx-text-fill: white;
+    -fx-font-size: 15; /* Increased from 14 */
+    -fx-padding: 4 0 4 0;
+}
+
+.discovery-status-bold {
+    -fx-font-weight: bold;
+}
+
+.discovery-number {
+    -fx-text-fill: #00EBFF;
+}
+
+.discovery-eta-label {
+    -fx-text-fill: #808080;
+    -fx-font-size: 13; /* Increased from 12 */
+    -fx-padding: 6 0 0 0; /* Increased top padding to create gap */
+}
+
+.discovery-cancel-button {
+    -fx-background-color: -button-primary;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 15;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.discovery-cancel-button:hover {
+    -fx-background-color: -button-primary-hover;
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.3), 10, 0, 0, 0);
+}
+
+.discovery-cancel-button:pressed {
+    -fx-background-color: #FF4040;
+}
+
+.discovery-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-fit-to-width: true;
+    -fx-transition: -fx-pref-height 0.2s;
+}
+
+.discovery-scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.discovery-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 12;
+}
+
+.discovery-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 6;
+}
+
+.discovery-scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.discovery-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.discovery-scroll-pane .corner {
+    -fx-background-color: transparent;
+}
+
+.interface-section {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-radius: 6;
+    -fx-padding: 8px;
+    -fx-pref-width: 240px;
+    -fx-cursor: hand;
+}
+
+.interface-section:hover {
+    -fx-background-color: rgba(192, 192, 192, 0.1);
+}
+
+.interface-content {
+    -fx-padding: 0 0 8 8;  /* Add some left padding for hierarchy visual */
+}
+
+.interface-name-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+}
+
+.interface-count-label {
+    -fx-text-fill: #808080;
+    -fx-font-size: 12;
+}
+
+.node-entry {
+    -fx-background-color: rgba(255, 255, 255, 0.03);
+    -fx-background-radius: 4;
+    -fx-padding: 8px;
+    -fx-pref-width: 220px;
+    -fx-text-fill: white;
+}
+
+.node-detail-label {
+    -fx-text-fill: white;
+    -fx-font-size: 12;
+}
+
+.node-detail-label .label {
+    -fx-text-fill: white;
+}
+
+.node-add-button {
+    -fx-background-color: #5FB0B7;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.node-add-button:hover {
+    -fx-background-color: derive(#5FB0B7, 10%);
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.3), 10, 0, 0, 0);
+}
+
+.interface-arrow {
+    -fx-rotate: 0;
+    -fx-transition: -fx-rotate 0.2s ease-out;
 }
 

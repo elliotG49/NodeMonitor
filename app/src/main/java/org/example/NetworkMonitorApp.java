@@ -41,6 +41,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class NetworkMonitorApp extends Application {
+    private VBox modePanel;  // Change to class field if not already
 
     Pane spiderMapPane;
     private List<NetworkNode> persistentNodes = new ArrayList<>();
@@ -93,7 +94,9 @@ public class NetworkMonitorApp extends Application {
         centerStack.getChildren().add(spiderMapPane);
         root.setCenter(centerStack);
 
-        VBox modePanel = new VBox(5);
+        VBox modePanel = new VBox(5);  // Change this line to use class field
+        this.modePanel = modePanel;    // Store reference
+
         modePanel.getStyleClass().add("mode-panel");
 
         // Create each row
@@ -144,9 +147,14 @@ public class NetworkMonitorApp extends Application {
         });
 
         filterBtn.setOnAction(e -> {
-        slidePanel.setContent(SlideOutForms.buildFilterForm(slidePanel));
-        slidePanel.show();
-    });
+            slidePanel.setContent(SlideOutForms.buildFilterForm(slidePanel));
+            slidePanel.show();
+        });
+
+        discoverBtn.setOnAction(e -> {
+            slidePanel.setContent(SlideOutForms.buildDiscoveryLoadingPanel(slidePanel));
+            slidePanel.show();
+        });
 
 
         Scene scene = new Scene(root);
@@ -907,5 +915,10 @@ public class NetworkMonitorApp extends Application {
                 }
             }
         }
+    }
+
+    // Add this getter method
+    public VBox getModePanel() {
+        return modePanel;
     }
 }
