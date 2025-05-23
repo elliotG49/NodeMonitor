@@ -100,9 +100,10 @@ public class NetworkMonitorApp extends Application {
         Button addBtn      = createModeRow("/icons/plus.png",     "Add Node");
         Button discoverBtn = createModeRow("/icons/search.png",   "Discover Node");
         Button filterBtn   = createModeRow("/icons/filter.png",   "Filter Nodes");
+        Button settingsBtn = createModeRow("/icons/settings.png", "Settings");  // Add this line
 
         // Add rows
-        modePanel.getChildren().addAll(addBtn, discoverBtn, filterBtn);
+        modePanel.getChildren().addAll(addBtn, discoverBtn, filterBtn, settingsBtn);  // Add settingsBtn here
 
         // Position 15px from left & bottom
         modePanel.setLayoutX(15);
@@ -529,8 +530,8 @@ public class NetworkMonitorApp extends Application {
             resetFilter();
         });
         
-        filterStatusBox.setLayoutX(20);
-        filterStatusBox.setLayoutY(20);
+        filterStatusBox.setLayoutX(15);
+        filterStatusBox.setLayoutY(15);
         
         spiderMapPane.getChildren().add(filterStatusBox);
     }

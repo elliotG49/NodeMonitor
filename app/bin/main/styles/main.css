@@ -288,9 +288,7 @@
     -fx-cursor: hand;
 }
 
-.filter-status-box:hover {
-    -fx-background-color: rgb(45, 63, 92);
-}
+
 
 .filter-status-label {
     -fx-text-fill: #3EFF8B;
