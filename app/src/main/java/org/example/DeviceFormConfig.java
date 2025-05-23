@@ -50,6 +50,11 @@ public class DeviceFormConfig {
             DeviceField.IP_HOSTNAME,
             DeviceField.NODE_ROUTING // Add Node Route here
         ));
+
+                put(DeviceType.LAPTOP, Arrays.asList(
+            DeviceField.IP_HOSTNAME,
+            DeviceField.NODE_ROUTING // Add Node Route here
+        ));
         
         // Security Camera required fields
         put(DeviceType.SECURITY_CAMERA, Arrays.asList(

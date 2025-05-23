@@ -5,13 +5,18 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -22,6 +27,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
@@ -59,6 +65,8 @@ public class NetworkMonitorApp extends Application {
     private double prevSceneWidth = 0;
     private double prevSceneHeight = 0;
 
+    private VBox filterStatusBox;
+
     @Override
     public void start(Stage primaryStage) {
         instance = this;
@@ -80,6 +88,7 @@ public class NetworkMonitorApp extends Application {
 
         BorderPane root = new BorderPane();
         spiderMapPane = createSpiderMapPane();
+        createFilterStatusBox();  // Add this line
         StackPane centerStack = new StackPane();
         centerStack.getChildren().add(spiderMapPane);
         root.setCenter(centerStack);
@@ -127,20 +136,17 @@ public class NetworkMonitorApp extends Application {
             .subtract(slidePanel.heightProperty())  // move up by its own height
         );
 
-        // 4) initial hidden state is already done in the constructor
-        //    (it does `setTranslateX(-panelWidth)` for you)
-
         // 5) wire your “Add” button:
         addBtn.setOnAction(e -> {
             slidePanel.setContent(SlideOutForms.buildAddNodeForm(slidePanel));
             slidePanel.show();
         });
 
-
-        addBtn.setOnAction(e -> {
-        slidePanel.setContent(SlideOutForms.buildAddNodeForm(slidePanel));
+        filterBtn.setOnAction(e -> {
+        slidePanel.setContent(SlideOutForms.buildFilterForm(slidePanel));
         slidePanel.show();
     });
+
 
         Scene scene = new Scene(root);
         centerStack.setStyle("-fx-background-color: #192428;");
@@ -191,6 +197,8 @@ public class NetworkMonitorApp extends Application {
         }));
         connectionTimeline.setCycleCount(Timeline.INDEFINITE);
         connectionTimeline.play();
+
+        createFilterStatusBox();
     }
 
     public static void updateConnectionLinesVisibility() {
@@ -460,6 +468,90 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane.getChildren().add(0, connection);
     }
 
+    private void createFilterStatusBox() {
+        filterStatusBox = new VBox(2);
+        filterStatusBox.getStyleClass().add("filter-status-box");
+        filterStatusBox.setVisible(false);
+        filterStatusBox.setPrefWidth(225);
+        
+        // Create labels
+        Label filterActiveLabel = new Label("FILTER ACTIVE");
+        filterActiveLabel.getStyleClass().add("filter-status-label");
+        
+        Label filterTypeLabel = new Label("Device Type");
+        filterTypeLabel.getStyleClass().add("filter-type-label");
+        
+        Label descriptionLabel = new Label();
+        descriptionLabel.getStyleClass().add("filter-description");
+        
+        Label resetLabel = new Label("click to reset");
+        resetLabel.getStyleClass().add("filter-reset-label");
+        
+        filterStatusBox.getChildren().addAll(
+            filterActiveLabel, 
+            filterTypeLabel,
+            descriptionLabel, 
+            resetLabel
+        );
+
+        // Add hover effect with brightness transition
+        ColorAdjust brightnessAdjust = new ColorAdjust();
+        brightnessAdjust.setBrightness(0);
+        filterStatusBox.setEffect(brightnessAdjust);
+
+        Timeline hoverTimeline = new Timeline(
+            new KeyFrame(Duration.ZERO, new KeyValue(brightnessAdjust.brightnessProperty(), 0)),
+            new KeyFrame(Duration.millis(300), new KeyValue(brightnessAdjust.brightnessProperty(), 0.2))
+        );
+
+        // Add scale transition for click effect
+        ScaleTransition clickTransition = new ScaleTransition(Duration.millis(100), filterStatusBox);
+        clickTransition.setFromX(1);
+        clickTransition.setFromY(1);
+        clickTransition.setToX(0.95);
+        clickTransition.setToY(0.95);
+        ScaleTransition releaseTransition = new ScaleTransition(Duration.millis(100), filterStatusBox);
+        releaseTransition.setFromX(0.95);
+        releaseTransition.setFromY(0.95);
+        releaseTransition.setToX(1);
+        releaseTransition.setToY(1);
+
+        // Mouse event handlers
+        filterStatusBox.setOnMouseEntered(e -> hoverTimeline.playFromStart());
+        filterStatusBox.setOnMouseExited(e -> {
+            hoverTimeline.setRate(-1);
+            hoverTimeline.play();
+        });
+        
+        filterStatusBox.setOnMousePressed(e -> clickTransition.play());
+        filterStatusBox.setOnMouseReleased(e -> {
+            releaseTransition.play();
+            resetFilter();
+        });
+        
+        filterStatusBox.setLayoutX(20);
+        filterStatusBox.setLayoutY(20);
+        
+        spiderMapPane.getChildren().add(filterStatusBox);
+    }
+
+    public void showFilterStatus(String filterDescription) {
+        // Get just the value part after any colon if present
+        String displayText = filterDescription;
+        if (filterDescription.contains(":")) {
+            displayText = filterDescription.split(":")[1].trim();
+        }
+        
+        Label descriptionLabel = (Label)filterStatusBox.getChildren().get(2);
+        descriptionLabel.setText(displayText);
+        filterStatusBox.setVisible(true);
+    }
+
+    private void resetFilter() {
+        filterNodes(node -> true);
+        filterStatusBox.setVisible(false);
+    }
+
     private void addDetailPanelHandler(NetworkNode node) {
         node.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2)
@@ -719,5 +811,100 @@ public class NetworkMonitorApp extends Application {
 
         task.setOnFailed(e -> System.err.println("Traceroute failed: " + task.getException()));
         new Thread(task).start();
+    }
+
+    // Add this method to NetworkMonitorApp class
+    public List<NetworkNode> getRouteToNode(NetworkNode targetNode) {
+        List<NetworkNode> route = new ArrayList<>();
+        NetworkNode currentNode = targetNode;
+        
+        // Prevent infinite loops
+        Set<String> visitedNodes = new HashSet<>();
+        
+        while (currentNode != null && !visitedNodes.contains(currentNode.getDisplayName())) {
+            route.add(currentNode);
+            visitedNodes.add(currentNode.getDisplayName());
+            
+            // Check if node is routed through a switch
+            if (currentNode.getRouteSwitch() != null && !currentNode.getRouteSwitch().isEmpty()) {
+                currentNode = getNodeByDisplayName(currentNode.getRouteSwitch());
+            }
+            // If not routed through switch, check default routing
+            else if (!currentNode.isMainNode()) {
+                if (currentNode.getConnectionType() == ConnectionType.VIRTUAL) {
+                    currentNode = getMainNodeByDisplayName("Host");
+                } else if (currentNode.getNetworkType() == NetworkType.INTERNAL) {
+                    currentNode = getMainNodeByDisplayName("Gateway");
+                } else {
+                    currentNode = getMainNodeByDisplayName("Google DNS");
+                }
+            } else {
+                // Reached a main node with no further routing
+                break;
+            }
+        }
+        
+        return route;
+    }
+
+    // Add helper method to find any node by display name
+    private NetworkNode getNodeByDisplayName(String name) {
+        for (NetworkNode node : persistentNodes) {
+            if (node.getDisplayName().equalsIgnoreCase(name))
+                return node;
+        }
+        return null;
+    }
+
+    // Add method to apply filter
+    public void filterNodes(Predicate<NetworkNode> filter) {
+        // Find all nodes that match the filter
+        Set<NetworkNode> matchingNodes = persistentNodes.stream()
+            .filter(filter)
+            .collect(Collectors.toSet());
+        
+        // Get all route nodes for matching nodes
+        Set<NetworkNode> routeNodes = new HashSet<>();
+        for (NetworkNode node : matchingNodes) {
+            routeNodes.addAll(getRouteToNode(node));
+        }
+        
+        // Apply visual changes to all nodes
+        for (NetworkNode node : persistentNodes) {
+            if (matchingNodes.contains(node)) {
+                // Node matches filter - full opacity
+                node.setOpacity(1.0);
+                node.setVisible(true);
+            } else if (routeNodes.contains(node)) {
+                // Node is part of a route - reduced opacity
+                node.setOpacity(0.25);
+                node.setVisible(true);
+            } else {
+                // Node doesn't match and isn't in a route - hide it
+                node.setVisible(false);
+            }
+        }
+        
+        // Update connection lines
+        for (javafx.scene.Node child : spiderMapPane.getChildren()) {
+            if (child instanceof ConnectionLine) {
+                ConnectionLine line = (ConnectionLine) child;
+                NetworkNode from = line.getFrom();
+                NetworkNode to = line.getTo();
+                
+                boolean visible = from.isVisible() && to.isVisible();
+                line.setVisible(visible);
+                
+                if (visible) {
+                    if (matchingNodes.contains(from) || matchingNodes.contains(to)) {
+                        // If either node is a filtered node, connection should be at full opacity
+                        line.setOpacity(1.0);
+                    } else {
+                        // Both nodes are route nodes, so connection should be faded
+                        line.setOpacity(0.25);
+                    }
+                }
+            }
+        }
     }
 }

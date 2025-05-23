@@ -110,6 +110,49 @@ public class SlideOutForms {
         return form;
     }
 
+    public static Node buildFilterForm(SlideOutPanel slidePanel) {
+        VBox form = new VBox(12);
+        form.getStyleClass().add("form-container");
+        form.setPadding(new Insets(4, 8, 8, 8));
+
+        // Title
+        Label title = new Label("Filter Nodes");
+        title.getStyleClass().add("title-label");
+        form.setAlignment(Pos.TOP_LEFT);
+
+        // Device Type selector
+        ComboBox<DeviceType> deviceBox = new ComboBox<>();
+        deviceBox.setPromptText("Select Device Type");
+        deviceBox.getItems().setAll(DeviceType.values());
+        deviceBox.setPrefWidth(220);
+        deviceBox.setMaxWidth(220);
+
+        // Filter Button
+        Button filterBtn = new Button("Apply Filter");
+        filterBtn.getStyleClass().add("form-button");
+        filterBtn.setDisable(true);
+        VBox.setMargin(filterBtn, new Insets(16, 0, 0, 0));
+
+        // Enable button when device type is selected
+        deviceBox.valueProperty().addListener((obs, old, newVal) -> 
+            filterBtn.setDisable(newVal == null));
+
+        // Add filter action
+        filterBtn.setOnAction(e -> {
+            DeviceType selectedType = deviceBox.getValue();
+            if (selectedType != null) {
+                NetworkMonitorApp.getInstance().filterNodes(
+                    node -> node.getDeviceType() == selectedType);
+                // Just pass the device type value, not "Device Type: value"
+                NetworkMonitorApp.getInstance().showFilterStatus(selectedType.toString());
+                slidePanel.hide();
+            }
+        });
+
+        form.getChildren().addAll(title, deviceBox, filterBtn);
+        return form;
+    }
+
     private static Map<DeviceField, Node> createFormFields() {
         Map<DeviceField, Node> fields = new HashMap<>();
 
