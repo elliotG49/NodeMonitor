@@ -112,7 +112,7 @@ public class NetworkMonitorApp extends Application {
             primaryStage.setMaximized(true);
         }
 
-        slidePanel = new SlideOutPanel(300);
+        slidePanel = new SlideOutPanel(250);
 
         // 2) add *before* any call to show()/hide()
         spiderMapPane.getChildren().add(slidePanel);
@@ -360,6 +360,7 @@ public class NetworkMonitorApp extends Application {
     private void loadNodesFromFile() {
         Platform.runLater(() -> {
             try {
+                System.out.println("\n=== LOADING NODES FROM FILE ===");
                 String json = new String(Files.readAllBytes(Paths.get(CONFIG_FILE)));
                 Gson gson = new Gson();
                 Type listType = new TypeToken<List<NodeConfig>>(){}.getType();
@@ -390,43 +391,56 @@ public class NetworkMonitorApp extends Application {
                     spiderMapPane.getChildren().add(node);
                 }
 
-                // Then connect main nodes
+                // Then connect main nodes that aren't routed through switches
                 List<NetworkNode> mainNodes = new ArrayList<>();
                 for (NetworkNode node : persistentNodes) {
-                    // Skip Host node if it's routed through a switch
-                    if (node.isMainNode() && 
-                        !(node.getDisplayName().equals("Host") && 
-                          node.getRouteSwitch() != null && 
-                          !node.getRouteSwitch().isEmpty())) {
+                    // Remove the routing check for main nodes - we'll handle all connections later
+                    if (node.isMainNode()) {
                         mainNodes.add(node);
                     }
                 }
                 mainNodes.sort((a, b) -> Double.compare(a.getLayoutY(), b.getLayoutY()));
+
+                // Connect main nodes that don't have switch routing
                 for (int i = 0; i < mainNodes.size() - 1; i++) {
-                    ConnectionLine c = new ConnectionLine(mainNodes.get(i), mainNodes.get(i + 1));
-                    spiderMapPane.getChildren().add(0, c);
+                    NetworkNode current = mainNodes.get(i);
+                    NetworkNode next = mainNodes.get(i + 1);
+                    
+                    // Only create direct connections if neither node is routed through a switch
+                    if ((current.getRouteSwitch() == null || current.getRouteSwitch().isEmpty()) &&
+                        (next.getRouteSwitch() == null || next.getRouteSwitch().isEmpty())) {
+                        ConnectionLine c = new ConnectionLine(current, next);
+                        spiderMapPane.getChildren().add(0, c);
+                    }
                 }
 
-                // Finally, create all other connections
+                // Finally, create all switch-routed connections for ALL nodes
                 for (NetworkNode node : persistentNodes) {
-                    // Include Host node here if it's routed through a switch
-                    if (!node.isMainNode() || 
-                        (node.getDisplayName().equals("Host") && 
-                         node.getRouteSwitch() != null && 
-                         !node.getRouteSwitch().isEmpty())) {
-                        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-                            // Handle switch routing
-                            updateConnectionLineForNode(node);
-                        } else {
-                            // Create default connection only if not routed through switch
-                            addDefaultConnectionLine(node);
-                        }
+                    if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                        updateConnectionLineForNode(node);
+                    } else if (!node.isMainNode()) {
+                        // Create default connection only for non-main nodes that aren't switch-routed
+                        addDefaultConnectionLine(node);
                     }
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+            // After loading all nodes, print debug info
+            System.out.println("\nLoaded Nodes Configuration:");
+            for (NetworkNode node : persistentNodes) {
+                System.out.printf("Node: %-20s | Type: %-15s | Routed via: %s%n",
+                    node.getDisplayName(),
+                    node.getDeviceType(),
+                    (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) 
+                        ? node.getRouteSwitch() 
+                        : "none"
+                );
+            }
+            System.out.println("============================\n");
+
         });
     }
 
@@ -469,17 +483,16 @@ public class NetworkMonitorApp extends Application {
                 }
             }
             if (routeNode != null) {
-                // Line TO the switch should only be grey for unmanaged switches
+                ConnectionLine connection;
                 if (routeNode.getDeviceType() == DeviceType.UNMANAGED_SWITCH) {
-                    ConnectionLine greyLine = new ConnectionLine(routeNode, node);
-                    greyLine.setLineColor(Color.GREY);
-                    greyLine.setViewOrder(1); // Ensures connection lines stay below nodes
-                    instance.spiderMapPane.getChildren().add(0, greyLine);
+                    connection = new ConnectionLine(routeNode, node);
+                    connection.setLineColor(Color.GREY);
                 } else {
-                    ConnectionLine coloredLine = new ConnectionLine(routeNode, node);
-                    coloredLine.setViewOrder(1); // Ensures connection lines stay below nodes
-                    instance.spiderMapPane.getChildren().add(0, coloredLine);
+                    connection = new ConnectionLine(routeNode, node);
                 }
+                connection.setViewOrder(1);
+                connection.setVisible(true); // Explicitly set visibility
+                instance.spiderMapPane.getChildren().add(0, connection);
                 return;
             }
         }
@@ -513,6 +526,17 @@ public class NetworkMonitorApp extends Application {
 
     private void saveNodesToFile() {
         try {
+            System.out.println("\n=== SAVING NODES TO FILE ===");
+            System.out.println("Current Node Configuration:");
+            for (NetworkNode node : persistentNodes) {
+                System.out.printf("Node: %-20s | Type: %-15s | Routed via: %s%n",
+                    node.getDisplayName(),
+                    node.getDeviceType(),
+                    (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) 
+                        ? node.getRouteSwitch() 
+                        : "none"
+                );
+            }
             List<NodeConfig> configs = new ArrayList<>();
             double paneWidth = spiderMapPane.getWidth();
             double paneHeight = spiderMapPane.getHeight();
@@ -532,6 +556,7 @@ public class NetworkMonitorApp extends Application {
             Gson gson = new Gson();
             String json = gson.toJson(configs);
             Files.write(Paths.get(CONFIG_FILE), json.getBytes());
+            System.out.println("============================\n");
         } catch (Exception e) {
             e.printStackTrace();
         }

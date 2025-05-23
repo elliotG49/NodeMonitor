@@ -73,7 +73,7 @@
   -fx-background-radius: 12px;
   
   /* make room for inner padding + title + fields */
-  -fx-padding: 3px;
+  -fx-padding: 5px; /* Increase padding to create more space */
   
   /* soft drop shadow per your Figma spec */
   -fx-effect: dropshadow(
@@ -122,10 +122,10 @@
   -fx-font-size: 14px;
   -fx-prompt-text-fill: -text-secondary;
   
-  -fx-padding: 0 2px;       /* vertical 0, horizontal 8px */
+  -fx-padding: 0 8px 0 12px;       /* vertical 0, horizontal 8px */
   -fx-pref-height: 32px;    /* consistent height */
-  -fx-max-width: 260px;     /* or whatever max you prefer */
-  -fx-min-width: 260px;
+  -fx-max-width: 215px;     /* or whatever max you prefer */
+  -fx-min-width: 215px;
   
   /* subtle inner shadow to make them pop */
 
@@ -134,12 +134,12 @@
 
 .slide-panel .text-field:hover,
 .slide-panel .combo-box:hover {
-    -fx-border-color: #607694;
-    -fx-border-width: 1px;
-    -fx-border-radius: 15px;  /* Changed from 6px */
+    -fx-background-color: derive(-panels-bg-color, 10%);
+
+    -fx-border-radius: 10px;  /* Changed from 6px */
 }
 .slide-panel .text-field {
-    -fx-padding: 0 8px 0 12px;
+    -fx-padding: 0 8px 0 18px;
 }
 
 .slide-panel .combo-box > .list-cell {
@@ -166,10 +166,10 @@
 /* ComboBox Popup styling */
 .slide-panel .combo-box-popup > .list-view {
     -fx-background-color: -icon-container-color;
-    -fx-background-radius: 15px;  /* Changed from 6px */
+    -fx-background-radius: 10px;  /* Changed from 6px */
     -fx-border-color: #607694;
     -fx-border-width: 1px;
-    -fx-border-radius: 15px;  /* Changed from 6px */
+    -fx-border-radius: 10px;  /* Changed from 6px */
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0, 0, 2);
 }
 
@@ -185,6 +185,7 @@
 .slide-panel .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background-color: -button-primary-hover;
     -fx-text-fill: -text-primary;
+    -fx-background-radius: 10px;  /* Changed from 6px */
 }
 
 /* Remove default focus highlight */
@@ -218,13 +219,13 @@
 /*───────────────────────────────────────────────────────────────────────────*/
 .slide-panel .form-button {
   -fx-background-color: -button-primary;
-  -fx-background-radius: 15px;  /* Changed from 6px */
+  -fx-background-radius: 10px;  /* Changed from 6px */
   -fx-text-fill: -text-primary;
   
   -fx-padding: 8 16;      /* vertical 8px, horizontal 16px */
   -fx-font-size: 14px;
-  -fx-max-width: 250px;     /* or whatever max you prefer */
-  -fx-min-width: 250px;
+  -fx-max-width: 215px;     /* or whatever max you prefer */
+  -fx-min-width: 215px;
   
   /* hover state */
   -fx-cursor: hand;
@@ -278,7 +279,15 @@
     -fx-font-size: 12px;
 }
 
+.reset-filter-button {
+  -fx-background-color: -button-primary;
+  -fx-background-radius: 10px;
+  -fx-text-fill: -text-primary;
+  -fx-padding: 8 16;
+  -fx-font-size: 14px;
+  -fx-cursor: hand;
+}
 
-
-
-
+.reset-filter-button:hover {
+  -fx-background-color: -button-primary-hover;
+}

@@ -105,17 +105,17 @@ public class ConnectionLine extends Pane {
 
         // Add latency label
         latencyLabel = new Label();
-        latencyLabel.setStyle("-fx-background-color: rgba(0, 68, 6, 0.9); -fx-text-fill: black; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+        latencyLabel.setStyle("-fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
         latencyLabel.setVisible(false); // Initially hidden
         getChildren().add(latencyLabel);
 
         // Add hover behavior to the latency label
         latencyLabel.setOnMouseEntered(e -> {
-            latencyLabel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.9); -fx-text-fill: black; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+            latencyLabel.setStyle("-fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
         });
 
         latencyLabel.setOnMouseExited(e -> {
-            latencyLabel.setStyle("-fx-background-color: rgba(0, 68, 6, 0.9); -fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
+            latencyLabel.setStyle("-fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
         });
 
         animationStartTime = System.nanoTime();
