@@ -38,7 +38,7 @@ public class SlideOutForms {
 
         // Device Type selector (only visible initially)
         ComboBox<DeviceType> deviceBox = new ComboBox<>();
-        deviceBox.setPromptText("Device Type *");
+        deviceBox.setPromptText("Device Type");
         deviceBox.getItems().setAll(DeviceType.values());
 
         // Create all possible form fields but don't add them yet
@@ -114,8 +114,9 @@ public class SlideOutForms {
         form.getChildren().addAll(title, deviceBox);
 
         // Set consistent width for deviceBox
-        deviceBox.setPrefWidth(220);
-        deviceBox.setMaxWidth(220);
+        deviceBox.setPrefWidth(150);
+        deviceBox.setMaxWidth(150);
+        deviceBox.setMinWidth(150);
 
         return form;
     }
@@ -134,8 +135,8 @@ public class SlideOutForms {
         ComboBox<DeviceType> deviceBox = new ComboBox<>();
         deviceBox.setPromptText("Select Device Type");
         deviceBox.getItems().setAll(DeviceType.values());
-        deviceBox.setPrefWidth(220);
-        deviceBox.setMaxWidth(220);
+        deviceBox.setPrefWidth(150);
+        deviceBox.setMaxWidth(150);
 
         // Filter Button
         Button filterBtn = new Button("Apply Filter");
@@ -319,7 +320,7 @@ public class SlideOutForms {
     private static VBox createInterfaceSection(String interfaceName, List<DiscoveredNode> nodes, SlideOutPanel slidePanel) {
         VBox section = new VBox(4);
         section.getStyleClass().add("interface-section");
-        section.setPadding(new Insets(8, 8, 8, 8));
+        section.setPadding(new Insets(8, 4, 8, 4));
 
         // Header with dropdown arrow
         HBox header = new HBox(8);
@@ -382,19 +383,23 @@ public class SlideOutForms {
         nodeBox.setPadding(new Insets(8));
         nodeBox.setMaxWidth(200);
 
+        // Basic info section
+        VBox basicInfo = new VBox(4);
+        basicInfo.getStyleClass().add("node-basic-info");
+
         // IP Address label and value
         Label ipLabel = new Label();
-        ipLabel.setGraphic(createBoldLabel("IP Address: ", node.ip));
+        ipLabel.setGraphic(createBoldLabel("IP: ", node.ip));
         ipLabel.getStyleClass().add("node-detail-label");
         ipLabel.setWrapText(true);
 
         // Hostname label and value (if exists)
+        Label hostnameLabel = null;
         if (!node.hostname.isEmpty()) {
-            Label hostnameLabel = new Label();
+            hostnameLabel = new Label();
             hostnameLabel.setGraphic(createBoldLabel("Hostname: ", node.hostname));
             hostnameLabel.getStyleClass().add("node-detail-label");
             hostnameLabel.setWrapText(true);
-            nodeBox.getChildren().add(hostnameLabel);
         }
 
         // MAC label and value
@@ -402,11 +407,150 @@ public class SlideOutForms {
         macLabel.setGraphic(createBoldLabel("MAC: ", node.mac));
         macLabel.getStyleClass().add("node-detail-label");
 
-        Button addButton = new Button("Add");
-        addButton.getStyleClass().add("node-add-button");
-        addButton.setPrefWidth(60);
+        basicInfo.getChildren().add(ipLabel);
+        if (hostnameLabel != null) basicInfo.getChildren().add(hostnameLabel);
+        basicInfo.getChildren().add(macLabel);
 
-        nodeBox.getChildren().addAll(ipLabel, macLabel, addButton);
+        // Device Type selector
+        ComboBox<DeviceType> deviceBox = new ComboBox<>();
+        deviceBox.setPromptText("Device Type");
+        deviceBox.getItems().setAll(DeviceType.values());
+        deviceBox.setPrefWidth(184); // Adjusted to fit the node entry width
+        deviceBox.getStyleClass().add("node-device-combo");
+
+        // Form fields container (initially empty)
+        VBox formFields = new VBox(8);
+        formFields.setVisible(false);
+        formFields.setManaged(false);
+
+        // Create Add button
+        Button addButton = new Button("Add Node");
+        addButton.getStyleClass().add("node-add-button");
+        addButton.setPrefWidth(184);
+        addButton.setDisable(true);
+
+        // Create and store all possible form fields
+        Map<DeviceField, Node> fields = createFormFields();
+        
+        // Pre-fill IP and MAC
+        TextField ipField = (TextField) fields.get(DeviceField.IP_HOSTNAME);
+        ipField.setText(node.ip);
+        ipField.setEditable(false); // Make IP field read-only
+        
+        TextField macField = (TextField) fields.get(DeviceField.MAC_ADDRESS);
+        if (macField != null) {
+            macField.setText(node.mac);
+            macField.setEditable(false); // Make MAC field read-only
+        }
+
+        // Device type selection handler
+        deviceBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                formFields.getChildren().clear();
+                formFields.setVisible(true);
+                formFields.setManaged(true);
+
+                // Get required and optional fields for the selected device type
+                List<DeviceField> allFields = DeviceFormConfig.getFieldsForDevice(newVal);
+                List<DeviceField> requiredFields = allFields.stream()
+                    .filter(field -> DeviceFormConfig.isFieldRequired(newVal, field))
+                    .toList();
+                List<DeviceField> optionalFields = allFields.stream()
+                    .filter(field -> !DeviceFormConfig.isFieldRequired(newVal, field))
+                    .toList();
+
+                // Add Required Fields section
+                if (!requiredFields.isEmpty()) {
+                    Label requiredLabel = new Label("Required Fields");
+                    requiredLabel.getStyleClass().add("section-label");
+                    requiredLabel.setPadding(new Insets(8, 0, 4, 0));
+                    formFields.getChildren().add(requiredLabel);
+
+                    // Add required fields
+                    for (DeviceField field : requiredFields) {
+                        Node control = fields.get(field);
+                        if (control != null) {
+                            formFields.getChildren().add(control);
+                            addValidationListener(control, addButton, deviceBox, fields);
+                        }
+                    }
+                }
+
+                // Add Optional Fields section
+                if (!optionalFields.isEmpty()) {
+                    Label optionalLabel = new Label("Optional Fields");
+                    optionalLabel.getStyleClass().add("section-label");
+                    optionalLabel.setPadding(new Insets(16, 0, 4, 0));
+                    formFields.getChildren().add(optionalLabel);
+
+                    // Add optional fields
+                    for (DeviceField field : optionalFields) {
+                        Node control = fields.get(field);
+                        if (control != null) {
+                            formFields.getChildren().add(control);
+                        }
+                    }
+                }
+
+                // Initial validation
+                validateForm(addButton, deviceBox, fields);
+            } else {
+                formFields.setVisible(false);
+                formFields.setManaged(false);
+                addButton.setDisable(true);
+            }
+        });
+
+        // Add button handler
+        addButton.setOnAction(e -> {
+            DeviceType deviceType = deviceBox.getValue();
+            if (deviceType != null) {
+                // Collect field values
+                Map<String, String> values = new HashMap<>();
+                fields.forEach((field, control) -> {
+                    if (control instanceof TextField) {
+                        values.put(field.toString(), ((TextField) control).getText().trim());
+                    } else if (control instanceof ComboBox) {
+                        Object value = ((ComboBox<?>) control).getValue();
+                        values.put(field.toString(), value != null ? value.toString() : "");
+                    }
+                });
+
+                // Create new node
+                NetworkNode newNode = new NetworkNode(
+                    node.ip,
+                    values.get(DeviceField.DISPLAY_NAME.toString()),
+                    deviceType,
+                    NetworkType.valueOf(values.get(DeviceField.NETWORK_TYPE.toString()))
+                );
+
+                // Set connection type and route if provided
+                if (values.containsKey(DeviceField.CONNECTION_TYPE.toString())) {
+                    newNode.setConnectionType(ConnectionType.valueOf(values.get(DeviceField.CONNECTION_TYPE.toString())));
+                }
+                if (values.containsKey(DeviceField.NODE_ROUTING.toString())) {
+                    newNode.setRouteSwitch(values.get(DeviceField.NODE_ROUTING.toString()));
+                }
+
+                // Set MAC address
+                newNode.setMacAddress(node.mac);
+
+                // Add the node to the network
+                NetworkMonitorApp.addNewNode(newNode);
+                
+                // Close the panel
+                slidePanel.hide();
+            }
+        });
+
+        // Add all components to the node box
+        nodeBox.getChildren().addAll(
+            basicInfo,
+            deviceBox,
+            formFields,
+            addButton
+        );
+
         return nodeBox;
     }
 
@@ -427,26 +571,26 @@ public class SlideOutForms {
 
         // Create common fields
         TextField nameField = new TextField();
-        nameField.setPromptText("Display Name *");
+        nameField.setPromptText("Display Name");
         fields.put(DeviceField.DISPLAY_NAME, nameField);
 
         TextField ipField = new TextField();
-        ipField.setPromptText("IP/Hostname *");
+        ipField.setPromptText("IP/Hostname");
         fields.put(DeviceField.IP_HOSTNAME, ipField);
 
         ComboBox<NetworkType> netBox = new ComboBox<>();
-        netBox.setPromptText("Network Type *");
+        netBox.setPromptText("Network Type");
         netBox.getItems().setAll(NetworkType.values());
         fields.put(DeviceField.NETWORK_TYPE, netBox);
 
         ComboBox<ConnectionType> connBox = new ComboBox<>();
-        connBox.setPromptText("Connection Type *");
+        connBox.setPromptText("Connection Type");
         connBox.getItems().setAll(ConnectionType.values());
         fields.put(DeviceField.CONNECTION_TYPE, connBox);
 
         // Create route box with special population logic
         ComboBox<String> routeBox = new ComboBox<>();
-        routeBox.setPromptText("Node Route *");
+        routeBox.setPromptText("Node Route");
         populateRouteBox(routeBox);
         fields.put(DeviceField.NODE_ROUTING, routeBox);
 

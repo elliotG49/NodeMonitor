@@ -286,11 +286,13 @@ public class ConnectionLine extends Pane {
     }
 
     public void updateStatus() {
-        // Special handling for virtual machines
+        // Remove this section that was setting color before checking connectivity
+        /*
         if (to.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
             setLineColor(Color.web("#0cad03")); // Green for virtual machines
             // Continue with the ping logic for virtual machines
         }
+        */
 
         // Only make the line grey if it's going TO an unmanaged switch FROM a main node
         if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
@@ -302,39 +304,7 @@ public class ConnectionLine extends Pane {
         // Handle devices connected through either type of switch
         if (from.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
             from.getDeviceType() == DeviceType.MANAGED_SWITCH) {
-            new Thread(() -> {
-                try {
-                    String ip = to.getIpOrHostname();
-                    java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
-
-                    long start = System.currentTimeMillis();
-                    boolean reachable = destAddr.isReachable(2000);
-                    long elapsed = System.currentTimeMillis() - start;
-
-                    Platform.runLater(() -> {
-                        connected = reachable;
-                        if (reachable) {
-                            defaultColor = Color.web("#0cad03");
-                            curve.setStroke(defaultColor);
-                            latencyLabel.setText(elapsed + " ms");
-                            latencyLabel.setVisible(true);
-                        } else {
-                            defaultColor = Color.RED;
-                            curve.setStroke(defaultColor);
-                            latencyLabel.setText("");
-                            latencyLabel.setVisible(false);
-                        }
-                    });
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    Platform.runLater(() -> {
-                        defaultColor = Color.RED;
-                        curve.setStroke(defaultColor);
-                        latencyLabel.setText("");
-                        latencyLabel.setVisible(false);
-                    });
-                }
-            }).start();
+            pingAndUpdateStatus(to.getIpOrHostname());
             return;
         }
 
@@ -345,44 +315,33 @@ public class ConnectionLine extends Pane {
             return;
         }
 
+        pingAndUpdateStatus(to.getIpOrHostname());
+    }
+
+    // Add this helper method to avoid code duplication
+    private void pingAndUpdateStatus(String ip) {
         new Thread(() -> {
             try {
-                String ip = to.getIpOrHostname();
                 java.net.InetAddress destAddr = java.net.InetAddress.getByName(ip);
 
-                // 0) Find the local interface whose subnet contains destAddr
-                String interfaceName = "";
-                for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                    for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
-                        if (!(ia.getAddress() instanceof Inet4Address)) continue;
-                        int prefix = ia.getNetworkPrefixLength();
-                        byte[] localBytes = ia.getAddress().getAddress();
-                        byte[] destBytes  = destAddr.getAddress();
-                        int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
-                                    |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
-                        int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
-                                    |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
-                        int mask = prefix == 0 ? 0 : 0xFFFFFFFF << (32 - prefix);
-                        if ((localInt & mask) == (destInt & mask)) {
-                            interfaceName = ni.getName();
-                            break;
-                        }
-                    }
-                    if (!interfaceName.isEmpty()) break;
-                }
+                // Find the local interface
+                String interfaceName = findLocalInterface(destAddr);
                 final String iface = interfaceName;
 
-                // 1) Ping it
+                // Ping it
                 long start = System.currentTimeMillis();
                 boolean reachable = destAddr.isReachable(2000);
                 long elapsed = System.currentTimeMillis() - start;
 
                 Platform.runLater(() -> {
                     connected = reachable;
+                    // Set color based on both reachability and device type
                     if (reachable) {
-                        defaultColor = Color.web("#0cad03");
+                        Color lineColor = to.getDeviceType() == DeviceType.VIRTUAL_MACHINE ? 
+                            Color.web("#0cad03") : Color.web("#0cad03");
+                        defaultColor = lineColor;
                         if (!isHovered) {
-                            curve.setStroke(defaultColor);
+                            curve.setStroke(lineColor);
                         }
                         statsPanel.updateStats(elapsed + " ms", iface);
                         latencyLabel.setText(elapsed + " ms");
@@ -411,6 +370,35 @@ public class ConnectionLine extends Pane {
                 });
             }
         }).start();
+    }
+
+    private String findLocalInterface(java.net.InetAddress destAddr) {
+        try {
+            // 0) Find the local interface whose subnet contains destAddr
+            String interfaceName = "";
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+                    if (!(ia.getAddress() instanceof Inet4Address)) continue;
+                    int prefix = ia.getNetworkPrefixLength();
+                    byte[] localBytes = ia.getAddress().getAddress();
+                    byte[] destBytes  = destAddr.getAddress();
+                    int localInt = ((localBytes[0]&0xFF)<<24)|((localBytes[1]&0xFF)<<16)
+                                |((localBytes[2]&0xFF)<<8)| (localBytes[3]&0xFF);
+                    int destInt  = ((destBytes[0]&0xFF)<<24)|((destBytes[1]&0xFF)<<16)
+                                |((destBytes[2]&0xFF)<<8)| (destBytes[3]&0xFF);
+                    int mask = prefix == 0 ? 0 : 0xFFFFFFFF << (32 - prefix);
+                    if ((localInt & mask) == (destInt & mask)) {
+                        interfaceName = ni.getName();
+                        break;
+                    }
+                }
+                if (!interfaceName.isEmpty()) break;
+            }
+            return interfaceName;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     public NetworkNode getFrom() {

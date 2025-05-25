@@ -75,7 +75,7 @@ public class NetworkMonitorApp extends Application {
 
         primaryStage.setMinWidth(1024);
         primaryStage.setMinHeight(768);
-        primaryStage.setTitle("Network Device Monitor");
+        primaryStage.setTitle("Network Node Monitor");
         try {
             primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/node.png")));
         } catch (Exception e) {

@@ -434,3 +434,66 @@
     -fx-transition: -fx-rotate 0.2s ease-out;
 }
 
+.node-basic-info {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-radius: 4;
+    -fx-padding: 8;
+    -fx-spacing: 4;
+}
+
+.node-device-combo {
+    -fx-background-color: -icon-container-color;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-max-width: 150;
+    -fx-min-width: 150;
+    -fx-background-radius: 4;
+    -fx-margin: 8 0;
+}
+
+.node-device-combo:hover {
+    -fx-background-color: derive(-panels-bg-color, 10%);
+}
+
+.node-entry .text-field,
+.node-entry .combo-box {
+    -fx-pref-width: 160;
+    -fx-max-width: 160;
+    -fx-min-width: 160;
+    -fx-font-size: 12;
+    -fx-background-color: rgb(105, 139, 173);
+    -fx-background-radius: 4;
+}
+
+/* Hide all scrollbars while maintaining smooth scroll functionality */
+.scroll-pane {
+    -fx-hbar-policy: never;  /* Hide horizontal scrollbar */
+    -fx-vbar-policy: never;  /* Hide vertical scrollbar */
+    -fx-pannable: true;      /* Enable touch-like panning */
+    -fx-fit-to-width: true;  /* Fit content to width */
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .scroll-bar:vertical,
+.scroll-pane > .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
+/* Add smooth scrolling behavior */
+.scroll-pane {
+    -fx-smooth-scroll: true;
+    -fx-scroll-duration: 200ms;  /* Adjust scroll animation duration */
+}
+
+/* Improve touch and trackpad scrolling */
+.scroll-pane {
+    -fx-scroll-deceleration: 0.95;  /* Smooth deceleration after scroll */
+    -fx-scroll-sensitivity: 12;     /* Adjust scroll sensitivity */
+}
+
