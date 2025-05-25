@@ -392,7 +392,7 @@ public class SlideOutForms {
         return createNodeEntry(node, slidePanel, 0);
     }
 
-    private static VBox createNodeEntry(DiscoveredNode node, SlideOutPanel slidePanel, int nodeNumber) {  // Added nodeNumber parameter
+    private static VBox createNodeEntry(DiscoveredNode node, SlideOutPanel slidePanel, int nodeNumber) {
         VBox nodeBox = new VBox(4);
         nodeBox.getStyleClass().add("node-entry");
         nodeBox.setPadding(new Insets(8));
@@ -409,35 +409,38 @@ public class SlideOutForms {
         // Add the number label as first child
         basicInfo.getChildren().add(numberLabel);
 
-        // IP Address label and value
-        Label ipLabel = new Label();
-        ipLabel.setGraphic(createBoldLabel("IP: ", node.ip));
-        ipLabel.getStyleClass().add("node-detail-label");
-        ipLabel.setWrapText(true);
+        // Create labels with opaque labels and normal value text
+        HBox ipBox = new HBox(4);
+        Label ipLabelText = new Label("IP:");
+        ipLabelText.setStyle("-fx-opacity: 0.7;"); // Make label slightly opaque
+        Label ipValue = new Label(node.ip);
+        ipBox.getChildren().addAll(ipLabelText, ipValue);
+        ipBox.getStyleClass().add("node-detail-label");
 
-        // Hostname label and value (if exists)
-        Label hostnameLabel = null;
-        if (!node.hostname.isEmpty()) {
-            hostnameLabel = new Label();
-            hostnameLabel.setGraphic(createBoldLabel("Hostname: ", node.hostname));
-            hostnameLabel.getStyleClass().add("node-detail-label");
-            hostnameLabel.setWrapText(true);
-        }
+        // Hostname (always shown, with N/A if empty)
+        HBox hostnameBox = new HBox(4);
+        Label hostnameLabelText = new Label("Hostname:");
+        hostnameLabelText.setStyle("-fx-opacity: 0.7;"); // Make label slightly opaque
+        Label hostnameValue = new Label(node.hostname.isEmpty() ? "N/A" : node.hostname);
+        hostnameBox.getChildren().addAll(hostnameLabelText, hostnameValue);
+        hostnameBox.getStyleClass().add("node-detail-label");
 
-        // MAC label and value
-        Label macLabel = new Label();
-        macLabel.setGraphic(createBoldLabel("MAC: ", node.mac));
-        macLabel.getStyleClass().add("node-detail-label");
+        // MAC Address
+        HBox macBox = new HBox(4);
+        Label macLabelText = new Label("MAC:");
+        macLabelText.setStyle("-fx-opacity: 0.7;"); // Make label slightly opaque
+        Label macValue = new Label(node.mac);
+        macBox.getChildren().addAll(macLabelText, macValue);
+        macBox.getStyleClass().add("node-detail-label");
 
-        basicInfo.getChildren().add(ipLabel);
-        if (hostnameLabel != null) basicInfo.getChildren().add(hostnameLabel);
-        basicInfo.getChildren().add(macLabel);
+        // Add all info labels to the basic info section
+        basicInfo.getChildren().addAll(ipBox, hostnameBox, macBox);
 
         // Device Type selector
         ComboBox<DeviceType> deviceBox = new ComboBox<>();
         deviceBox.setPromptText("Device Type");
         deviceBox.getItems().setAll(DeviceType.values());
-        deviceBox.setPrefWidth(184); // Adjusted to fit the node entry width
+        deviceBox.setPrefWidth(170); // Adjusted to fit the node entry width
         deviceBox.getStyleClass().add("node-device-combo");
 
         // Form fields container (initially empty)
@@ -446,9 +449,9 @@ public class SlideOutForms {
         formFields.setManaged(false);
 
         // Create Add button
-        Button addButton = new Button("Add Node");
+        Button addButton = new Button("Add");
         addButton.getStyleClass().add("node-add-button");
-        addButton.setPrefWidth(184);
+        addButton.setPrefWidth(70);
         addButton.setDisable(true);
 
         // Create and store all possible form fields

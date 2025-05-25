@@ -375,16 +375,18 @@
 .interface-section {
     -fx-border-radius: 10px;
     -fx-border-width: 1px;
-    -fx-border-color: rgba(255, 255, 255, 0.4);
+    -fx-border-color: rgba(255, 255, 255, 0.2);
     -fx-background-radius: 10px;
     -fx-padding: 8px 0px;
     -fx-pref-width: 240px;
     -fx-cursor: hand;
     -fx-spacing: 8px;
-    -fx-alignment: center-left;  
+    -fx-alignment: center-left; 
 }
 
+
 .interface-section:hover {
+    -fx-border-color: rgba(255, 255, 255, 0.6);
 }
 
 .interface-content {
@@ -409,7 +411,6 @@
 .node-entry {
     -fx-background-color: transparent;
     -fx-background-radius: 10;  /* Removed border radius since it's full width */
-     /* Removed border radius since it's full width */
     -fx-padding: 16px;        /* Even padding all around */
     -fx-pref-width: 100%;     /* Take full width */
     -fx-max-width: infinity;  /* Allow expanding to full width */
@@ -418,13 +419,11 @@
 }
 
 .node-entry:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.05);
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0.5, 0, 0);
 }
 
 .node-detail-label {
     -fx-text-fill: white;
-    -fx-font-size: 12;
+    -fx-font-size: 14;
 }
 
 .node-detail-label .label {
@@ -432,17 +431,24 @@
 }
 
 .node-add-button {
-    -fx-background-color: #5FB0B7;
+    -fx-background-color: -button-primary;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 10;
     -fx-cursor: hand;
     -fx-padding: 8px 4px;
+    -fx-min-width: 80px;
 }
 
 .node-add-button:hover {
-    -fx-background-color: derive(#5FB0B7, 10%);
-    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.3), 10, 0, 0, 0);
+    -fx-background-color: -button-primary-hover;
+}
+
+.node-add-button:disabled {
+    -fx-background-color: -button-disabled;
+    -fx-text-fill: -text-disabled;
+    -fx-opacity: 0.7;
+    -fx-cursor: default;
 }
 
 .interface-arrow {
@@ -453,24 +459,9 @@
 }
 
 .node-basic-info {
-    -fx-background-color: rgba(255, 255, 255, 0.02);
-    -fx-background-radius: 4;
-    -fx-padding: 8;
-    -fx-spacing: 4;
 }
 
-.node-device-combo {
-    -fx-background-color: #171F2A;  /* Changed from pink */
-    -fx-border-width: 1;        
-    -fx-border-color: rgba(255, 255, 255, 0.3);  /* More subtle border */
-    -fx-border-radius: 4;
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
-    -fx-max-width: 150;
-    -fx-min-width: 150;
-    -fx-background-radius: 4;
-    -fx-margin: 8 0;
-}
+
 
 .node-device-combo:hover {
     -fx-background-color: rgba(255, 255, 255, 0.05);  /* Subtle hover effect */
@@ -480,24 +471,24 @@
 
 .node-entry .text-field,
 .node-entry .combo-box {
-    -fx-background-color: transparent;
-    -fx-border-width: 1;
-    -fx-border-color: rgba(255, 255, 255, 0.3);
-    -fx-border-radius: 10px;      /* Changed from 4px */
-    -fx-background-radius: 10px;  /* Changed from 4px */
+    -fx-background-color: -icon-container-color;
+    -fx-background-radius: 10px;
     -fx-text-fill: white;
-    -fx-pref-width: 160;
-    -fx-max-width: 160;
-    -fx-min-width: 160;
+    -fx-pref-width: 170;
+    -fx-max-width: 170;
+    -fx-min-width: 170;
     -fx-font-size: 12;
-    -fx-padding: 8;  /* Add some padding */
+    -fx-pref-height: 32px;      /* Match the add node form height */
+    -fx-min-height: 32px;       /* Ensure consistent height */
+    -fx-max-height: 32px;       /* Prevent expanding */
+    -fx-padding: 0 8px 0 12px;  /* Match the add node form padding */
 }
 
 .node-entry .text-field:hover,
 .node-entry .combo-box:hover {
     -fx-background-color: rgba(255, 255, 255, 0.05);
-    -fx-border-color: rgba(255, 255, 255, 0.5);
-    -fx-border-radius: 10px;  /* Fixed to match non-hover state */
+
+
     -fx-background-radius: 10px;  /* Fixed to match non-hover state */
 }
 
@@ -534,8 +525,8 @@
 }
 
 .node-number-label {
-    -fx-text-fill: #5FB0B7;  
-    -fx-font-size: 14px;
+    -fx-text-fill: #ffffff;  
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-padding: 0 0 4 0;  
 }
