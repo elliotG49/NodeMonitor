@@ -6,7 +6,6 @@ import java.net.NetworkInterface;
 import java.util.Collections;
 
 import javafx.animation.AnimationTimer;
-import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -18,7 +17,6 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.CubicCurve;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.shape.StrokeLineJoin;
-import javafx.util.Duration;
 
 public class ConnectionLine extends Pane {
 
@@ -28,24 +26,19 @@ public class ConnectionLine extends Pane {
 
     private final Circle pingParticle;
     private final AnimationTimer pingTimer;
-    private final Label latencyLabel; // Label to display latency
+    private final Label latencyLabel;
 
     private static final double CYCLE_DURATION = 3.0;
+    private boolean returningPing = false;
+    private static final double PING_DURATION = 1.5; // Half of CYCLE_DURATION for out and back
 
-    private long lastTrailTime = 0;
-    private static final long TRAIL_INTERVAL_NANOS = 10_000_000; // Reduced from 20_000_000
-    private static final int TRAIL_COUNT = 8; // Number of trails to create
-    private static final double TRAIL_BASE_RADIUS = 2.0;
-    private static final double TRAIL_FADE_FACTOR = 0.8;
+    private static final long GLOBAL_START_TIME = System.nanoTime();
 
-    private final long animationStartTime;
     private volatile boolean connected = false;
 
     private final PopupPanel statsPanel;
     private Color defaultColor = Color.RED;
     private Color hoveredColor;
-
-    // Add a field to track hover state
     private boolean isHovered = false;
 
     private class PopupPanel extends StackPane {
@@ -93,77 +86,87 @@ public class ConnectionLine extends Pane {
         curve.setStrokeLineCap(StrokeLineCap.ROUND);
         curve.setStrokeLineJoin(StrokeLineJoin.ROUND);
 
-        // Add the curve directly to the container
         curveContainer.getChildren().add(curve);
         getChildren().add(curveContainer);
 
-        pingParticle = new Circle(2, Color.WHITE);
+        // Single ping particle
+        pingParticle = new Circle(3, Color.WHITE);
+        pingParticle.setVisible(false); // Initially invisible until connection is confirmed
         getChildren().add(pingParticle);
 
         statsPanel = new PopupPanel();
         getChildren().add(statsPanel);
 
-        // Add latency label
         latencyLabel = new Label();
         latencyLabel.setStyle("-fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
-        latencyLabel.setVisible(false); // Initially hidden
+        latencyLabel.setVisible(false);
         getChildren().add(latencyLabel);
 
-        // Add hover behavior to the latency label
-        latencyLabel.setOnMouseEntered(e -> {
-            latencyLabel.setStyle("-fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
-        });
-
-        latencyLabel.setOnMouseExited(e -> {
-            latencyLabel.setStyle("-fx-text-fill: white; -fx-padding: 2 4; -fx-background-radius: 8; -fx-font-size: 12; -fx-font-weight: bold;");
-        });
-
-        animationStartTime = System.nanoTime();
-
+        // Update the animation timer to use GLOBAL_START_TIME
         pingTimer = new AnimationTimer() {
             @Override
             public void handle(long now) {
                 updateCurve();
                 updateLatencyLabelPosition();
 
-                double elapsedSeconds = (now - animationStartTime) / 1e9;
+                double elapsedSeconds = (now - GLOBAL_START_TIME) / 1e9;
                 double normalizedTime = (elapsedSeconds % CYCLE_DURATION) / CYCLE_DURATION;
-                double fraction = !connected
-                        ? (normalizedTime < 0.5 ? normalizedTime * 2 : 1.0)
-                        : (normalizedTime < 0.5 ? normalizedTime * 2 : 1 - ((normalizedTime - 0.5) * 2));
-
-                double t = fraction;
-                double oneMinusT = 1 - t;
-                double sx = curve.getStartX();
-                double sy = curve.getStartY();
-                double cx1 = curve.getControlX1();
-                double cy1 = curve.getControlY1();
-                double cx2 = curve.getControlX2();
-                double cy2 = curve.getControlY2();
-                double ex = curve.getEndX();
-                double ey = curve.getEndY();
-
-                double x = Math.pow(oneMinusT, 3) * sx +
-                           3 * Math.pow(oneMinusT, 2) * t * cx1 +
-                           3 * oneMinusT * Math.pow(t, 2) * cx2 +
-                           Math.pow(t, 3) * ex;
-                double y = Math.pow(oneMinusT, 3) * sy +
-                           3 * Math.pow(oneMinusT, 2) * t * cy1 +
-                           3 * oneMinusT * Math.pow(t, 2) * cy2 +   
-                           Math.pow(t, 3) * ey;
-
-                pingParticle.setLayoutX(x);
-                pingParticle.setLayoutY(y);
-
-                if (now - lastTrailTime > TRAIL_INTERVAL_NANOS) {
-                    spawnTrail(x, y);
-                    lastTrailTime = now;
+                
+                // If connected, split the animation into outgoing and return journey
+                if (connected) {
+                    // First half of cycle: ping goes out
+                    if (normalizedTime < 0.5) {
+                        returningPing = false;
+                        animateParticle(normalizedTime * 2); // Scale to 0-1 range
+                    } 
+                    // Second half of cycle: ping returns
+                    else {
+                        returningPing = true;
+                        animateParticle((1 - (normalizedTime - 0.5) * 2)); // Reverse direction
+                    }
+                } 
+                // If not connected, only animate outgoing ping
+                else {
+                    if (normalizedTime < 0.5) {
+                        returningPing = false;
+                        animateParticle(normalizedTime * 2);
+                        pingParticle.setVisible(true);
+                    } else {
+                        pingParticle.setVisible(false);
+                    }
                 }
             }
         };
         pingTimer.start();
 
         updateStatus();
+    }
+
+    // Add this helper method to calculate particle position
+    private void animateParticle(double t) {
+        double oneMinusT = 1 - t;
+        double sx = curve.getStartX();
+        double sy = curve.getStartY();
+        double cx1 = curve.getControlX1();
+        double cy1 = curve.getControlY1();
+        double cx2 = curve.getControlX2();
+        double cy2 = curve.getControlY2();
+        double ex = curve.getEndX();
+        double ey = curve.getEndY();
+
+        // Calculate position using cubic Bezier formula
+        double x = Math.pow(oneMinusT, 3) * sx +
+                   3 * Math.pow(oneMinusT, 2) * t * cx1 +
+                   3 * oneMinusT * Math.pow(t, 2) * cx2 +
+                   Math.pow(t, 3) * ex;
+        double y = Math.pow(oneMinusT, 3) * sy +
+                   3 * Math.pow(oneMinusT, 2) * t * cy1 +
+                   3 * oneMinusT * Math.pow(t, 2) * cy2 +
+                   Math.pow(t, 3) * ey;
+
+        pingParticle.setLayoutX(x);
+        pingParticle.setLayoutY(y);
+        pingParticle.setVisible(true);
     }
 
     private void updateCurve() {
@@ -220,61 +223,6 @@ public class ConnectionLine extends Pane {
 
         latencyLabel.setLayoutX(adjustedX);
         latencyLabel.setLayoutY(adjustedY);
-    }
-
-    private void spawnTrail(double x, double y) {
-        for (int i = 0; i < TRAIL_COUNT; i++) {
-            final int trailIndex = i; // Create a final copy of i for this iteration
-            Circle trail = new Circle(
-                TRAIL_BASE_RADIUS * (1 - (trailIndex * 0.1)), // Gradually decrease size
-                Color.WHITE.deriveColor(0, 1, 1, 1 - (trailIndex * TRAIL_FADE_FACTOR / TRAIL_COUNT))
-            );
-            trail.setLayoutX(x);
-            trail.setLayoutY(y);
-            getChildren().add(0, trail); // Add at index 0 to appear behind newer trails
-
-            // Bind the trail's position to the curve dynamically
-            AnimationTimer trailUpdater = new AnimationTimer() {
-                @Override
-                public void handle(long now) {
-                    double t = 1.0 - (trailIndex / (double) TRAIL_COUNT); // Calculate the position along the curve
-                    double oneMinusT = 1 - t;
-
-                    double sx = curve.getStartX();
-                    double sy = curve.getStartY();
-                    double cx1 = curve.getControlX1();
-                    double cy1 = curve.getControlY1();
-                    double cx2 = curve.getControlX2();
-                    double cy2 = curve.getControlY2();
-                    double ex = curve.getEndX();
-                    double ey = curve.getEndY();
-
-                    double newX = Math.pow(oneMinusT, 3) * sx +
-                                  3 * Math.pow(oneMinusT, 2) * t * cx1 +
-                                  3 * oneMinusT * Math.pow(t, 2) * cx2 +
-                                  Math.pow(t, 3) * ex;
-                    double newY = Math.pow(oneMinusT, 3) * sy +
-                                  3 * Math.pow(oneMinusT, 2) * t * cy1 +
-                                  3 * oneMinusT * Math.pow(t, 2) * cy2 +
-                                  Math.pow(t, 3) * ey;
-
-                    trail.setLayoutX(newX);
-                    trail.setLayoutY(newY);
-                }
-            };
-
-            trailUpdater.start();
-
-            // Fade out the trail and stop updating after the animation
-            FadeTransition ft = new FadeTransition(Duration.seconds(0.4), trail);
-            ft.setFromValue(1.0);
-            ft.setToValue(0.0);
-            ft.setOnFinished(e -> {
-                getChildren().remove(trail);
-                trailUpdater.stop(); // Stop updating the trail after it fades out
-            });
-            ft.play();
-        }
     }
 
     // Modify setLineColor to respect hover state
@@ -346,6 +294,7 @@ public class ConnectionLine extends Pane {
                         statsPanel.updateStats(elapsed + " ms", iface);
                         latencyLabel.setText(elapsed + " ms");
                         latencyLabel.setVisible(true);
+                        pingParticle.setVisible(true); // Show ping particle when connected
                     } else {
                         defaultColor = Color.RED;
                         if (!isHovered) {
@@ -354,6 +303,7 @@ public class ConnectionLine extends Pane {
                         statsPanel.updateStats("Not Connected", "");
                         latencyLabel.setText("");
                         latencyLabel.setVisible(false);
+                        pingParticle.setVisible(false); // Hide ping particle when disconnected
                     }
                 });
             } catch (Exception ex) {
@@ -366,6 +316,7 @@ public class ConnectionLine extends Pane {
                     statsPanel.updateStats("Error", "");
                     latencyLabel.setText("");
                     latencyLabel.setVisible(false);
+                    pingParticle.setVisible(false); // Hide ping particle on error
                     connected = false;
                 });
             }
@@ -427,12 +378,14 @@ public class ConnectionLine extends Pane {
                 statsPanel.updateStats("Connected", "");
                 latencyLabel.setText("Connected");
                 latencyLabel.setVisible(true);
+                pingParticle.setVisible(true); // Show ping particle
             } else {
                 defaultColor = Color.RED;
                 curve.setStroke(defaultColor);
                 statsPanel.updateStats("", "");
                 latencyLabel.setText("");
                 latencyLabel.setVisible(false);
+                pingParticle.setVisible(false); // Hide ping particle
             }
         });
     }
