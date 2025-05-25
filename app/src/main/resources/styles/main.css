@@ -232,9 +232,9 @@
 /* Spacing helpers — if you need extra gaps between fields               */
 /*───────────────────────────────────────────────────────────────────────────*/
 .slide-panel .form-container {
-  -fx-spacing: 12px;
+  -fx-spacing: 16px;  /* Increased from 12px */
   -fx-alignment: center-left;
-  -fx-padding: 8px; /* Reduce padding to allow wider content */
+  -fx-padding: 4px;   /* Reduced from 8px */
   -fx-background-color: transparent;
 }
 
@@ -322,7 +322,7 @@
 }
 
 .discovery-cancel-button {
-    -fx-background-color: -button-primary;
+    -fx-background-color: rgb(255, 89, 47);
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 15;
@@ -331,12 +331,12 @@
 }
 
 .discovery-cancel-button:hover {
-    -fx-background-color: -button-primary-hover;
+    -fx-background-color: rgb(255, 131, 100);
     -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.3), 10, 0, 0, 0);
 }
 
 .discovery-cancel-button:pressed {
-    -fx-background-color: #FF4040;
+    -fx-background-color: rgb(255, 157, 133);
 }
 
 .discovery-scroll-pane {
@@ -373,38 +373,53 @@
 }
 
 .interface-section {
-    -fx-background-color: rgba(255, 255, 255, 0.05);
-    -fx-background-radius: 6;
-    -fx-padding: 8px;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.4);
+    -fx-background-radius: 10px;
+    -fx-padding: 8px 0px;
     -fx-pref-width: 240px;
     -fx-cursor: hand;
+    -fx-spacing: 8px;
+    -fx-alignment: center-left;  
 }
 
 .interface-section:hover {
-    -fx-background-color: rgba(192, 192, 192, 0.1);
 }
 
 .interface-content {
-    -fx-padding: 0 0 8 8;  /* Add some left padding for hierarchy visual */
+    -fx-padding: 0;  /* Removed all padding */
+    -fx-spacing: 12px;  /* Increased spacing between node entries */
 }
 
 .interface-name-label {
     -fx-text-fill: white;
     -fx-font-size: 14;
     -fx-font-weight: bold;
+    -fx-padding: 0 8px 0 16px;  /* Reduced right padding to bring arrow closer */
+    -fx-alignment: center-left;  
 }
 
 .interface-count-label {
     -fx-text-fill: #808080;
     -fx-font-size: 12;
+    -fx-padding: 0 16px;  /* Add horizontal padding to align with node entries */
 }
 
 .node-entry {
-    -fx-background-color: rgba(255, 255, 255, 0.03);
-    -fx-background-radius: 4;
-    -fx-padding: 8px;
-    -fx-pref-width: 220px;
+    -fx-background-color: transparent;
+    -fx-background-radius: 10;  /* Removed border radius since it's full width */
+     /* Removed border radius since it's full width */
+    -fx-padding: 16px;        /* Even padding all around */
+    -fx-pref-width: 100%;     /* Take full width */
+    -fx-max-width: infinity;  /* Allow expanding to full width */
     -fx-text-fill: white;
+    -fx-spacing: 12px;  /* Add spacing between elements */
+}
+
+.node-entry:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0.5, 0, 0);
 }
 
 .node-detail-label {
@@ -420,8 +435,9 @@
     -fx-background-color: #5FB0B7;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-background-radius: 4;
+    -fx-background-radius: 10;
     -fx-cursor: hand;
+    -fx-padding: 8px 4px;
 }
 
 .node-add-button:hover {
@@ -432,17 +448,22 @@
 .interface-arrow {
     -fx-rotate: 0;
     -fx-transition: -fx-rotate 0.2s ease-out;
+    -fx-padding: 0 12px 0 0;  
+    -fx-translate-x: -8px;    
 }
 
 .node-basic-info {
-    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-color: rgba(255, 255, 255, 0.02);
     -fx-background-radius: 4;
     -fx-padding: 8;
     -fx-spacing: 4;
 }
 
 .node-device-combo {
-    -fx-background-color: -icon-container-color;
+    -fx-background-color: #171F2A;  /* Changed from pink */
+    -fx-border-width: 1;        
+    -fx-border-color: rgba(255, 255, 255, 0.3);  /* More subtle border */
+    -fx-border-radius: 4;
     -fx-text-fill: white;
     -fx-font-size: 14px;
     -fx-max-width: 150;
@@ -452,17 +473,32 @@
 }
 
 .node-device-combo:hover {
-    -fx-background-color: derive(-panels-bg-color, 10%);
+    -fx-background-color: rgba(255, 255, 255, 0.05);  /* Subtle hover effect */
+    -fx-border-color: rgba(255, 255, 255, 0.5);  /* Brighter border on hover */
+    -fx-border-radius: 10;  /* Ensure border radius stays consistent */
 }
 
 .node-entry .text-field,
 .node-entry .combo-box {
+    -fx-background-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+    -fx-border-radius: 10px;      /* Changed from 4px */
+    -fx-background-radius: 10px;  /* Changed from 4px */
+    -fx-text-fill: white;
     -fx-pref-width: 160;
     -fx-max-width: 160;
     -fx-min-width: 160;
     -fx-font-size: 12;
-    -fx-background-color: rgb(105, 139, 173);
-    -fx-background-radius: 4;
+    -fx-padding: 8;  /* Add some padding */
+}
+
+.node-entry .text-field:hover,
+.node-entry .combo-box:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-border-color: rgba(255, 255, 255, 0.5);
+    -fx-border-radius: 10px;  /* Fixed to match non-hover state */
+    -fx-background-radius: 10px;  /* Fixed to match non-hover state */
 }
 
 /* Hide all scrollbars while maintaining smooth scroll functionality */
@@ -495,5 +531,12 @@
 .scroll-pane {
     -fx-scroll-deceleration: 0.95;  /* Smooth deceleration after scroll */
     -fx-scroll-sensitivity: 12;     /* Adjust scroll sensitivity */
+}
+
+.node-number-label {
+    -fx-text-fill: #5FB0B7;  
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 4 0;  
 }
 

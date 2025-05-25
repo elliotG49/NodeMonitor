@@ -51,55 +51,65 @@ public class SlideOutForms {
 
         // Add button action handler
         createBtn.setOnAction(e -> {
+            // Get values from form fields
             DeviceType deviceType = deviceBox.getValue();
-            if (deviceType == null) return;
-
-            // Collect field values
-            Map<String, String> values = new HashMap<>();
-            formFields.forEach((field, control) -> {
+            Map<DeviceField, String> fieldValues = new HashMap<>();
+            
+            // Collect all field values
+            for (Map.Entry<DeviceField, Node> entry : formFields.entrySet()) {
+                DeviceField field = entry.getKey();
+                Node control = entry.getValue();
+                
+                String value = "";
                 if (control instanceof TextField) {
-                    values.put(field.toString(), ((TextField) control).getText().trim());
+                    value = ((TextField) control).getText();
                 } else if (control instanceof ComboBox) {
-                    Object value = ((ComboBox<?>) control).getValue();
-                    values.put(field.toString(), value != null ? value.toString() : "");
+                    ComboBox<?> combo = (ComboBox<?>) control;
+                    value = combo.getValue() != null ? combo.getValue().toString() : "";
                 }
-            });
+                
+                fieldValues.put(field, value);
+            }
 
             // Create new node
+            String ipHostname = fieldValues.get(DeviceField.IP_HOSTNAME);
+            String displayName = fieldValues.get(DeviceField.DISPLAY_NAME);
+            if (displayName == null || displayName.isEmpty()) {
+                displayName = ipHostname; // Use IP/hostname if no display name provided
+            }
+
+            // Create the new node
             NetworkNode newNode = new NetworkNode(
-                values.get(DeviceField.IP_HOSTNAME.toString()),
-                values.get(DeviceField.DISPLAY_NAME.toString()),
+                ipHostname,
+                displayName,
                 deviceType,
-                NetworkType.valueOf(values.get(DeviceField.NETWORK_TYPE.toString()))
+                NetworkType.valueOf(fieldValues.get(DeviceField.NETWORK_TYPE))
             );
 
-            // Set connection type and route if provided
-            if (values.containsKey(DeviceField.CONNECTION_TYPE.toString())) {
-                newNode.setConnectionType(ConnectionType.valueOf(values.get(DeviceField.CONNECTION_TYPE.toString())));
-            }
-            if (values.containsKey(DeviceField.NODE_ROUTING.toString())) {
-                newNode.setRouteSwitch(values.get(DeviceField.NODE_ROUTING.toString()));
+            // Set connection type if specified
+            String connType = fieldValues.get(DeviceField.CONNECTION_TYPE);
+            if (connType != null && !connType.isEmpty()) {
+                newNode.setConnectionType(ConnectionType.valueOf(connType));
             }
 
-            // Add optional fields if they exist
-            if (values.containsKey(DeviceField.MAC_ADDRESS.toString())) {
-                String mac = values.get(DeviceField.MAC_ADDRESS.toString());
-                if (!mac.isEmpty()) newNode.setMacAddress(mac);
+            // Set route switch if specified
+            String routeSwitch = fieldValues.get(DeviceField.NODE_ROUTING);
+            if (routeSwitch != null && !routeSwitch.isEmpty()) {
+                newNode.setRouteSwitch(routeSwitch);
             }
 
-            // Get the selected host node
-            ComboBox<String> hostNodeBox = (ComboBox<String>) formFields.get(DeviceField.HOST_NODE);
-            if (hostNodeBox != null) {
-                String selectedHostNode = hostNodeBox.getValue();
-                if (selectedHostNode != null && !selectedHostNode.isEmpty()) {
-                    newNode.setRouteSwitch(selectedHostNode); // Store the selected host node
-                }
-            }
+            // Position the new node in the center of the visible area
+            javafx.scene.Node spiderMapPane = slidePanel.getParent();
+            double centerX = spiderMapPane.getBoundsInLocal().getWidth() / 2;
+            double centerY = spiderMapPane.getBoundsInLocal().getHeight() / 2;
+            
+            newNode.setLayoutX(centerX - 32.5); // Half of SQUARE_SIZE (65/2)
+            newNode.setLayoutY(centerY - 32.5);
 
-            // Add the node to the network
+            // Add the node to the application
             NetworkMonitorApp.addNewNode(newNode);
 
-            // Close the panel
+            // Close the slide panel
             slidePanel.hide();
         });
 
@@ -356,8 +366,9 @@ public class SlideOutForms {
         content.setManaged(false);
 
         // Add discovered nodes
+        int[] nodeCounter = {1};  // Use array to allow modification in lambda
         nodes.forEach(node -> {
-            VBox nodeBox = createNodeEntry(node, slidePanel);
+            VBox nodeBox = createNodeEntry(node, slidePanel, nodeCounter[0]++);
             content.getChildren().add(nodeBox);
         });
 
@@ -378,14 +389,25 @@ public class SlideOutForms {
     }
 
     private static VBox createNodeEntry(DiscoveredNode node, SlideOutPanel slidePanel) {
+        return createNodeEntry(node, slidePanel, 0);
+    }
+
+    private static VBox createNodeEntry(DiscoveredNode node, SlideOutPanel slidePanel, int nodeNumber) {  // Added nodeNumber parameter
         VBox nodeBox = new VBox(4);
         nodeBox.getStyleClass().add("node-entry");
         nodeBox.setPadding(new Insets(8));
         nodeBox.setMaxWidth(200);
 
+        // Add node number label
+        Label numberLabel = new Label("Node " + nodeNumber);
+        numberLabel.getStyleClass().add("node-number-label");
+
         // Basic info section
         VBox basicInfo = new VBox(4);
         basicInfo.getStyleClass().add("node-basic-info");
+
+        // Add the number label as first child
+        basicInfo.getChildren().add(numberLabel);
 
         // IP Address label and value
         Label ipLabel = new Label();
