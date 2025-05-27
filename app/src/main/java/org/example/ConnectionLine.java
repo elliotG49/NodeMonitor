@@ -234,14 +234,6 @@ public class ConnectionLine extends Pane {
     }
 
     public void updateStatus() {
-        // Remove this section that was setting color before checking connectivity
-        /*
-        if (to.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
-            setLineColor(Color.web("#0cad03")); // Green for virtual machines
-            // Continue with the ping logic for virtual machines
-        }
-        */
-
         // Only make the line grey if it's going TO an unmanaged switch FROM a main node
         if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
             setLineColor(Color.GRAY);
@@ -256,13 +248,20 @@ public class ConnectionLine extends Pane {
             return;
         }
 
-        // For all other cases, continue with normal ping logic
+        // MODIFIED: Check if either node is a virtual machine, and skip the grey color override
+        if (to.getDeviceType() == DeviceType.VIRTUAL_MACHINE || from.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
+            pingAndUpdateStatus(to.getIpOrHostname());
+            return;
+        }
+
+        // For all other cases where both are non-main nodes, use grey
         if (!from.isMainNode() && !to.isMainNode()) {
             setLineColor(Color.GREY);
             latencyLabel.setVisible(false); // Hide latency label for non-main nodes
             return;
         }
 
+        // For all other cases, continue with normal ping logic
         pingAndUpdateStatus(to.getIpOrHostname());
     }
 
