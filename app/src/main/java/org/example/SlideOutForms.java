@@ -98,6 +98,14 @@ public class SlideOutForms {
                 newNode.setRouteSwitch(routeSwitch);
             }
 
+            // Set host node if virtual machine
+            if (deviceType == DeviceType.VIRTUAL_MACHINE) {
+                String hostNodeValue = fieldValues.get(DeviceField.HOST_NODE);
+                if (hostNodeValue != null && !hostNodeValue.isEmpty()) {
+                    newNode.setHostNode(hostNodeValue);
+                }
+            }
+
             // Position the new node in the center of the visible area
             javafx.scene.Node spiderMapPane = slidePanel.getParent();
             double centerX = spiderMapPane.getBoundsInLocal().getWidth() / 2;
@@ -559,6 +567,14 @@ public class SlideOutForms {
 
                 // Set MAC address
                 newNode.setMacAddress(node.mac);
+
+                // Set host node if virtual machine
+                if (deviceType == DeviceType.VIRTUAL_MACHINE) {
+                    String hostNodeValue = values.get(DeviceField.HOST_NODE.toString());
+                    if (hostNodeValue != null && !hostNodeValue.isEmpty()) {
+                        newNode.setHostNode(hostNodeValue);
+                    }
+                }
 
                 // Add the node to the network
                 NetworkMonitorApp.addNewNode(newNode);

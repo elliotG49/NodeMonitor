@@ -23,12 +23,15 @@ import javafx.util.Duration;
  * Displays as a square icon with a glow and label below.
  */
 public class NetworkNode extends StackPane {
+    private static long nextId = 1; // Static counter for generating IDs
+    private final long nodeId;      // Unique ID for this node
+
     private String ipOrHostname;
     private String displayName;
     private DeviceType deviceType;
     private NetworkType networkType;
     private boolean mainNode = false;
-    private String routeSwitch = "";
+    private Long routeSwitchId; // Change from String to Long
     private ConnectionType connectionType = ConnectionType.ETHERNET;
     private String resolvedIp = null;
     private boolean connected = false;
@@ -44,8 +47,33 @@ public class NetworkNode extends StackPane {
     private double dragDeltaX;
     private double dragDeltaY;
 
+    private Long routeViaId; // Change from String to Long
+    private Long hostNodeId;    // Change from String to Long
+
+    // Update setters/getters to use IDs
+    public Long getRouteSwitchId() { return routeSwitchId; }
+    public void setRouteSwitchId(Long id) { this.routeSwitchId = id; }
+    
+    public Long getHostNodeId() { return hostNodeId; }
+    public void setHostNodeId(Long id) { this.hostNodeId = id; }
+
+    // Keep string versions for UI display only
+    private String routeSwitch = "";
+    private String hostNode = "";
+    
+    public String getRouteSwitch() {
+        return routeSwitch == null ? "" : routeSwitch;
+    }
+
+    
+    public String getHostNode() {
+        return hostNode == null ? "" : hostNode;
+    }
+
+
     public NetworkNode(String ipOrHostname, String displayName,
                        DeviceType deviceType, NetworkType networkType) {
+        this.nodeId = nextId++;
         this.ipOrHostname = ipOrHostname;
         this.displayName  = displayName;
         this.deviceType   = deviceType;
@@ -75,7 +103,7 @@ public class NetworkNode extends StackPane {
 
         // Create label
         nameLabel = new Label(displayName);
-        nameLabel.setFont(Font.font(16));
+        nameLabel.setFont(Font.font(12));
         nameLabel.setTextFill(Color.WHITE);
         nameLabel.setStyle("-fx-font-weight: 700; -fx-background-color: rgba(104, 104, 104, 0.4); -fx-padding: 2 6; -fx-background-radius: 10;");
         nameLabel.setViewOrder(-1); // Ensures label stays on top of other elements
@@ -213,9 +241,6 @@ public class NetworkNode extends StackPane {
     public boolean isMainNode()                 { return mainNode; }
     public void setMainNode(boolean m)          { this.mainNode = m; }
 
-    public String getRouteSwitch()              { return routeSwitch; }
-    public void setRouteSwitch(String rs)       { this.routeSwitch = rs; }
-
     public ConnectionType getConnectionType()   { return connectionType; }
     public void setConnectionType(ConnectionType ct) { this.connectionType = ct; }
 
@@ -236,6 +261,14 @@ public class NetworkNode extends StackPane {
         return macAddress;
     }
 
+    public void setRouteVia(NetworkNode node) {
+        this.routeViaId = node != null ? node.getNodeId() : null;
+    }
+
+    public Long getRouteViaId() {
+        return routeViaId;
+    }
+
     /** Update all properties from another node */
     public void updateFrom(NetworkNode updated) {
         setIpOrHostname(updated.getIpOrHostname());
@@ -249,4 +282,78 @@ public class NetworkNode extends StackPane {
     /** No-op: fixed size square
      *  but retained for interface consistency */
     public void updateLayoutForSavedSize() {}
+
+    // Add getter (no setter - ID should be immutable)
+    public long getNodeId() {
+        return nodeId;
+    }
+
+    public double getRelativeX() {
+        return getLayoutX() / getScene().getWidth();
+    }
+
+    public double getRelativeY() {
+        return getLayoutY() / getScene().getHeight();
+    }
+
+    public void setRelativeX(double x) {
+        setLayoutX(x * getScene().getWidth());
+    }
+
+    public void setRelativeY(double y) {
+        setLayoutY(y * getScene().getHeight());
+    }
+
+    public void setRouteSwitch(String routeSwitch) {
+        this.routeSwitch = routeSwitch;
+        
+        // Always look up the node by display name and update the ID
+        // This ensures the ID is always in sync with the name
+        if (routeSwitch != null && !routeSwitch.isEmpty()) {
+            NetworkNode routeNode = NetworkMonitorApp.getInstance().getNodeByDisplayName(routeSwitch);
+            if (routeNode != null) {
+                this.routeSwitchId = routeNode.getNodeId();
+            }
+        } else {
+            this.routeSwitchId = null;
+        }
+    }
+
+    public void setHostNode(String hostNode) {
+        this.hostNode = hostNode;
+        // When setting the host node name, also set the ID
+        if (hostNode != null && !hostNode.isEmpty()) {
+            NetworkNode hostNodeObj = NetworkMonitorApp.getInstance().getNodeByDisplayName(hostNode);
+            if (hostNodeObj != null) {
+                this.hostNodeId = hostNodeObj.getNodeId();
+            }
+        } else {
+            this.hostNodeId = null;
+        }
+    }
+
+    // Add this method to set the ID directly (used during loading)
+    public void setNodeIdDirectly(Long id) {
+        // Access the normally-private static counter
+        NetworkNode.nextId = Math.max(NetworkNode.nextId, id + 1);
+        // Use reflection to modify the final field for this instance
+        try {
+            java.lang.reflect.Field field = NetworkNode.class.getDeclaredField("nodeId");
+            field.setAccessible(true);
+            field.set(this, id);
+        } catch (Exception e) {
+            System.err.println("Failed to set node ID directly: " + e.getMessage());
+        }
+    }
+
+    // Methods to set names without changing IDs
+    public void setRouteSwitchWithoutIdUpdate(String name) {
+        this.routeSwitch = name;
+        // Don't update routeSwitchId
+    }
+
+    public void setHostNodeWithoutIdUpdate(String name) {
+        this.hostNode = name;
+        // Don't update hostNodeId
+    }
 }

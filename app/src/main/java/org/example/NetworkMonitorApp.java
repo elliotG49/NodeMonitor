@@ -240,42 +240,16 @@ public class NetworkMonitorApp extends Application {
         instance.spiderMapPane.getChildren().add(node);
 
         if (!node.isMainNode()) {
-            // Check if a host node is selected
-            String hostNodeName = node.getRouteSwitch(); // Assuming HOST_NODE is stored in routeSwitch
-            NetworkNode hostNode = null;
-            if (hostNodeName != null && !hostNodeName.isEmpty()) {
-                for (NetworkNode n : persistentNodesStatic) {
-                    if (n.getDisplayName().equalsIgnoreCase(hostNodeName)) {
-                        hostNode = n;
-                        break;
-                    }
-                }
-            }
-
-            // Create connection line
-            ConnectionLine connection;
-            if (hostNode != null) {
-                connection = new ConnectionLine(hostNode, node);
-                // Ensure the line is not grey for virtual machines
-                if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
-                    connection.setLineColor(Color.web("#0cad03")); // Set to green or another color
-                }
-            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
-                NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
-                connection = new ConnectionLine(gw, node);
-            } else {
-                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
-                connection = new ConnectionLine(internet, node);
-            }
-            connection.setViewOrder(1); // Ensures connection lines stay below nodes
-            instance.spiderMapPane.getChildren().add(0, connection);
+            // Use updateConnectionLineForNode instead of addDefaultConnectionLine
+            // This will properly handle all connection types, including route switches
+            updateConnectionLineForNode(node);
         }
     }
 
     public static NetworkNode getUpstreamNode(NetworkNode node) {
-        if (node.getNetworkType() == NetworkType.INTERNAL)
-            return instance.getMainNodeByDisplayName("Gateway");
-        return instance.getMainNodeByDisplayName("Google DNS");
+        if (node.getConnectionType() == ConnectionType.VIRTUAL)
+            return instance.getMainNodeByDisplayName("Host");
+        return instance.getMainNodeByDisplayName("Gateway");
     }
 
     private void loadWindowSize() {
@@ -339,19 +313,9 @@ public class NetworkMonitorApp extends Application {
         persistentNodesStatic.add(gatewayNode);
         spiderMapPane.getChildren().add(gatewayNode);
 
-        NetworkNode internetNode = new NetworkNode("8.8.8.8", "Google DNS", DeviceType.ROUTER, NetworkType.EXTERNAL);
-        internetNode.setLayoutX(centerX - internetNode.getPrefWidth() / 2);
-        internetNode.setLayoutY(centerY + spacing - internetNode.getPrefHeight() / 2);
-        internetNode.setMainNode(true);
-        addDetailPanelHandler(internetNode);
-        persistentNodes.add(internetNode);
-        persistentNodesStatic.add(internetNode);
-        spiderMapPane.getChildren().add(internetNode);
-
+        // Create single connection between host and gateway
         ConnectionLine line1 = new ConnectionLine(hostNode, gatewayNode);
-        ConnectionLine line2 = new ConnectionLine(gatewayNode, internetNode);
         spiderMapPane.getChildren().add(0, line1);
-        spiderMapPane.getChildren().add(0, line2);
     }
 
     private Button createModeRow(String iconPath, String text) {
@@ -389,19 +353,36 @@ public class NetworkMonitorApp extends Application {
 
                 // First, create nodes without any connections
                 for (NodeConfig config : configs) {
-                    double absoluteX = config.getRelativeX() * paneWidth;
-                    double absoluteY = config.getRelativeY() * paneHeight;
                     NetworkNode node = new NetworkNode(
                         config.getIpOrHostname(), config.getDisplayName(),
                         config.getDeviceType(), config.getNetworkType());
                     node.setPrefSize(config.getWidth(), config.getHeight());
                     node.updateLayoutForSavedSize();
-                    node.setLayoutX(absoluteX);
-                    node.setLayoutY(absoluteY);
+                    node.setLayoutX(config.getRelativeX() * paneWidth);
+                    node.setLayoutY(config.getRelativeY() * paneHeight);
                     node.setMainNode(config.isMainNode());
                     if (config.getConnectionType() != null)
                         node.setConnectionType(config.getConnectionType());
-                    node.setRouteSwitch(config.getRouteSwitch());
+                        
+                    // Explicitly set node ID first if available (modify NetworkNode to support this)
+                    if (config.getNodeId() != null) {
+                        // Assume you add a way to set this directly
+                        node.setNodeIdDirectly(config.getNodeId());
+                    }
+                    
+                    // Set IDs directly instead of via names to prevent lookup issues
+                    node.setRouteSwitchId(config.getRouteSwitchId());
+                    node.setHostNodeId(config.getHostNodeId());
+                    
+                    // Set names for UI display only
+                    // Don't let these calls overwrite the IDs we just set
+                    if (config.getRouteSwitch() != null) {
+                        node.setRouteSwitchWithoutIdUpdate(config.getRouteSwitch());
+                    }
+                    if (config.getHostNode() != null) {
+                        node.setHostNodeWithoutIdUpdate(config.getHostNode());
+                    }
+                    
                     addDetailPanelHandler(node);
                     persistentNodes.add(node);
                     persistentNodesStatic.add(node);
@@ -462,18 +443,45 @@ public class NetworkMonitorApp extends Application {
     }
 
     private void addDefaultConnectionLine(NetworkNode node) {
+        // Check for specific routing first - switch routing
+        if (node.getRouteSwitchId() != null) {  // Using ID instead of name
+            NetworkNode routeNode = getNodeById(node.getRouteSwitchId());
+            if (routeNode != null) {
+                ConnectionLine connection = new ConnectionLine(routeNode, node);
+                if (routeNode.getDeviceType() == DeviceType.UNMANAGED_SWITCH) {
+                    connection.setLineColor(Color.GREY);
+                }
+                connection.setViewOrder(1);
+                spiderMapPane.getChildren().add(0, connection);
+                return;
+            }
+        }
+        
+        // Check for VM host node routing
+        if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE && node.getHostNodeId() != null) {  // Changed from getHostNode()
+            NetworkNode hostNode = getNodeById(node.getHostNodeId());  // Use ID lookup
+            if (hostNode != null) {
+                ConnectionLine connection = new ConnectionLine(hostNode, node);
+                connection.setLineColor(Color.web("#0cad03"));
+                connection.setViewOrder(1);
+                spiderMapPane.getChildren().add(0, connection);
+                return;
+            }
+        }
+
+        // Only reach here if no specific routing is set
         ConnectionLine connection;
         if (node.getConnectionType() == ConnectionType.VIRTUAL) {
             NetworkNode host = instance.getMainNodeByDisplayName("Host");
             connection = new ConnectionLine(host, node);
-        } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+            if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
+                connection.setLineColor(Color.web("#0cad03"));
+            }
+        } else {
             NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
             connection = new ConnectionLine(gw, node);
-        } else {
-            NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
-            connection = new ConnectionLine(internet, node);
         }
-        connection.setViewOrder(1); // Ensures connection lines stay below nodes
+        connection.setViewOrder(1);
         spiderMapPane.getChildren().add(0, connection);
     }
 
@@ -569,48 +577,54 @@ public class NetworkMonitorApp extends Application {
     }
 
     public static void updateConnectionLineForNode(NetworkNode node) {
+        // First remove any existing connection lines for this node
         instance.spiderMapPane.getChildren().removeIf(child ->
             child instanceof ConnectionLine
             && (((ConnectionLine) child).getFrom() == node
             || ((ConnectionLine) child).getTo() == node)
         );
 
-        if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
-            NetworkNode routeNode = null;
-            for (NetworkNode n : persistentNodesStatic) {
-                if (n.getDisplayName().equalsIgnoreCase(node.getRouteSwitch())) {
-                    routeNode = n;
-                    break;
-                }
-            }
+        // First check for specific routing through switches - ONLY use ID-based lookup
+        if (node.getRouteSwitchId() != null) {
+            NetworkNode routeNode = instance.getNodeById(node.getRouteSwitchId());
             if (routeNode != null) {
-                ConnectionLine connection;
+                ConnectionLine connection = new ConnectionLine(routeNode, node);
                 if (routeNode.getDeviceType() == DeviceType.UNMANAGED_SWITCH) {
-                    connection = new ConnectionLine(routeNode, node);
                     connection.setLineColor(Color.GREY);
-                } else {
-                    connection = new ConnectionLine(routeNode, node);
                 }
                 connection.setViewOrder(1);
-                connection.setVisible(true); // Explicitly set visibility
                 instance.spiderMapPane.getChildren().add(0, connection);
                 return;
             }
         }
 
+        // Check for VM host node routing - also ID-based
+        if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE && node.getHostNodeId() != null) {
+            NetworkNode hostNode = instance.getNodeById(node.getHostNodeId());
+            if (hostNode != null) {
+                ConnectionLine connection = new ConnectionLine(hostNode, node);
+                connection.setLineColor(Color.web("#0cad03"));
+                connection.setViewOrder(1);
+                instance.spiderMapPane.getChildren().add(0, connection);
+                return;
+            }
+        }
+
+        // If no specific routing, use default routing
         if (!node.isMainNode()) {
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
                 connection = new ConnectionLine(host, node);
-            } else if (node.getNetworkType() == NetworkType.INTERNAL) {
+                if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
+                    connection.setLineColor(Color.web("#0cad03"));
+                }
+            } else {
+                // All non-virtual nodes route through gateway
                 NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
                 connection = new ConnectionLine(gw, node);
-            } else {
-                NetworkNode internet = instance.getMainNodeByDisplayName("Google DNS");
-                connection = new ConnectionLine(internet, node);
             }
-            connection.setViewOrder(1); // Ensures connection lines stay below nodes
+            connection.setViewOrder(1);
             instance.spiderMapPane.getChildren().add(0, connection);
         }
     }
@@ -625,39 +639,39 @@ public class NetworkMonitorApp extends Application {
         }
     }
 
-    private void saveNodesToFile() {
+    public void saveNodesToFile() {
         try {
-            System.out.println("\n=== SAVING NODES TO FILE ===");
-            System.out.println("Current Node Configuration:");
-            for (NetworkNode node : persistentNodes) {
-                System.out.printf("Node: %-20s | Type: %-15s | Routed via: %s%n",
-                    node.getDisplayName(),
-                    node.getDeviceType(),
-                    (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) 
-                        ? node.getRouteSwitch() 
-                        : "none"
-                );
-            }
             List<NodeConfig> configs = new ArrayList<>();
-            double paneWidth = spiderMapPane.getWidth();
-            double paneHeight = spiderMapPane.getHeight();
-            if (paneWidth < 100) paneWidth = primaryStage.getScene().getWidth();
-            if (paneHeight < 100) paneHeight = primaryStage.getScene().getHeight();
             for (NetworkNode node : persistentNodes) {
-                double relativeX = node.getLayoutX() / paneWidth;
-                double relativeY = node.getLayoutY() / paneHeight;
                 NodeConfig config = new NodeConfig(
-                    node.getIpOrHostname(), node.getDisplayName(), node.getDeviceType(),
-                    node.getNetworkType(), node.getLayoutX(), node.getLayoutY(),
-                    relativeX, relativeY, node.isMainNode(), node.getConnectionType(),
-                    node.getPrefWidth(), node.getPrefHeight(), node.getRouteSwitch()
+                    node.getIpOrHostname(), 
+                    node.getDisplayName(), 
+                    node.getDeviceType(),
+                    node.getNetworkType(), 
+                    node.getLayoutX(), 
+                    node.getLayoutY(),
+                    node.getRelativeX(), 
+                    node.getRelativeY(), 
+                    node.isMainNode(), 
+                    node.getConnectionType(),
+                    node.getPrefWidth(), 
+                    node.getPrefHeight()
                 );
+                
+                // Save both IDs and display names after construction
+                config.setNodeId(node.getNodeId());
+                config.setRouteSwitchId(node.getRouteSwitchId());
+                config.setHostNodeId(node.getHostNodeId());
+                config.setRouteSwitch(node.getRouteSwitch());
+                config.setHostNode(node.getHostNode());
+                
                 configs.add(config);
             }
+            
             Gson gson = new Gson();
             String json = gson.toJson(configs);
             Files.write(Paths.get(CONFIG_FILE), json.getBytes());
-            System.out.println("============================\n");
+            System.out.println("Network configuration saved.");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -827,16 +841,16 @@ public class NetworkMonitorApp extends Application {
         List<NetworkNode> route = new ArrayList<>();
         NetworkNode currentNode = targetNode;
         
-        // Prevent infinite loops
-        Set<String> visitedNodes = new HashSet<>();
+        // Prevent infinite loops - track by ID instead of display name
+        Set<Long> visitedNodeIds = new HashSet<>();
         
-        while (currentNode != null && !visitedNodes.contains(currentNode.getDisplayName())) {
+        while (currentNode != null && !visitedNodeIds.contains(currentNode.getNodeId())) {
             route.add(currentNode);
-            visitedNodes.add(currentNode.getDisplayName());
+            visitedNodeIds.add(currentNode.getNodeId());
             
-            // Check if node is routed through a switch
-            if (currentNode.getRouteSwitch() != null && !currentNode.getRouteSwitch().isEmpty()) {
-                currentNode = getNodeByDisplayName(currentNode.getRouteSwitch());
+            // Check if node is routed through a switch - use ID lookup
+            if (currentNode.getRouteSwitchId() != null) {
+                currentNode = getNodeById(currentNode.getRouteSwitchId());
             }
             // If not routed through switch, check default routing
             else if (!currentNode.isMainNode()) {
@@ -857,10 +871,11 @@ public class NetworkMonitorApp extends Application {
     }
 
     // Add helper method to find any node by display name
-    private NetworkNode getNodeByDisplayName(String name) {
+    public NetworkNode getNodeByDisplayName(String name) {
         for (NetworkNode node : persistentNodes) {
-            if (node.getDisplayName().equalsIgnoreCase(name))
+            if (node.getDisplayName().equals(name)) {
                 return node;
+            }
         }
         return null;
     }
@@ -920,5 +935,14 @@ public class NetworkMonitorApp extends Application {
     // Add this getter method
     public VBox getModePanel() {
         return modePanel;
+    }
+
+    private NetworkNode getNodeById(Long id) {
+        for (NetworkNode node : persistentNodes) {
+            if (node.getNodeId() == id) {
+                return node;
+            }
+        }
+        return null;
     }
 }

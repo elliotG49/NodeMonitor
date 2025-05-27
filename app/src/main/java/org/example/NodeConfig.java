@@ -14,13 +14,17 @@ public class NodeConfig {
     private ConnectionType connectionType;
     private double width;
     private double height;
-    private String routeSwitch;  // Remains
+    private Long routeSwitchId;  // Add these fields
+    private Long hostNodeId;
+    private String routeSwitch;  // Keep these for display purposes
+    private String hostNode;  // Add this field
+    private Long nodeId;  // Add this field
 
     public NodeConfig() { }
 
     public NodeConfig(String ipOrHostname, String displayName, DeviceType deviceType, NetworkType networkType,
                     double layoutX, double layoutY, double relativeX, double relativeY, boolean mainNode,
-                    ConnectionType connectionType, double width, double height, String routeSwitch) {
+                    ConnectionType connectionType, double width, double height) {
         this.ipOrHostname = ipOrHostname;
         this.displayName = displayName;
         this.deviceType = deviceType;
@@ -33,7 +37,6 @@ public class NodeConfig {
         this.connectionType = connectionType;
         this.width = width;
         this.height = height;
-        this.routeSwitch = routeSwitch;
     }
 
     public String getRouteSwitch() {
@@ -138,5 +141,27 @@ public class NodeConfig {
 
     public void setHeight(double height) {
         this.height = height;
+    }
+
+    public Long getNodeId() {
+        return nodeId;
+    }
+
+    public void setNodeId(Long id) {
+        this.nodeId = id;
+    }
+
+    public Long getRouteSwitchId() { return routeSwitchId; }
+    public void setRouteSwitchId(Long id) { this.routeSwitchId = id; }
+    
+    public Long getHostNodeId() { return hostNodeId; }
+    public void setHostNodeId(Long id) { this.hostNodeId = id; }
+
+    public String getHostNode() {
+        return hostNode;
+    }
+
+    public void setHostNode(String hostNode) {
+        this.hostNode = hostNode;
     }
 }
