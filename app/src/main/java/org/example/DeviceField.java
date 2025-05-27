@@ -11,7 +11,7 @@ public enum DeviceField {
     // Common fields for all devices
     DISPLAY_NAME("Display Name"),
     IP_HOSTNAME("IP/Hostname"),
-    NETWORK_TYPE("Network Type"),
+    NETWORK_LOCATION("Network Location"),
     CONNECTION_TYPE("Connection Type"),
     NODE_ROUTING("Node Route"),
     MAC_ADDRESS("MAC Address"),

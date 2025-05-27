@@ -12,10 +12,10 @@ import java.util.Map;
  */
 public class DeviceFormConfig {
     
-    // Common fields that appear for all devices (modified to remove NODE_ROUTING)
+    // Common fields that appear for all devices (modified to remove NETWORK_TYPE)
     private static final List<DeviceField> COMMON_REQUIRED_FIELDS = Arrays.asList(
+        DeviceField.NETWORK_LOCATION,  // Keep this - already exists
         DeviceField.DISPLAY_NAME,
-        DeviceField.NETWORK_TYPE,
         DeviceField.CONNECTION_TYPE
     );
 

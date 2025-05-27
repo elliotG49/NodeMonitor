@@ -4,7 +4,6 @@ public class NodeConfig {
     private String ipOrHostname;
     private String displayName;
     private DeviceType deviceType;
-    private NetworkType networkType;
     private double layoutX;
     private double layoutY;
     private double relativeX;
@@ -19,16 +18,16 @@ public class NodeConfig {
     private String routeSwitch;  // Keep these for display purposes
     private String hostNode;  // Add this field
     private Long nodeId;  // Add this field
+    private NetworkLocation networkLocation; // Add new field
 
     public NodeConfig() { }
 
-    public NodeConfig(String ipOrHostname, String displayName, DeviceType deviceType, NetworkType networkType,
-                    double layoutX, double layoutY, double relativeX, double relativeY, boolean mainNode,
+    public NodeConfig(String ipOrHostname, String displayName, DeviceType deviceType,
+                    NetworkLocation networkLocation, double layoutX, double layoutY, double relativeX, double relativeY, boolean mainNode,
                     ConnectionType connectionType, double width, double height) {
         this.ipOrHostname = ipOrHostname;
         this.displayName = displayName;
         this.deviceType = deviceType;
-        this.networkType = networkType;
         this.layoutX = layoutX;
         this.layoutY = layoutY;
         this.relativeX = relativeX;
@@ -37,6 +36,7 @@ public class NodeConfig {
         this.connectionType = connectionType;
         this.width = width;
         this.height = height;
+        this.networkLocation = networkLocation;
     }
 
     public String getRouteSwitch() {
@@ -69,14 +69,6 @@ public class NodeConfig {
 
     public void setDeviceType(DeviceType deviceType) {
         this.deviceType = deviceType;
-    }
-
-    public NetworkType getNetworkType() {
-        return networkType;
-    }
-
-    public void setNetworkType(NetworkType networkType) {
-        this.networkType = networkType;
     }
 
     public double getLayoutX() {
@@ -163,5 +155,13 @@ public class NodeConfig {
 
     public void setHostNode(String hostNode) {
         this.hostNode = hostNode;
+    }
+
+    public NetworkLocation getNetworkLocation() {
+        return networkLocation;
+    }
+
+    public void setNetworkLocation(NetworkLocation networkLocation) {
+        this.networkLocation = networkLocation;
     }
 }

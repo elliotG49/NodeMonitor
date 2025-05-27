@@ -235,6 +235,15 @@ public class ConnectionLine extends Pane {
     }
 
     public void updateStatus() {
+        // Special styling for REMOTE_PRIVATE connections
+        if (to.getNetworkLocation() == NetworkLocation.REMOTE_PRIVATE) {
+            // Use a grey color for remote private connections
+            setLineColor(Color.DARKGRAY);
+            latencyLabel.setText("N/A");
+            latencyLabel.setVisible(true);
+            return; // Skip ping attempt for remote nodes
+        }
+
         // Only make the line grey if it's going TO an unmanaged switch FROM a main node
         if (to.getDeviceType() == DeviceType.UNMANAGED_SWITCH && from.isMainNode()) {
             setLineColor(Color.GRAY);
@@ -249,7 +258,7 @@ public class ConnectionLine extends Pane {
             return;
         }
 
-        // MODIFIED: Check if either node is a virtual machine, and skip the grey color override
+        // Check if either node is a virtual machine, and skip the grey color override
         if (to.getDeviceType() == DeviceType.VIRTUAL_MACHINE || from.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
             pingAndUpdateStatus(to.getIpOrHostname());
             return;

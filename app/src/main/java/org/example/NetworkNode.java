@@ -29,7 +29,7 @@ public class NetworkNode extends StackPane {
     private String ipOrHostname;
     private String displayName;
     private DeviceType deviceType;
-    private NetworkType networkType;
+    private NetworkLocation networkLocation;
     private boolean mainNode = false;
     private Long routeSwitchId; // Change from String to Long
     private ConnectionType connectionType = ConnectionType.ETHERNET;
@@ -72,12 +72,12 @@ public class NetworkNode extends StackPane {
 
 
     public NetworkNode(String ipOrHostname, String displayName,
-                       DeviceType deviceType, NetworkType networkType) {
+                       DeviceType deviceType, NetworkLocation networkLocation) {
         this.nodeId = nextId++;
         this.ipOrHostname = ipOrHostname;
         this.displayName  = displayName;
         this.deviceType   = deviceType;
-        this.networkType  = networkType;
+        this.networkLocation = networkLocation; // Use networkLocation directly
         this.startTime    = System.currentTimeMillis();
 
         // --- Square background ---
@@ -235,9 +235,6 @@ public class NetworkNode extends StackPane {
         ));
     }
 
-    public NetworkType getNetworkType()         { return networkType; }
-    public void setNetworkType(NetworkType nt)  { this.networkType = nt; }
-
     public boolean isMainNode()                 { return mainNode; }
     public void setMainNode(boolean m)          { this.mainNode = m; }
 
@@ -274,7 +271,6 @@ public class NetworkNode extends StackPane {
         setIpOrHostname(updated.getIpOrHostname());
         setDisplayName(updated.getDisplayName());
         setDeviceType(updated.getDeviceType());
-        setNetworkType(updated.getNetworkType());
         if (!isMainNode()) setConnectionType(updated.getConnectionType());
         setRouteSwitch(updated.getRouteSwitch());
     }
@@ -355,5 +351,14 @@ public class NetworkNode extends StackPane {
     public void setHostNodeWithoutIdUpdate(String name) {
         this.hostNode = name;
         // Don't update hostNodeId
+    }
+
+    // Add getter and setter
+    public NetworkLocation getNetworkLocation() {
+        return networkLocation;
+    }
+
+    public void setNetworkLocation(NetworkLocation networkLocation) {
+        this.networkLocation = networkLocation;
     }
 }

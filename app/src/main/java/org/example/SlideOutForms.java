@@ -9,6 +9,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;  // Add this import
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -83,7 +84,7 @@ public class SlideOutForms {
                 ipHostname,
                 displayName,
                 deviceType,
-                NetworkType.valueOf(fieldValues.get(DeviceField.NETWORK_TYPE))
+                NetworkLocation.valueOf(fieldValues.get(DeviceField.NETWORK_LOCATION))
             );
 
             // Set connection type if specified
@@ -554,7 +555,7 @@ public class SlideOutForms {
                     node.ip,
                     values.get(DeviceField.DISPLAY_NAME.toString()),
                     deviceType,
-                    NetworkType.valueOf(values.get(DeviceField.NETWORK_TYPE.toString()))
+                    NetworkLocation.valueOf(values.get(DeviceField.NETWORK_LOCATION.toString()))
                 );
 
                 // Set connection type and route if provided
@@ -619,11 +620,6 @@ public class SlideOutForms {
         ipField.setPromptText("IP/Hostname");
         fields.put(DeviceField.IP_HOSTNAME, ipField);
 
-        ComboBox<NetworkType> netBox = new ComboBox<>();
-        netBox.setPromptText("Network Type");
-        netBox.getItems().setAll(NetworkType.values());
-        fields.put(DeviceField.NETWORK_TYPE, netBox);
-
         ComboBox<ConnectionType> connBox = new ComboBox<>();
         connBox.setPromptText("Connection Type");
         connBox.getItems().setAll(ConnectionType.values());
@@ -671,11 +667,25 @@ public class SlideOutForms {
         }
         fields.put(DeviceField.HOST_NODE, hostNodeBox);
 
+        // Add Network Location dropdown
+        ComboBox<NetworkLocation> locationBox = new ComboBox<>();
+        locationBox.setPromptText("Network Location");
+        locationBox.getItems().setAll(NetworkLocation.values());
+        fields.put(DeviceField.NETWORK_LOCATION, locationBox);
+
         // Set consistent width for all controls
         fields.values().forEach(control -> {
             if (control instanceof javafx.scene.control.Control) {
                 ((javafx.scene.control.Control) control).setPrefWidth(220);
                 ((javafx.scene.control.Control) control).setMaxWidth(220);
+            }
+        });
+
+        // Add an event listener to update route options when network location changes
+        locationBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (fields.containsKey(DeviceField.NODE_ROUTING)) {
+                ComboBox<String> existingRouteBox = (ComboBox<String>)fields.get(DeviceField.NODE_ROUTING);
+                populateRouteBox(existingRouteBox);
             }
         });
 
@@ -787,17 +797,61 @@ public class SlideOutForms {
         routeBox.getItems().clear();
         routeBox.getItems().add("None");
         
+        // Get the selected network location (if applicable) - using final
+        final NetworkLocation selectedLocation;
+        
+        // Check if the routeBox has a parent before trying to find the network location field
+        if (routeBox.getParent() != null) {
+            Node locationControl = getFormFieldByType(routeBox.getParent(), ComboBox.class, "Network Location");
+            if (locationControl instanceof ComboBox<?>) {
+                ComboBox<?> locationBox = (ComboBox<?>) locationControl;
+                Object value = locationBox.getValue();
+                if (value instanceof NetworkLocation) {
+                    selectedLocation = (NetworkLocation) value;
+                } else {
+                    selectedLocation = null;
+                }
+            } else {
+                selectedLocation = null;
+            }
+        } else {
+            selectedLocation = null;
+        }
+        
+        // The lambda expression now uses the final selectedLocation
         NetworkMonitorApp.getPersistentNodesStatic().stream()
-            .filter(n -> (n.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
-                         n.getDeviceType() == DeviceType.MANAGED_SWITCH || 
-                         n.getDeviceType() == DeviceType.WIRELESS_ACCESS_POINT) 
-                    && !n.isMainNode())
+            .filter(n -> {
+                // For REMOTE_PRIVATE nodes, only PUBLIC devices can be routes
+                if (selectedLocation == NetworkLocation.REMOTE_PRIVATE) {
+                    return n.getNetworkLocation() == NetworkLocation.PUBLIC;
+                } 
+                // For other locations, any switch or AP can be a route
+                else {
+                    return (n.getDeviceType() == DeviceType.UNMANAGED_SWITCH || 
+                           n.getDeviceType() == DeviceType.MANAGED_SWITCH || 
+                           n.getDeviceType() == DeviceType.WIRELESS_ACCESS_POINT) 
+                          && !n.isMainNode();
+                }
+            })
             .map(NetworkNode::getDisplayName)
             .forEach(routeBox.getItems()::add);
     }
 
-    // Helper method to wrap numbers with styled span
-    private static String wrapWithStyle(String number) {
-        return String.format("<%s>%s</>", "span class='discovery-number'", number);
+    // Helper method to find form field by type and prompt
+    private static Node getFormFieldByType(Parent parent, Class<?> type, String promptText) {
+        for (Node node : parent.getChildrenUnmodifiable()) {
+            if (type.isInstance(node)) {
+                if (node instanceof ComboBox && ((ComboBox<?>)node).getPromptText().contains(promptText)) {
+                    return node;
+                } else if (node instanceof TextField && ((TextField)node).getPromptText().contains(promptText)) {
+                    return node;
+                }
+            }
+            if (node instanceof Parent) {
+                Node result = getFormFieldByType((Parent)node, type, promptText);
+                if (result != null) return result;
+            }
+        }
+        return null;
     }
 }

@@ -46,7 +46,6 @@ public class NodeDetailPanel extends BorderPane {
 
     private TextField ipField;
     private ComboBox<DeviceType> deviceTypeBox;
-    private ComboBox<NetworkType> networkTypeBox;
     private ComboBox<ConnectionType> connectionTypeBox;
     private ComboBox<String> routeSwitchBox;
     private Label macValueLabel;
@@ -88,7 +87,6 @@ public class NodeDetailPanel extends BorderPane {
         // Add listeners to enable the update button when fields change
         ipField.textProperty().addListener((o, oldV, newV) -> enableUpdate());
         deviceTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
-        networkTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
         connectionTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
         routeSwitchBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
         
@@ -114,7 +112,6 @@ public class NodeDetailPanel extends BorderPane {
             
             // 3) Update device properties
             node.setDeviceType(deviceTypeBox.getValue());
-            node.setNetworkType(networkTypeBox.getValue());
             node.setConnectionType(connectionTypeBox.getValue());
             
             // 4) Handle routing through switch
@@ -251,16 +248,7 @@ public class NodeDetailPanel extends BorderPane {
         deviceTypeBox.setPrefWidth(FIELD_WIDTH);
         deviceTypeBox.getItems().addAll(DeviceType.values());
         VBox deviceContainer = new VBox(5, deviceTypeLabel, deviceTypeBox);
-    
-        // Network Type
-        Label networkTypeLabel = new Label("Network Type:");
-        networkTypeLabel.getStyleClass().add("nodedetail-label");
-        networkTypeBox = new ComboBox<>();
-        applyHoverTransition(networkTypeBox);
-        networkTypeBox.getStyleClass().add("nodedetail-combobox");
-        networkTypeBox.setPrefWidth(FIELD_WIDTH);
-        networkTypeBox.getItems().addAll(NetworkType.values());
-        VBox networkContainer = new VBox(5, networkTypeLabel, networkTypeBox);
+
     
         // Connection Type
         Label connectionTypeLabel = new Label("Connection Type:");
@@ -310,7 +298,7 @@ public class NodeDetailPanel extends BorderPane {
         // … then add it into your fieldsBox right after uptimeContainer
     
         fieldsBox.getChildren().addAll(
-            ipContainer, deviceContainer, networkContainer,
+            ipContainer, deviceContainer,
             connectionContainer, routeContainer,
             hairline_editable, macContainer, uptimeContainer
         );
@@ -379,7 +367,6 @@ public class NodeDetailPanel extends BorderPane {
 
             // Other fields
             node.setDeviceType(deviceTypeBox.getValue());
-            node.setNetworkType(networkTypeBox.getValue());
             node.setConnectionType(connectionTypeBox.getValue());
 
             // Handle route switch
@@ -448,7 +435,6 @@ public class NodeDetailPanel extends BorderPane {
             ? node.getResolvedIp() + "/" + node.getIpOrHostname()
             : node.getIpOrHostname());
         deviceTypeBox.setValue(node.getDeviceType());
-        networkTypeBox.setValue(node.getNetworkType());
         connectionTypeBox.setValue(node.getConnectionType());
         
         // Fix the NullPointerException by checking for null
@@ -511,7 +497,7 @@ public class NodeDetailPanel extends BorderPane {
     private void updateMacAddress() {
         new Thread(() -> {
             String mac = "N/A";
-            if (node.getNetworkType() == NetworkType.INTERNAL) {
+            if (node.getNetworkLocation() == NetworkLocation.LOCAL) {
                 String ip = node.getResolvedIp() != null ? node.getResolvedIp() : node.getIpOrHostname();
                 mac = getMacAddressForIP(ip);
             }

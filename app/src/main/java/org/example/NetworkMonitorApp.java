@@ -294,7 +294,8 @@ public class NetworkMonitorApp extends Application {
         double centerY = primaryStage.getHeight() / 2;
         double spacing = 300;
 
-        NetworkNode hostNode = new NetworkNode("127.0.0.1", "Host", DeviceType.COMPUTER, NetworkType.INTERNAL);
+        // Update the Host node to use LOCAL network location
+        NetworkNode hostNode = new NetworkNode("127.0.0.1", "Host", DeviceType.COMPUTER, NetworkLocation.LOCAL);
         hostNode.setLayoutX(centerX - hostNode.getPrefWidth() / 2);
         hostNode.setLayoutY(centerY - spacing - hostNode.getPrefHeight() / 2);
         hostNode.setMainNode(true);
@@ -305,7 +306,8 @@ public class NetworkMonitorApp extends Application {
 
         String gw = NetworkUtils.getDefaultGateway();
         if (gw == null) gw = "192.168.0.1";
-        NetworkNode gatewayNode = new NetworkNode(gw, "Gateway", DeviceType.GATEWAY, NetworkType.INTERNAL);
+        // Update the Gateway node to use PUBLIC network location
+        NetworkNode gatewayNode = new NetworkNode(gw, "Gateway", DeviceType.GATEWAY, NetworkLocation.PUBLIC);
         gatewayNode.setLayoutX(centerX - gatewayNode.getPrefWidth() / 2);
         gatewayNode.setLayoutY(centerY - gatewayNode.getPrefHeight() / 2);
         gatewayNode.setMainNode(true);
@@ -355,8 +357,11 @@ public class NetworkMonitorApp extends Application {
                 // First, create nodes without any connections
                 for (NodeConfig config : configs) {
                     NetworkNode node = new NetworkNode(
-                        config.getIpOrHostname(), config.getDisplayName(),
-                        config.getDeviceType(), config.getNetworkType());
+                        config.getIpOrHostname(), 
+                        config.getDisplayName(),
+                        config.getDeviceType(), 
+                        config.getNetworkLocation()  // Use NetworkLocation directly
+                    );
                     node.setPrefSize(config.getWidth(), config.getHeight());
                     node.updateLayoutForSavedSize();
                     node.setLayoutX(config.getRelativeX() * paneWidth);
@@ -666,7 +671,7 @@ public class NetworkMonitorApp extends Application {
                     node.getIpOrHostname(), 
                     node.getDisplayName(), 
                     node.getDeviceType(),
-                    node.getNetworkType(), 
+                    node.getNetworkLocation(), // Use NetworkLocation 
                     node.getLayoutX(), 
                     node.getLayoutY(),
                     node.getRelativeX(), 
@@ -876,18 +881,21 @@ public class NetworkMonitorApp extends Application {
                 // For VMs, route through their host
                 currentNode = getNodeById(currentNode.getHostNodeId());
             }
-            // CASE 3: If no explicit routing is set, use default routing
+            // CASE 3: If node is REMOTE_PRIVATE, it must connect through a PUBLIC node
+            else if (currentNode.getNetworkLocation() == NetworkLocation.REMOTE_PRIVATE && !currentNode.isMainNode()) {
+                // Find the first PUBLIC node (typically a router/gateway)
+                NetworkNode publicNode = findNodeByNetworkLocation(NetworkLocation.PUBLIC);
+                if (publicNode != null) {
+                    currentNode = publicNode;
+                } else {
+                    // Fallback to any main node if no public node found
+                    currentNode = findAnyMainNode();
+                }
+            }
+            // CASE 4: Other standard routing
             else if (!currentNode.isMainNode()) {
-                if (currentNode.getConnectionType() == ConnectionType.VIRTUAL) {
-                    // Find any Host main node
-                    NetworkNode hostNode = findMainNodeByDeviceType(DeviceType.COMPUTER);
-                    if (hostNode != null) {
-                        currentNode = hostNode;
-                    } else {
-                        // Fallback to any main node if no host found
-                        currentNode = findAnyMainNode();
-                    }
-                } else if (currentNode.getNetworkType() == NetworkType.INTERNAL) {
+                // Use default routing based on network location
+                if (currentNode.getNetworkLocation() == NetworkLocation.LOCAL) {
                     // Find any Gateway main node
                     NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
                     if (gatewayNode != null) {
@@ -897,7 +905,7 @@ public class NetworkMonitorApp extends Application {
                         currentNode = findAnyMainNode();
                     }
                 } else {
-                    // External nodes - find any main node instead of specifically Google DNS
+                    // PUBLIC nodes route to the main node
                     currentNode = findAnyMainNode();
                 }
                 
@@ -912,20 +920,10 @@ public class NetworkMonitorApp extends Application {
         return route;
     }
 
-    // Helper method to find a main node of a specific device type
-    private NetworkNode findMainNodeByDeviceType(DeviceType deviceType) {
+    // Helper method to find a node by network location
+    private NetworkNode findNodeByNetworkLocation(NetworkLocation location) {
         for (NetworkNode node : persistentNodes) {
-            if (node.isMainNode() && node.getDeviceType() == deviceType) {
-                return node;
-            }
-        }
-        return null;
-    }
-
-    // Helper method to find any main node as a fallback
-    private NetworkNode findAnyMainNode() {
-        for (NetworkNode node : persistentNodes) {
-            if (node.isMainNode()) {
+            if (node.getNetworkLocation() == location) {
                 return node;
             }
         }
@@ -1024,5 +1022,25 @@ public class NetworkMonitorApp extends Application {
                 updateConnectionLinesRecursively(child);
             }
         }
+    }
+
+    // Helper method to find any main node
+    private NetworkNode findAnyMainNode() {
+        for (NetworkNode node : persistentNodes) {
+            if (node.isMainNode()) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    // Helper method to find a main node of a specific device type
+    private NetworkNode findMainNodeByDeviceType(DeviceType deviceType) {
+        for (NetworkNode node : persistentNodes) {
+            if (node.isMainNode() && node.getDeviceType() == deviceType) {
+                return node;
+            }
+        }
+        return null;
     }
 }
