@@ -68,7 +68,7 @@ public class NodeDetailPanel extends BorderPane {
         this.node = node;
         createUI();
         populateFields();
-        setupListeners();
+        setupUpdateButtonHandler(); // Call the new method instead of setupListeners()
 
         setPrefWidth(PANEL_WIDTH);
         setMaxWidth(PANEL_WIDTH);
@@ -80,6 +80,71 @@ public class NodeDetailPanel extends BorderPane {
             if (e.getCode() == KeyCode.ESCAPE) {
                 NetworkMonitorApp.getInstance().hideDetailPanel();
             }
+        });
+    }
+
+    // Add this new method with a single, clean implementation
+    private void setupUpdateButtonHandler() {
+        // Add listeners to enable the update button when fields change
+        ipField.textProperty().addListener((o, oldV, newV) -> enableUpdate());
+        deviceTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
+        networkTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
+        connectionTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
+        routeSwitchBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
+        
+        // Single update button action handler
+        updateButton.setOnAction(e -> {
+            // 1) Read and process the IP field
+            String ipInput = ipField.getText().trim();
+            String ipPart;
+            if (ipInput.contains("/")) {
+                String[] parts = ipInput.split("/", 2);
+                ipPart = parts[0].trim();
+            } else {
+                ipPart = ipInput;
+            }
+            node.setIpOrHostname(ipPart);
+            
+            // 2) Handle display name
+            String newDisplayName = nameEditField.isVisible() 
+                ? nameEditField.getText().trim()
+                : nameLabel.getText().trim();
+            
+            node.setDisplayName(newDisplayName);
+            
+            // 3) Update device properties
+            node.setDeviceType(deviceTypeBox.getValue());
+            node.setNetworkType(networkTypeBox.getValue());
+            node.setConnectionType(connectionTypeBox.getValue());
+            
+            // 4) Handle routing through switch
+            String routeSwitchName = routeSwitchBox.getValue();
+            if (routeSwitchName != null && !routeSwitchName.equals("None")) {
+                NetworkNode routeNode = NetworkMonitorApp.getInstance().getNodeByDisplayName(routeSwitchName);
+                if (routeNode != null) {
+                    node.setRouteSwitch(routeSwitchName);
+                    node.setRouteSwitchId(routeNode.getNodeId());
+                }
+            } else {
+                node.setRouteSwitch("");
+                node.setRouteSwitchId(null);
+            }
+            
+            // 5) Update UI state
+            updateButton.setDisable(true);
+            
+            // 6) Update this node and its descendants' connection lines
+            long thisId = node.getNodeId();
+            System.out.println("\n==== Updating node " + node.getDisplayName() + " (ID: " + thisId + ") ====");
+            
+            // Use recursively to update this node and all its descendants
+            NetworkMonitorApp.updateConnectionLinesRecursively(node);
+            
+            // 7) Store changes to disk
+            NetworkMonitorApp.getInstance().saveNodesToFile();
+            
+            System.out.println("Update complete for " + node.getDisplayName());
+            System.out.println("=============================================\n");
         });
     }
 
@@ -334,7 +399,7 @@ public class NodeDetailPanel extends BorderPane {
             updateButton.setDisable(true);
 
             // Update this node’s own connection line
-            NetworkMonitorApp.updateConnectionLineForNode(node);
+            NetworkMonitorApp.updateConnectionLinesRecursively(node);
 
             // If it's a switch/host, also refresh anyone who routes through it
             boolean isRouteProvider =
@@ -352,14 +417,14 @@ public class NodeDetailPanel extends BorderPane {
                     || Objects.equals(otherNode.getHostNodeId(), thisId)) {
                         childCount++;
                         System.out.println("Child #" + childCount + ": " + otherNode.getDisplayName() + 
-                                          " (ID: " + otherNode.getNodeId() + ")");
+                                        " (ID: " + otherNode.getNodeId() + ")");
                         System.out.println("  - routeSwitchId: " + otherNode.getRouteSwitchId() + 
-                                          ", routeSwitch name: " + otherNode.getRouteSwitch());
+                                        ", routeSwitch name: " + otherNode.getRouteSwitch());
                         System.out.println("  - hostNodeId: " + otherNode.getHostNodeId() + 
-                                          ", hostNode name: " + otherNode.getHostNode());
+                                        ", hostNode name: " + otherNode.getHostNode());
                         
                         // Update connection line for this child
-                        System.out.println("  - Updating connection line...");
+                        System.out.println("  - Updating connection line for child...");
                         NetworkMonitorApp.updateConnectionLineForNode(otherNode);
                     }
                 }
@@ -395,138 +460,6 @@ public class NodeDetailPanel extends BorderPane {
         updateMacAddress();
         long uptimeSeconds = (System.currentTimeMillis() - node.getStartTime()) / 1000;
         uptimeLabel.setText(uptimeSeconds + " s");
-    }
-
-    private void setupListeners() {
-        ipField.textProperty().addListener((o, oldV, newV) -> enableUpdate());
-        deviceTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
-        networkTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
-        connectionTypeBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
-        routeSwitchBox.valueProperty().addListener((o, oldV, newV) -> enableUpdate());
-
-        updateButton.setOnAction(e -> {
-            // 1) Read the raw text out of your IP field
-            String ipInput = ipField.getText().trim();
-    
-            // 2) Split into "address" and "prefix"
-            String ipPart;
-            int prefix = 32;                     // default if none supplied
-            if (ipInput.contains("/")) {
-                String[] parts = ipInput.split("/", 2);
-                ipPart = parts[0].trim();
-                try {
-                    prefix = Integer.parseInt(parts[1].trim());
-                } catch (NumberFormatException ex) {
-                    prefix = 32;                // fallback
-                }
-            } else {
-                ipPart = ipInput;
-            }
-    
-            // 3) Store both on your model
-            node.setIpOrHostname(ipPart);
-    
-            // … the rest of your existing updates …
-            String displayName = nameEditField.isVisible()
-                ? nameEditField.getText().trim()
-                : nameLabel.getText().trim();
-            
-            // **Update the node's own display name**
-            node.setDisplayName(displayName);
-            
-            // ——— ID-based propagation to all children ———
-            long thisId = node.getNodeId();
-            List<NetworkNode> children = NetworkMonitorApp.getPersistentNodesStatic().stream()
-                .filter(n -> Objects.equals(n.getRouteSwitchId(), thisId)
-                        || Objects.equals(n.getHostNodeId(),    thisId))
-                .collect(Collectors.toList());
-
-            System.out.println("\n==== DEBUG: Name Changed to " + displayName + " (ID: " + thisId + ") ====");
-            System.out.println("Found " + children.size() + " children nodes that reference this node");
-
-            for (NetworkNode child : children) {
-                if (Objects.equals(child.getRouteSwitchId(), thisId)) {
-                    System.out.println("Updating child " + child.getDisplayName() + 
-                                      " routeSwitch name from '" + child.getRouteSwitch() + 
-                                      "' to '" + displayName + "'");
-                    child.setRouteSwitch(displayName);
-                }
-                if (Objects.equals(child.getHostNodeId(), thisId)) {
-                    System.out.println("Updating child " + child.getDisplayName() + 
-                                      " hostNode name from '" + child.getHostNode() + 
-                                      "' to '" + displayName + "'");
-                    child.setHostNode(displayName);
-                }
-                // Redraw their connection line
-                System.out.println("Redrawing connection line for " + child.getDisplayName());
-                NetworkMonitorApp.updateConnectionLineForNode(child);
-            }
-    
-            node.setDeviceType(deviceTypeBox.getValue());
-            node.setNetworkType(networkTypeBox.getValue());
-            node.setConnectionType(connectionTypeBox.getValue());
-            
-            // Use ID-based routing instead of name-based
-            String routeSwitchName = routeSwitchBox.getValue();
-            if (routeSwitchName != null && !routeSwitchName.equals("None")) {
-                // Look up the node by name to get its ID
-                NetworkNode routeNode = NetworkMonitorApp.getInstance().getNodeByDisplayName(routeSwitchName);
-                if (routeNode != null) {
-                    // Set both the name (for UI) and ID (for routing)
-                    node.setRouteSwitch(routeSwitchName);
-                    node.setRouteSwitchId(routeNode.getNodeId());
-                }
-            } else {
-                // Clear both name and ID
-                node.setRouteSwitch("");
-                node.setRouteSwitchId(null);
-            }
-    
-            updateButton.setDisable(true);
-            
-            // Update this node's own connection line
-            System.out.println("Updating own connection line for " + node.getDisplayName());
-            NetworkMonitorApp.updateConnectionLineForNode(node);
-            
-            // If it's a switch/host, also refresh anyone who routes through it
-            boolean isRouteProvider =
-                node.getDeviceType() == DeviceType.UNMANAGED_SWITCH ||
-                node.getDeviceType() == DeviceType.MANAGED_SWITCH   ||
-                node.getDeviceType() == DeviceType.WIRELESS_ACCESS_POINT ||
-                node.getDeviceType() == DeviceType.COMPUTER; // host
-
-            if (isRouteProvider) {
-                System.out.println("\n==== DEBUG: Updating children of " + node.getDisplayName() + " (ID: " + thisId + ") ====");
-                int childCount = 0;
-                
-                for (NetworkNode otherNode : NetworkMonitorApp.getPersistentNodesStatic()) {
-                    if (Objects.equals(otherNode.getRouteSwitchId(), thisId)
-                    || Objects.equals(otherNode.getHostNodeId(), thisId)) {
-                        childCount++;
-                        System.out.println("Child #" + childCount + ": " + otherNode.getDisplayName() + 
-                                          " (ID: " + otherNode.getNodeId() + ")");
-                        System.out.println("  - routeSwitchId: " + otherNode.getRouteSwitchId() + 
-                                          ", routeSwitch name: " + otherNode.getRouteSwitch());
-                        System.out.println("  - hostNodeId: " + otherNode.getHostNodeId() + 
-                                          ", hostNode name: " + otherNode.getHostNode());
-                        
-                        // Update connection line for this child
-                        System.out.println("  - Updating connection line for child...");
-                        NetworkMonitorApp.updateConnectionLineForNode(otherNode);
-                    }
-                }
-                
-                if (childCount == 0) {
-                    System.out.println("No children found that route through this node.");
-                } else {
-                    System.out.println("Updated " + childCount + " children nodes.");
-                }
-                System.out.println("=============================================\n");
-            }
-            
-            // Persist immediately
-            NetworkMonitorApp.getInstance().saveNodesToFile();
-        });
     }
 
     // helper to animate bg‐color on hover

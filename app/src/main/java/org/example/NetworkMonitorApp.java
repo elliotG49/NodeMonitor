@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -597,9 +598,8 @@ public class NetworkMonitorApp extends Application {
                 return;
             }
         }
-
         // Check for VM host node routing - also ID-based
-        if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE && node.getHostNodeId() != null) {
+        else if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE && node.getHostNodeId() != null) {
             NetworkNode hostNode = instance.getNodeById(node.getHostNodeId());
             if (hostNode != null) {
                 ConnectionLine connection = new ConnectionLine(hostNode, node);
@@ -609,9 +609,8 @@ public class NetworkMonitorApp extends Application {
                 return;
             }
         }
-
         // If no specific routing, use default routing
-        if (!node.isMainNode()) {
+        else if (!node.isMainNode()) {
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
                 NetworkNode host = instance.getMainNodeByDisplayName("Host");
@@ -626,6 +625,26 @@ public class NetworkMonitorApp extends Application {
             }
             connection.setViewOrder(1);
             instance.spiderMapPane.getChildren().add(0, connection);
+        }
+        // ADD THIS CASE: If this is a main node, we need to connect to other main nodes
+        else if (node.isMainNode()) {
+            // Find all main nodes
+            List<NetworkNode> mainNodes = new ArrayList<>();
+            for (NetworkNode otherNode : instance.persistentNodes) {
+                if (otherNode.isMainNode() && otherNode != node) {
+                    mainNodes.add(otherNode);
+                }
+            }
+            
+            // Connect to any main node that doesn't have specific routing
+            for (NetworkNode mainNode : mainNodes) {
+                // Only create connections if the other main node doesn't route through a switch
+                if (mainNode.getRouteSwitchId() == null) {
+                    ConnectionLine connection = new ConnectionLine(node, mainNode);
+                    connection.setViewOrder(1);
+                    instance.spiderMapPane.getChildren().add(0, connection);
+                }
+            }
         }
     }
 
@@ -848,19 +867,42 @@ public class NetworkMonitorApp extends Application {
             route.add(currentNode);
             visitedNodeIds.add(currentNode.getNodeId());
             
-            // Check if node is routed through a switch - use ID lookup
+            // CASE 1: Check if node is routed through a switch - use ID lookup
             if (currentNode.getRouteSwitchId() != null) {
                 currentNode = getNodeById(currentNode.getRouteSwitchId());
             }
-            // If not routed through switch, check default routing
+            // CASE 2: Check if node is a VM with a host node
+            else if (currentNode.getDeviceType() == DeviceType.VIRTUAL_MACHINE && currentNode.getHostNodeId() != null) {
+                // For VMs, route through their host
+                currentNode = getNodeById(currentNode.getHostNodeId());
+            }
+            // CASE 3: If no explicit routing is set, use default routing
             else if (!currentNode.isMainNode()) {
                 if (currentNode.getConnectionType() == ConnectionType.VIRTUAL) {
-                    currentNode = getMainNodeByDisplayName("Host");
+                    // Find any Host main node
+                    NetworkNode hostNode = findMainNodeByDeviceType(DeviceType.COMPUTER);
+                    if (hostNode != null) {
+                        currentNode = hostNode;
+                    } else {
+                        // Fallback to any main node if no host found
+                        currentNode = findAnyMainNode();
+                    }
                 } else if (currentNode.getNetworkType() == NetworkType.INTERNAL) {
-                    currentNode = getMainNodeByDisplayName("Gateway");
+                    // Find any Gateway main node
+                    NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                    if (gatewayNode != null) {
+                        currentNode = gatewayNode;
+                    } else {
+                        // Fallback to any main node if no gateway found
+                        currentNode = findAnyMainNode();
+                    }
                 } else {
-                    currentNode = getMainNodeByDisplayName("Google DNS");
+                    // External nodes - find any main node instead of specifically Google DNS
+                    currentNode = findAnyMainNode();
                 }
+                
+                // If we couldn't find any appropriate main node, end the path
+                if (currentNode == null) break;
             } else {
                 // Reached a main node with no further routing
                 break;
@@ -870,10 +912,20 @@ public class NetworkMonitorApp extends Application {
         return route;
     }
 
-    // Add helper method to find any node by display name
-    public NetworkNode getNodeByDisplayName(String name) {
+    // Helper method to find a main node of a specific device type
+    private NetworkNode findMainNodeByDeviceType(DeviceType deviceType) {
         for (NetworkNode node : persistentNodes) {
-            if (node.getDisplayName().equals(name)) {
+            if (node.isMainNode() && node.getDeviceType() == deviceType) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    // Helper method to find any main node as a fallback
+    private NetworkNode findAnyMainNode() {
+        for (NetworkNode node : persistentNodes) {
+            if (node.isMainNode()) {
                 return node;
             }
         }
@@ -944,5 +996,33 @@ public class NetworkMonitorApp extends Application {
             }
         }
         return null;
+    }
+
+    // Add this method to NetworkMonitorApp class
+    public NetworkNode getNodeByDisplayName(String displayName) {
+        for (NetworkNode node : persistentNodes) {
+            if (node.getDisplayName().equals(displayName)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    // Add this method to NetworkMonitorApp class
+    public static void updateConnectionLinesRecursively(NetworkNode startNode) {
+        // First update this node's own connection line
+        updateConnectionLineForNode(startNode);
+        
+        // Then find all nodes that route through this node (its children)
+        long nodeId = startNode.getNodeId();
+        
+        // For each child, recursively update its connection lines
+        for (NetworkNode child : getPersistentNodesStatic()) {
+            if (Objects.equals(child.getRouteSwitchId(), nodeId) ||
+                Objects.equals(child.getHostNodeId(), nodeId)) {
+                // Recursively update this child and all its descendants
+                updateConnectionLinesRecursively(child);
+            }
+        }
     }
 }

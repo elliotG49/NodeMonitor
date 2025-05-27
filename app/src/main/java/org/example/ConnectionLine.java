@@ -90,8 +90,9 @@ public class ConnectionLine extends Pane {
         getChildren().add(curveContainer);
 
         // Single ping particle
-        pingParticle = new Circle(3, Color.WHITE);
+        pingParticle = new Circle(2, Color.WHITE);
         pingParticle.setVisible(false); // Initially invisible until connection is confirmed
+        pingParticle.setOpacity(0.6); // Ensure full opacity
         getChildren().add(pingParticle);
 
         statsPanel = new PopupPanel();
