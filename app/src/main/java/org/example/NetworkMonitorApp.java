@@ -5,8 +5,10 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -360,7 +362,7 @@ public class NetworkMonitorApp extends Application {
                         config.getIpOrHostname(), 
                         config.getDisplayName(),
                         config.getDeviceType(), 
-                        config.getNetworkLocation()  // Use NetworkLocation directly
+                        config.getNetworkLocation()
                     );
                     node.setPrefSize(config.getWidth(), config.getHeight());
                     node.updateLayoutForSavedSize();
@@ -370,9 +372,8 @@ public class NetworkMonitorApp extends Application {
                     if (config.getConnectionType() != null)
                         node.setConnectionType(config.getConnectionType());
                         
-                    // Explicitly set node ID first if available (modify NetworkNode to support this)
+                    // Explicitly set node ID first if available
                     if (config.getNodeId() != null) {
-                        // Assume you add a way to set this directly
                         node.setNodeIdDirectly(config.getNodeId());
                     }
                     
@@ -381,7 +382,6 @@ public class NetworkMonitorApp extends Application {
                     node.setHostNodeId(config.getHostNodeId());
                     
                     // Set names for UI display only
-                    // Don't let these calls overwrite the IDs we just set
                     if (config.getRouteSwitch() != null) {
                         node.setRouteSwitchWithoutIdUpdate(config.getRouteSwitch());
                     }
@@ -395,36 +395,34 @@ public class NetworkMonitorApp extends Application {
                     spiderMapPane.getChildren().add(node);
                 }
 
-                // Then connect main nodes that aren't routed through switches
-                List<NetworkNode> mainNodes = new ArrayList<>();
+                // Now create connections for ALL nodes based on their routing information
                 for (NetworkNode node : persistentNodes) {
-                    // Remove the routing check for main nodes - we'll handle all connections later
-                    if (node.isMainNode()) {
-                        mainNodes.add(node);
-                    }
-                }
-                mainNodes.sort((a, b) -> Double.compare(a.getLayoutY(), b.getLayoutY()));
-
-                // Connect main nodes that don't have switch routing
-                for (int i = 0; i < mainNodes.size() - 1; i++) {
-                    NetworkNode current = mainNodes.get(i);
-                    NetworkNode next = mainNodes.get(i + 1);
-                    
-                    // Only create direct connections if neither node is routed through a switch
-                    if ((current.getRouteSwitch() == null || current.getRouteSwitch().isEmpty()) &&
-                        (next.getRouteSwitch() == null || next.getRouteSwitch().isEmpty())) {
-                        ConnectionLine c = new ConnectionLine(current, next);
-                        spiderMapPane.getChildren().add(0, c);
-                    }
-                }
-
-                // Finally, create all switch-routed connections for ALL nodes
-                for (NetworkNode node : persistentNodes) {
-                    if (node.getRouteSwitch() != null && !node.getRouteSwitch().isEmpty()) {
+                    // Check if the node has a switch routing defined
+                    if (node.getRouteSwitchId() != null) {
+                        // This is the key change - call updateConnectionLineForNode for ALL nodes with a routeSwitchId
+                        // regardless of whether they are main nodes or not
                         updateConnectionLineForNode(node);
                     } else if (!node.isMainNode()) {
-                        // Create default connection only for non-main nodes that aren't switch-routed
+                        // Create default connection only for non-main, non-switch-routed nodes
                         addDefaultConnectionLine(node);
+                    }
+                }
+
+                // Finally, connect main nodes that aren't routed through switches to each other
+                List<NetworkNode> unroutedMainNodes = new ArrayList<>();
+                for (NetworkNode node : persistentNodes) {
+                    if (node.isMainNode() && node.getRouteSwitchId() == null) {
+                        unroutedMainNodes.add(node);
+                    }
+                }
+                
+                // Connect unrouted main nodes to each other
+                for (int i = 0; i < unroutedMainNodes.size(); i++) {
+                    for (int j = i + 1; j < unroutedMainNodes.size(); j++) {
+                        NetworkNode node1 = unroutedMainNodes.get(i);
+                        NetworkNode node2 = unroutedMainNodes.get(j);
+                        ConnectionLine c = new ConnectionLine(node1, node2);
+                        spiderMapPane.getChildren().add(0, c);
                     }
                 }
 
@@ -444,7 +442,6 @@ public class NetworkMonitorApp extends Application {
                 );
             }
             System.out.println("============================\n");
-
         });
     }
 
@@ -865,58 +862,83 @@ public class NetworkMonitorApp extends Application {
         List<NetworkNode> route = new ArrayList<>();
         NetworkNode currentNode = targetNode;
         
+        // Debug output to help diagnose the issue
+        System.out.println("\nDEBUG - Calculating route from: " + targetNode.getDisplayName());
+        
         // Prevent infinite loops - track by ID instead of display name
         Set<Long> visitedNodeIds = new HashSet<>();
         
         while (currentNode != null && !visitedNodeIds.contains(currentNode.getNodeId())) {
             route.add(currentNode);
             visitedNodeIds.add(currentNode.getNodeId());
+            System.out.println("DEBUG - Added to route: " + currentNode.getDisplayName() + 
+                              " (" + currentNode.getDeviceType() + ")" +
+                              " - NetworkLocation: " + currentNode.getNetworkLocation());
             
             // CASE 1: Check if node is routed through a switch - use ID lookup
             if (currentNode.getRouteSwitchId() != null) {
+                System.out.println("DEBUG - Node routes through switch, ID: " + currentNode.getRouteSwitchId());
                 currentNode = getNodeById(currentNode.getRouteSwitchId());
             }
             // CASE 2: Check if node is a VM with a host node
             else if (currentNode.getDeviceType() == DeviceType.VIRTUAL_MACHINE && currentNode.getHostNodeId() != null) {
-                // For VMs, route through their host
+                System.out.println("DEBUG - VM routes through host node, ID: " + currentNode.getHostNodeId());
                 currentNode = getNodeById(currentNode.getHostNodeId());
             }
-            // CASE 3: If node is REMOTE_PRIVATE, it must connect through a PUBLIC node
+            // CASE 3: For PUBLIC nodes (like your proxy servers), route directly to GATEWAY
+            else if (currentNode.getNetworkLocation() == NetworkLocation.PUBLIC && !currentNode.isMainNode()) {
+                System.out.println("DEBUG - PUBLIC node routes directly to Gateway");
+                currentNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                if (currentNode == null) {
+                    System.out.println("DEBUG - Gateway not found, stopping route");
+                    break;
+                }
+            }
+            // CASE 4: If node is REMOTE_PRIVATE, it must connect through a PUBLIC node
             else if (currentNode.getNetworkLocation() == NetworkLocation.REMOTE_PRIVATE && !currentNode.isMainNode()) {
-                // Find the first PUBLIC node (typically a router/gateway)
+                System.out.println("DEBUG - REMOTE_PRIVATE node routes through PUBLIC node");
                 NetworkNode publicNode = findNodeByNetworkLocation(NetworkLocation.PUBLIC);
                 if (publicNode != null) {
                     currentNode = publicNode;
                 } else {
-                    // Fallback to any main node if no public node found
+                    System.out.println("DEBUG - No PUBLIC node found, using any main node");
                     currentNode = findAnyMainNode();
                 }
             }
-            // CASE 4: Other standard routing
+            // CASE 5: Other standard routing
             else if (!currentNode.isMainNode()) {
                 // Use default routing based on network location
                 if (currentNode.getNetworkLocation() == NetworkLocation.LOCAL) {
-                    // Find any Gateway main node
+                    System.out.println("DEBUG - LOCAL node routes to Gateway");
                     NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
                     if (gatewayNode != null) {
                         currentNode = gatewayNode;
                     } else {
-                        // Fallback to any main node if no gateway found
+                        System.out.println("DEBUG - Gateway not found, using any main node");
                         currentNode = findAnyMainNode();
                     }
                 } else {
-                    // PUBLIC nodes route to the main node
-                    currentNode = findAnyMainNode();
+                    // All other nodes route to the main gateway node
+                    System.out.println("DEBUG - Default routing to Gateway");
+                    currentNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                    if (currentNode == null) {
+                        System.out.println("DEBUG - Gateway not found, using any main node");
+                        currentNode = findAnyMainNode();
+                    }
                 }
-                
-                // If we couldn't find any appropriate main node, end the path
-                if (currentNode == null) break;
             } else {
                 // Reached a main node with no further routing
+                System.out.println("DEBUG - Reached a main node, ending route");
+                break;
+            }
+            
+            if (currentNode == null) {
+                System.out.println("DEBUG - No further routing found, ending route");
                 break;
             }
         }
         
+        System.out.println("DEBUG - Final route length: " + route.size() + "\n");
         return route;
     }
 
@@ -932,56 +954,149 @@ public class NetworkMonitorApp extends Application {
 
     // Add method to apply filter
     public void filterNodes(Predicate<NetworkNode> filter) {
-        // Find all nodes that match the filter
+        System.out.println("\n==== FILTER DEBUGGING ====");
+        
+        // Step 1: Find all nodes that match the filter
         Set<NetworkNode> matchingNodes = persistentNodes.stream()
             .filter(filter)
             .collect(Collectors.toSet());
         
-        // Get all route nodes for matching nodes
-        Set<NetworkNode> routeNodes = new HashSet<>();
+        // Print matching nodes
+        System.out.println("NODES MATCHING FILTER: " + matchingNodes.size());
         for (NetworkNode node : matchingNodes) {
-            routeNodes.addAll(getRouteToNode(node));
+            System.out.println("  - " + node.getDisplayName() + " (" + node.getDeviceType() + ")");
         }
         
-        // Apply visual changes to all nodes
-        for (NetworkNode node : persistentNodes) {
-            if (matchingNodes.contains(node)) {
-                // Node matches filter - full opacity
-                node.setOpacity(1.0);
-                node.setVisible(true);
-            } else if (routeNodes.contains(node)) {
-                // Node is part of a route - reduced opacity
-                node.setOpacity(0.25);
-                node.setVisible(true);
-            } else {
-                // Node doesn't match and isn't in a route - hide it
-                node.setVisible(false);
+        // If no nodes match, show all nodes (reset filter)
+        if (matchingNodes.isEmpty()) {
+            System.out.println("No nodes match filter, resetting to show all nodes");
+            resetFilter();
+            return;
+        }
+        
+        // Find Gateway node - we'll always show it
+        NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+        System.out.println("Gateway node: " + (gatewayNode != null ? gatewayNode.getDisplayName() : "Not found"));
+        
+        // Step 2: Create a map of nodes to their routes (from node to Gateway)
+        Map<NetworkNode, List<NetworkNode>> nodeRoutes = new HashMap<>();
+        for (NetworkNode node : matchingNodes) {
+            List<NetworkNode> routeToNode = getRouteToNode(node);
+            nodeRoutes.put(node, routeToNode);
+            
+            // Print complete route for this node
+            System.out.println("ROUTE FOR: " + node.getDisplayName());
+            for (int i = 0; i < routeToNode.size(); i++) {
+                NetworkNode routeNode = routeToNode.get(i);
+                System.out.println("  " + i + ": " + routeNode.getDisplayName() + 
+                                  " (" + routeNode.getDeviceType() + ")" +
+                                  (i == 0 ? " [START]" : ""));
             }
         }
         
-        // Update connection lines
+        // Step 3: Create a set of all nodes in any route
+        Set<NetworkNode> nodesInRoutes = new HashSet<>();
+        nodeRoutes.values().forEach(nodesInRoutes::addAll);
+        
+        // Add Gateway to routes if not already included
+        if (gatewayNode != null) {
+            nodesInRoutes.add(gatewayNode);
+        }
+        
+        System.out.println("\nNODE VISIBILITY CHANGES:");
+        // Step 4: Set visibility for all nodes
+        Set<NetworkNode> nodesWithLoweredOpacity = new HashSet<>();
+        
+        for (NetworkNode node : persistentNodes) {
+            boolean isGateway = (node.getDeviceType() == DeviceType.GATEWAY);
+            boolean isMatching = matchingNodes.contains(node);
+            boolean isInRoute = nodesInRoutes.contains(node);
+            
+            // Show if it's a matching node, in a route, or is Gateway
+            if (isMatching || isInRoute) {
+                node.setVisible(true);
+                
+                // Full opacity only for filtered/matched nodes
+                if (isMatching) {
+                    node.setOpacity(1.0);
+                    System.out.println("  - " + node.getDisplayName() + ": visible, full opacity (matched filter)");
+                } else {
+                    // Lower opacity for route nodes (including Host if in route)
+                    node.setOpacity(0.25);
+                    nodesWithLoweredOpacity.add(node);
+                    System.out.println("  - " + node.getDisplayName() + ": visible, lowered opacity (in route path)");
+                }
+            } else {
+                // Hide nodes not in any matching route
+                node.setVisible(false);
+                System.out.println("  - " + node.getDisplayName() + ": hidden (not in any route)");
+            }
+        }
+        
+        System.out.println("\nNODES WITH LOWERED OPACITY: " + nodesWithLoweredOpacity.size());
+        for (NetworkNode node : nodesWithLoweredOpacity) {
+            System.out.println("  - " + node.getDisplayName() + " (" + node.getDeviceType() + ")");
+        }
+        
+        // Step 5: Update connection lines
+        int visibleLines = 0;
+        int fullOpacityLines = 0;
+        int loweredOpacityLines = 0;
+        
         for (javafx.scene.Node child : spiderMapPane.getChildren()) {
-            if (child instanceof ConnectionLine) {
-                ConnectionLine line = (ConnectionLine) child;
-                NetworkNode from = line.getFrom();
-                NetworkNode to = line.getTo();
+            if (!(child instanceof ConnectionLine)) continue;
+            
+            ConnectionLine line = (ConnectionLine) child;
+            NetworkNode from = line.getFrom();
+            NetworkNode to = line.getTo();
+            
+            // Only show line if both endpoints are visible
+            boolean visible = from.isVisible() && to.isVisible();
+            line.setVisible(visible);
+            
+            if (visible) {
+                visibleLines++;
+                // Check if this is a "last connection" - direct connection to a matching node
+                boolean isLastConnection = false;
                 
-                boolean visible = from.isVisible() && to.isVisible();
-                line.setVisible(visible);
-                
-                if (visible) {
-                    if (matchingNodes.contains(from) || matchingNodes.contains(to)) {
-                        // If either node is a filtered node, connection should be at full opacity
-                        line.setOpacity(1.0);
-                    } else {
-                        // Both nodes are route nodes, so connection should be faded
-                        line.setOpacity(0.25);
+                // If either end is a matching node, this is a last connection
+                if (matchingNodes.contains(from) || matchingNodes.contains(to)) {
+                    isLastConnection = true;
+                } else {
+                    // Check if this connection represents the last segment in any route
+                    for (NetworkNode matchingNode : matchingNodes) {
+                        List<NetworkNode> route = nodeRoutes.get(matchingNode);
+                        if (route != null && route.size() >= 2) {
+                            int nodeIndex = route.indexOf(matchingNode);
+                            if (nodeIndex > 0) {
+                                NetworkNode previousNode = route.get(nodeIndex - 1);
+                                if ((from == matchingNode && to == previousNode) ||
+                                    (from == previousNode && to == matchingNode)) {
+                                    isLastConnection = true;
+                                    break;
+                            }
+                        }
                     }
                 }
             }
+            
+            // Set opacity - full for last connections, reduced for others
+            if (isLastConnection) {
+                line.setOpacity(1.0);
+                fullOpacityLines++;
+            } else {
+                line.setOpacity(0.25);
+                loweredOpacityLines++;
+            }
         }
     }
-
+    
+    System.out.println("\nCONNECTION LINES:");
+    System.out.println("  - Visible lines: " + visibleLines);
+    System.out.println("  - Full opacity: " + fullOpacityLines);
+    System.out.println("  - Lowered opacity: " + loweredOpacityLines);
+    System.out.println("==== END FILTER DEBUGGING ====\n");
+}
     // Add this getter method
     public VBox getModePanel() {
         return modePanel;

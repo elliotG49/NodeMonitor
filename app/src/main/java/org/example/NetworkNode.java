@@ -206,7 +206,7 @@ public class NetworkNode extends StackPane {
             case MANAGED_SWITCH:      return "switch.png";  // Add this line
             case LAPTOP:              return "laptop.png";
             case SERVER:              return "server.png";
-            case ROUTER:              return "internet.png";
+            case ROUTER:              return "gateway.png";
             case GATEWAY:             return "gateway.png";
             case PHONE:               return "phone.png";
             case TV:                  return "tv.png";
