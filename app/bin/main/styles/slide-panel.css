@@ -1,0 +1,199 @@
+.slide-panel {
+  /* background & rounding */
+  -fx-background-color: -slide-panel-background;  
+  -fx-background-radius: 12px;
+  -fx-padding: 5px; /* Reduce side padding to allow wider content */
+}
+
+
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Panel title (“Add Node”)                                              */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel > .border-pane > .top > .hbox {
+    -fx-padding: 0 8px 8px 0;  /* top right bottom left */
+}
+
+.slide-panel > .border-pane > .top > .hbox > .button {
+  /* you’re using a close “×” button at top right; keep that small */
+  -fx-font-size: 14px;
+  -fx-background-color: transparent;
+  -fx-text-fill: white;
+}
+.slide-panel .title-label {
+  /* if you give your heading Label the style-class “title-label” */
+  -fx-text-fill: -text-primary;
+  -fx-font-size: 20px;
+  -fx-font-weight: 800;
+  -fx-padding: 0 0 8px 8px;  /* some breathing room below */
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Form fields (TextField, ComboBox, etc.)                              */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel .text-field,
+.slide-panel .combo-box {
+  -fx-background-color: -icon-container-color;
+  -fx-background-radius: 10px;  /* Changed from 6px */
+  -fx-border-color: transparent;
+  
+  -fx-text-fill: -text-primary;
+  -fx-font-size: 14px;
+  -fx-prompt-text-fill: -text-secondary;
+  
+  -fx-padding: 0 8px 0 12px;       /* vertical 0, horizontal 8px */
+  -fx-pref-height: 32px;    /* consistent height */
+  -fx-max-width: 215px;     /* or whatever max you prefer */
+  -fx-min-width: 215px;
+  
+  /* subtle inner shadow to make them pop */
+
+  -fx-cursor: hand;  /* Add this line */
+}
+
+.slide-panel .text-field:hover,
+.slide-panel .combo-box:hover {
+    -fx-background-color: derive(-panels-bg-color, 10%);
+
+    -fx-border-radius: 10px;  /* Changed from 6px */
+}
+.slide-panel .text-field {
+    -fx-padding: 0 8px 0 18px;
+}
+
+.slide-panel .combo-box > .list-cell {
+    -fx-text-fill: rgba(255,254,255,1);
+    -fx-prompt-text-fill: rgba(255,255,255,0.4);
+}
+
+
+.slide-panel .combo-box > .arrow-button > .arrow {
+    -fx-background-color: transparent;
+    -fx-shape: none;
+    -fx-padding: 0;
+}
+
+.slide-panel .combo-box > .arrow-button {
+    -fx-background-image: url('../icons/dropdown.png');
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;  /* Position 16px from the right */
+    -fx-background-size: 12px;
+    -fx-background-color: transparent;
+    -fx-padding: 0 20px 0 0;  /* Increased right padding from 8px to 16px */
+}
+
+/* ComboBox Popup styling */
+.slide-panel .combo-box-popup > .list-view {
+    -fx-background-color: -icon-container-color;
+    -fx-background-radius: 10px;  /* Changed from 6px */
+    -fx-border-color: #607694;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;  /* Changed from 6px */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0, 0, 2);
+}
+
+.slide-panel .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 8px 12px;
+    -fx-text-fill: -text-primary;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;  /* Add this line */
+}
+
+.slide-panel .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
+.slide-panel .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -button-primary-hover;
+    -fx-text-fill: -text-primary;
+    -fx-background-radius: 10px;  /* Changed from 6px */
+}
+
+/* Remove default focus highlight */
+.slide-panel .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:focused {
+    -fx-background-insets: 0;
+}
+
+/* ScrollBar styling for dropdown */
+.slide-panel .combo-box-popup .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-padding: 0 2 0 2;
+}
+
+.slide-panel .combo-box-popup .scroll-bar:vertical .thumb {
+    -fx-background-color: #607694;
+    -fx-background-radius: 3px;
+}
+
+.slide-panel .combo-box-popup .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.slide-panel .combo-box-popup .scroll-bar:vertical .increment-button,
+.slide-panel .combo-box-popup .scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* “Add” button at bottom of form                                       */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel .form-button {
+  -fx-background-color: -button-primary;
+  -fx-background-radius: 10px;  /* Changed from 6px */
+  -fx-text-fill: -text-primary;
+  
+  -fx-padding: 8 16;      /* vertical 8px, horizontal 16px */
+  -fx-font-size: 14px;
+  -fx-max-width: 215px;     /* or whatever max you prefer */
+  -fx-min-width: 215px;
+  
+  /* hover state */
+  -fx-cursor: hand;
+}
+
+.slide-panel .form-button:hover {
+  -fx-background-color: -button-primary-hover;
+}
+
+.slide-panel .form-button:disabled {
+    -fx-background-color: -button-disabled;
+    -fx-text-fill: -text-disabled;
+}
+
+/*───────────────────────────────────────────────────────────────────────────*/
+/* Spacing helpers — if you need extra gaps between fields               */
+/*───────────────────────────────────────────────────────────────────────────*/
+.slide-panel .form-container {
+  -fx-spacing: 16px;  /* Increased from 12px */
+  -fx-alignment: center-left;
+  -fx-padding: 4px;   /* Reduced from 8px */
+  -fx-background-color: transparent;
+}
+
+.form-field-disabled {
+    -fx-opacity: 0.5;
+    -fx-background-color: #1A2028;
+}
+
+.form-button:disabled {
+    -fx-background-color: #2A3441;
+    -fx-text-fill: #6C7A89;
+    -fx-opacity: 0.7;
+    -fx-cursor: default;
+}
+
+.section-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.connection-stats-popup {
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0.5, 0, 0);
+}
+
+.connection-stats-popup .latency-label,
+.connection-stats-popup .interface-label {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+}

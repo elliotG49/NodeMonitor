@@ -1,0 +1,229 @@
+.discovery-status-label {
+    -fx-text-fill: white;
+    -fx-font-size: 15; /* Increased from 14 */
+    -fx-padding: 4 0 4 0;
+}
+
+.discovery-status-bold {
+    -fx-font-weight: bold;
+}
+
+.discovery-number {
+    -fx-text-fill: #00EBFF;
+}
+
+.discovery-eta-label {
+    -fx-text-fill: #808080;
+    -fx-font-size: 13; /* Increased from 12 */
+    -fx-padding: 6 0 0 0; /* Increased top padding to create gap */
+}
+
+.discovery-cancel-button {
+    -fx-background-color: rgb(255, 89, 47);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 15;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.discovery-cancel-button:hover {
+    -fx-background-color: rgb(255, 131, 100);
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.3), 10, 0, 0, 0);
+}
+
+.discovery-cancel-button:pressed {
+    -fx-background-color: rgb(255, 157, 133);
+}
+
+.discovery-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-fit-to-width: true;
+    -fx-transition: -fx-pref-height 0.2s;
+}
+
+.discovery-scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.discovery-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 12;
+}
+
+.discovery-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 6;
+}
+
+.discovery-scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.discovery-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.discovery-scroll-pane .corner {
+    -fx-background-color: transparent;
+}
+
+.interface-section {
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 10px;
+    -fx-padding: 8px 0px;
+    -fx-pref-width: 240px;
+    -fx-cursor: hand;
+    -fx-spacing: 8px;
+    -fx-alignment: center-left; 
+}
+
+
+.interface-section:hover {
+    -fx-border-color: rgba(255, 255, 255, 0.6);
+}
+
+.interface-content {
+    -fx-padding: 0;  /* Removed all padding */
+    -fx-spacing: 12px;  /* Increased spacing between node entries */
+}
+
+.interface-name-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+    -fx-padding: 0 8px 0 16px;  /* Reduced right padding to bring arrow closer */
+    -fx-alignment: center-left;  
+}
+
+.interface-count-label {
+    -fx-text-fill: #808080;
+    -fx-font-size: 12;
+    -fx-padding: 0 16px;  /* Add horizontal padding to align with node entries */
+}
+
+.node-entry {
+    -fx-background-color: transparent;
+    -fx-background-radius: 10;  /* Removed border radius since it's full width */
+    -fx-padding: 16px;        /* Even padding all around */
+    -fx-pref-width: 100%;     /* Take full width */
+    -fx-max-width: infinity;  /* Allow expanding to full width */
+    -fx-text-fill: white;
+    -fx-spacing: 12px;  /* Add spacing between elements */
+}
+
+.node-entry:hover {
+}
+
+.node-detail-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+}
+
+.node-detail-label .label {
+    -fx-text-fill: white;
+}
+
+.node-add-button {
+    -fx-background-color: -button-primary;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 8px 4px;
+    -fx-min-width: 80px;
+}
+
+.node-add-button:hover {
+    -fx-background-color: -button-primary-hover;
+}
+
+.node-add-button:disabled {
+    -fx-background-color: -button-disabled;
+    -fx-text-fill: -text-disabled;
+    -fx-opacity: 0.7;
+    -fx-cursor: default;
+}
+
+.interface-arrow {
+    -fx-rotate: 0;
+    -fx-transition: -fx-rotate 0.2s ease-out;
+    -fx-padding: 0 12px 0 0;  
+    -fx-translate-x: -8px;    
+}
+
+.node-basic-info {
+}
+
+
+
+.node-device-combo:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);  /* Subtle hover effect */
+    -fx-border-color: rgba(255, 255, 255, 0.5);  /* Brighter border on hover */
+    -fx-border-radius: 10;  /* Ensure border radius stays consistent */
+}
+
+.node-entry .text-field,
+.node-entry .combo-box {
+    -fx-background-color: -icon-container-color;
+    -fx-background-radius: 10px;
+    -fx-text-fill: white;
+    -fx-pref-width: 170;
+    -fx-max-width: 170;
+    -fx-min-width: 170;
+    -fx-font-size: 12;
+    -fx-pref-height: 32px;      /* Match the add node form height */
+    -fx-min-height: 32px;       /* Ensure consistent height */
+    -fx-max-height: 32px;       /* Prevent expanding */
+    -fx-padding: 0 8px 0 12px;  /* Match the add node form padding */
+}
+
+.node-entry .text-field:hover,
+.node-entry .combo-box:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+
+
+    -fx-background-radius: 10px;  /* Fixed to match non-hover state */
+}
+
+/* Hide all scrollbars while maintaining smooth scroll functionality */
+.scroll-pane {
+    -fx-hbar-policy: never;  /* Hide horizontal scrollbar */
+    -fx-vbar-policy: never;  /* Hide vertical scrollbar */
+    -fx-pannable: true;      /* Enable touch-like panning */
+    -fx-fit-to-width: true;  /* Fit content to width */
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .scroll-bar:vertical,
+.scroll-pane > .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
+/* Add smooth scrolling behavior */
+.scroll-pane {
+    -fx-smooth-scroll: true;
+    -fx-scroll-duration: 200ms;  /* Adjust scroll animation duration */
+}
+
+/* Improve touch and trackpad scrolling */
+.scroll-pane {
+    -fx-scroll-deceleration: 0.95;  /* Smooth deceleration after scroll */
+    -fx-scroll-sensitivity: 12;     /* Adjust scroll sensitivity */
+}
+
+.node-number-label {
+    -fx-text-fill: #ffffff;  
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 4 0;  
+}

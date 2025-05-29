@@ -1,0 +1,14 @@
+.latency-label {
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.latency-container {
+    -fx-background-color: #1a1f24;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 1px;
+    -fx-padding: 4px;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+}

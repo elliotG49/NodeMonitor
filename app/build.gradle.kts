@@ -22,7 +22,7 @@ javafx {
 }
 
 application {
-    mainClass.set("org.example.NetworkMonitorApp")
+    mainClass.set("org.example.app.NetworkMonitorApp")
 }
 
 tasks.withType<Copy> {

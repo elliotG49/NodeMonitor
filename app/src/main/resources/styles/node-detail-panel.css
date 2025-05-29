@@ -1,0 +1,133 @@
+/* Add these styles to match the slide-panel form controls */
+
+.nodedetail-textfield,
+.nodedetail-combobox {
+  -fx-background-color: -icon-container-color;
+  -fx-background-radius: 10px;
+  -fx-border-color: transparent;
+  
+  -fx-text-fill: -text-primary;
+  -fx-font-size: 14px;
+  -fx-prompt-text-fill: -text-secondary;
+  
+  -fx-padding: 0 8px 0 12px;
+  -fx-pref-height: 32px;
+  -fx-max-width: 250px;
+  -fx-min-width: 250px;
+  
+  -fx-cursor: hand;
+}
+
+.nodedetail-textfield:hover,
+.nodedetail-combobox:hover {
+  -fx-background-color: derive(-panels-bg-color, 10%);
+  -fx-border-radius: 10px;
+}
+
+.nodedetail-textfield {
+  -fx-padding: 0 8px 0 18px;
+}
+
+.nodedetail-combobox > .list-cell {
+  -fx-text-fill: rgba(255,254,255,1);
+  -fx-prompt-text-fill: rgba(255,255,255,0.4);
+}
+
+.nodedetail-combobox > .arrow-button > .arrow {
+  -fx-background-color: transparent;
+  -fx-shape: none;
+  -fx-padding: 0;
+}
+
+.nodedetail-combobox > .arrow-button {
+  -fx-background-image: url('../icons/dropdown.png');
+  -fx-background-repeat: no-repeat;
+  -fx-background-position: center;
+  -fx-background-size: 12px;
+  -fx-background-color: transparent;
+  -fx-padding: 0 20px 0 0;
+}
+
+/* ComboBox Popup styling */
+.nodedetail-combobox-popup > .list-view {
+  -fx-background-color: -icon-container-color;
+  -fx-background-radius: 10px;
+  -fx-border-color: #607694;
+  -fx-border-width: 1px;
+  -fx-border-radius: 10px;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0, 0, 2);
+}
+
+.nodedetail-label {
+  -fx-text-fill: -text-secondary;
+  -fx-font-size: 12px;
+  -fx-font-weight: bold;
+}
+
+.nodedetail-value-label {
+  -fx-text-fill: white;
+  -fx-font-size: 14px;
+  -fx-font-weight: bold;
+}
+
+.status-label {
+  -fx-text-fill: white;
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+}
+
+.nodedetail-status-value {
+  -fx-text-fill: white;
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+  -fx-padding: 0 0 0 0;
+}
+
+/* Make sure the node detail panel aligns with other styles */
+.node-detail-panel {
+  -fx-pref-width: 300px;
+  -fx-max-width: 300px;
+  -fx-background-color: -panels-bg-color;
+  -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, -5, 0);
+  -fx-spacing: 12px;
+}
+
+.section-header {
+  -fx-text-fill: white;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-padding: 0 0 5 0;
+}
+
+/* Add these styles for expandable sections */
+
+.expandable-section-header {
+    -fx-background-color: transparent;
+    -fx-padding: 5px 15px 5px 0px;
+    -fx-cursor: hand;
+}
+
+.expandable-section-header:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-radius: 5px;
+}
+
+/* Style the ScrollPane to blend with the panel background */
+.detail-scrollpane {
+    -fx-background: -panels-bg-color;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.detail-scrollpane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.detail-scrollpane > .scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.detail-scrollpane > .scroll-bar > .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+    -fx-background-radius: 10px;
+}

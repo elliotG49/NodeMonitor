@@ -1,0 +1,33 @@
+.filter-status-box {
+    -fx-background-color: -panels-bg-color;
+    -fx-padding: 12;
+    -fx-spacing: 4;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0, 0, 0);
+    -fx-cursor: hand;
+}
+
+
+
+.filter-status-label {
+    -fx-text-fill: #3EFF8B;
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+}
+
+.filter-type-label {
+    -fx-text-fill: white;
+    -fx-font-size: 16;
+}
+
+.filter-description {
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+}
+
+.filter-reset-label {
+    -fx-text-fill: #808080;
+    -fx-font-size: 12;
+    -fx-padding: 4 0 0 0;
+}

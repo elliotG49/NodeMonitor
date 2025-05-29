@@ -1,0 +1,23 @@
+.mode-panel {
+  -fx-background-color: -panels-bg-color;
+  -fx-background-radius: 15px;
+  -fx-padding: 10px;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 0);
+}
+
+.mode-button {
+  -fx-background-color: transparent;
+  -fx-text-fill: white;
+  -fx-font-size: 14px;
+  -fx-background-radius: 10px;
+  -fx-cursor: hand;
+}
+
+.mode-button:hover {
+  -fx-background-color: derive(-panels-bg-color, 10%);
+}
+
+.mode-icon-container {
+  -fx-background-color: -icon-container-color;
+  -fx-background-radius: 10px;
+}
