@@ -331,12 +331,13 @@ public class NodeDetailPanel extends VBox {
             if (fieldType != null && (fieldType == DeviceField.CONNECTION_TYPE || 
                                      fieldType == DeviceField.NETWORK_LOCATION || 
                                      fieldType == DeviceField.NODE_ROUTING ||
+                                     fieldType == DeviceField.HOST_NODE ||  // Add HOST_NODE here
                                      fieldType.getOptions() != null)) {
                 
                 ComboBox<String> comboBox = new ComboBox<>();
                 comboBox.getStyleClass().add("nodedetail-combobox");
-                comboBox.setPrefWidth(215);  // Match the width used in add node form
-                comboBox.setMaxWidth(215);   // Match the width used in add node form
+                comboBox.setPrefWidth(215);
+                comboBox.setMaxWidth(215);
                 
                 // Add options based on the field type
                 if (fieldType == DeviceField.CONNECTION_TYPE) {
@@ -350,6 +351,9 @@ public class NodeDetailPanel extends VBox {
                 } else if (fieldType == DeviceField.NODE_ROUTING) {
                     // Special case for Node Routing - populate with nodes that can be routes
                     populateNodeRoutingOptions(comboBox, currentNode);
+                } else if (fieldType == DeviceField.HOST_NODE) {
+                    // Special case for Host Node - populate with valid host nodes
+                    populateHostNodeOptions(comboBox, currentNode);
                 } else if (fieldType.getOptions() != null) {
                     comboBox.getItems().addAll(fieldType.getOptions());
                 }
@@ -433,14 +437,11 @@ public class NodeDetailPanel extends VBox {
                 // Handle "Direct" as null or find the node ID based on display name
                 if ("Direct".equals(newValue)) {
                     node.setRouteSwitch(null);
-                    node.setRouteSwitchId(null);  // Make sure to clear the ID too
                 } else {
                     // Find the node ID of the selected node by display name
                     for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
                         if (n.getDisplayName().equals(newValue)) {
-                            node.setRouteSwitch(newValue);  // Store the display name
-                            node.setRouteSwitchId(n.getNodeId());  // Store the node ID
-                            System.out.println("Setting route: " + newValue + " with ID: " + n.getNodeId());
+                            node.setRouteSwitch(String.valueOf(n.getNodeId()));
                             break;
                         }
                     }
@@ -462,6 +463,22 @@ public class NodeDetailPanel extends VBox {
                 } catch (IllegalArgumentException e) {
                     // Invalid network location - revert the field
                     showNodeDetails(node); // Refresh the panel
+                }
+                break;
+            case HOST_NODE:
+                // Handle "None" as null or find the node ID based on display name
+                if ("None".equals(newValue)) {
+                    node.setHostNode(null);
+                    node.setHostNodeId(null);
+                } else {
+                    // Find the node ID of the selected host by display name
+                    for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+                        if (n.getDisplayName().equals(newValue)) {
+                            node.setHostNode(newValue);
+                            node.setHostNodeId(n.getNodeId());
+                            break;
+                        }
+                    }
                 }
                 break;
             // Add more fields as needed
@@ -520,6 +537,42 @@ public class NodeDetailPanel extends VBox {
     }
     
     /**
+     * Populates a ComboBox with the available host node options
+     * for the HOST_NODE field
+     */
+    private void populateHostNodeOptions(ComboBox<String> hostNodeBox, NetworkNode currentNode) {
+        hostNodeBox.getItems().clear();
+        
+        // Add "None" option for no host
+        hostNodeBox.getItems().add("None");
+        
+        // Only show other nodes as options
+        for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+            // Don't include the current node as a host option
+            if (n.getNodeId() == currentNode.getNodeId()) {
+                continue;
+            }
+
+            if (n.getDeviceType() == DeviceType.COMPUTER) {
+                hostNodeBox.getItems().add(n.getDisplayName());
+            }
+            
+            // For REMOTE_PRIVATE nodes, only PUBLIC devices can be hosts
+            if (currentNode.getNetworkLocation() == NetworkLocation.REMOTE_PRIVATE) {
+                if (n.getNetworkLocation() == NetworkLocation.PUBLIC) {
+                    hostNodeBox.getItems().add(n.getDisplayName());
+                }
+            } 
+            // For other locations, only devices that are not main nodes
+            else {
+                if (!n.isMainNode()) {
+                    hostNodeBox.getItems().add(n.getDisplayName());
+                }
+            }
+        }
+    }
+    
+    /**
      * Queries the system ARP table to find the MAC address for a given IP
      * @param ip The IP address to look up
      * @return The MAC address in format xx:xx:xx:xx:xx:xx or "N/A" if not found
@@ -554,10 +607,13 @@ public class NodeDetailPanel extends VBox {
         switch (field) {
             case DISPLAY_NAME:
                 return node.getDisplayName();
+                
             case DEVICE_TYPE:
                 return node.getDeviceType().toString();
+                
             case IP_HOSTNAME:
                 return node.getIpOrHostname();
+                
             case MAC_ADDRESS:
                 // Try to get MAC from node or look it up
                 String mac = node.getMacAddress();
@@ -566,21 +622,55 @@ public class NodeDetailPanel extends VBox {
                     return getMacAddressForIP(node.getIpOrHostname());
                 }
                 return mac;
+                
             case CONNECTION_TYPE:
                 return node.getConnectionType().toString();
+                
             case NETWORK_LOCATION:
                 return node.getNetworkLocation().toString();
+                
             case NODE_ROUTING:
-                // If route is set, display the name of the node, otherwise "Direct"
-                if (node.getRouteSwitch() != null) {
-                    // Find the node with matching ID
+                // Display the routing information (stored as display name or null)
+                String routeSwitch = node.getRouteSwitch();
+                return (routeSwitch != null && !routeSwitch.isEmpty()) ? routeSwitch : "Direct";
+
+            case TOTAL_CONNECTIONS:
+                // Get the number of connections for this node
+                long nodeId = node.getNodeId();
+                int connectionCount = 0;
+                for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+                    if (Objects.equals(n.getRouteSwitchId(), nodeId) ||
+                        Objects.equals(n.getHostNodeId(), nodeId)) {
+                        connectionCount++;
+                    }
+                }
+                return String.valueOf(connectionCount);
+                
+            case ONLINE_CONNECTIONS:
+                // Count only online connections
+                long nodeId2 = node.getNodeId();
+                int onlineCount = 0;
+                for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+                    if ((Objects.equals(n.getRouteSwitchId(), nodeId2) ||
+                        Objects.equals(n.getHostNodeId(), nodeId2)) &&
+                        n.isConnected()) {
+                        onlineCount++;
+                    }
+                }
+                return String.valueOf(onlineCount);
+                
+            case HOST_NODE:
+                // Show the host node name if applicable
+                Long hostId = node.getHostNodeId();
+                if (hostId != null) {
                     for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
-                        if (String.valueOf(n.getNodeId()).equals(node.getRouteSwitch())) {
+                        if (n.getNodeId() == hostId) {
                             return n.getDisplayName();
                         }
                     }
                 }
-                return "Direct";
+                return "None";
+                
             // Add other fields as needed
             default:
                 return "N/A";

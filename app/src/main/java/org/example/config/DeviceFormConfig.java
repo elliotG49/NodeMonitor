@@ -96,8 +96,7 @@ public class DeviceFormConfig {
         
         // Switch optional fields
         put(DeviceType.UNMANAGED_SWITCH, Arrays.asList(
-            DeviceField.MAC_ADDRESS,
-            DeviceField.IP_HOSTNAME  // Add this line
+
         ));
         
         // Add Managed Switch optional fields

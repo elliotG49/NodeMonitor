@@ -28,7 +28,10 @@ public class NodeDetailPanelConfig {
         // Configure for each device type
         configureComputerFields();
         configureRouterFields();
-        // Add more configure methods for other device types
+        configureUnmanagedSwitchFields();
+        configureManagedSwitchFields();
+        configureVirtualMachineFields();
+        configureGatewayFields();
     }
     
     private static void configureComputerFields() {
@@ -55,11 +58,123 @@ public class NodeDetailPanelConfig {
             FieldSection.CONNECTION_INFORMATION
         ));
     }
-    
-    // Add configuration methods for other device types...
+
+    private static void configureUnmanagedSwitchFields() {
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        
+        // Basic Info section
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        // Fix: Put fields into UNMANAGED_SWITCH instead of COMPUTER
+        FIELD_CONFIGS.put(DeviceType.UNMANAGED_SWITCH, fields);
+        
+        // Fix: Define sections for UNMANAGED_SWITCH, not COMPUTER
+        DEVICE_SECTIONS.put(DeviceType.UNMANAGED_SWITCH, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
+    }
+
+    private static void configureManagedSwitchFields() {
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        
+        // Basic Info section
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        FIELD_CONFIGS.put(DeviceType.MANAGED_SWITCH, fields);
+        
+        // Define which sections this device type has
+        DEVICE_SECTIONS.put(DeviceType.MANAGED_SWITCH, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
+    }
     
     private static void configureRouterFields() {
-        // Similar implementation as configureComputerFields...
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        FIELD_CONFIGS.put(DeviceType.ROUTER, fields);
+        
+        // Define which sections this device type has
+        DEVICE_SECTIONS.put(DeviceType.ROUTER, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
+    }
+
+    private static void configureGatewayFields() {
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        FIELD_CONFIGS.put(DeviceType.GATEWAY, fields);
+        
+        // Define which sections this device type has
+        DEVICE_SECTIONS.put(DeviceType.GATEWAY, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
+    }
+
+    private static void configureVirtualMachineFields() {
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.HOST_NODE, true, "Host Node", FieldSection.NODE_BASIC_INFORMATION);
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        FIELD_CONFIGS.put(DeviceType.VIRTUAL_MACHINE, fields);
+        
+        // Define which sections this device type has
+        DEVICE_SECTIONS.put(DeviceType.VIRTUAL_MACHINE, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
     }
     
     private static void addField(List<NodeDetailFieldConfig> list, DeviceField field, 
