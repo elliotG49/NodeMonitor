@@ -41,10 +41,11 @@ public class NodeDetailPanelConfig {
         addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+
         addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
-        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);   
         
         // Connection Info section
         addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
@@ -92,8 +93,9 @@ public class NodeDetailPanelConfig {
         addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
-        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
+
         addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         
         // Connection Info section
         addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
@@ -112,11 +114,11 @@ public class NodeDetailPanelConfig {
         List<NodeDetailFieldConfig> fields = new ArrayList<>();
         addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
-        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         
         // Connection Info section
         addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
@@ -135,11 +137,11 @@ public class NodeDetailPanelConfig {
         List<NodeDetailFieldConfig> fields = new ArrayList<>();
         addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
-        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         
         // Connection Info section
         addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
@@ -158,11 +160,11 @@ public class NodeDetailPanelConfig {
         List<NodeDetailFieldConfig> fields = new ArrayList<>();
         addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
-        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
         addField(fields, DeviceField.HOST_NODE, true, "Host Node", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);
         
         // Connection Info section
         addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);

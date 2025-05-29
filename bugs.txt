@@ -1,4 +1,3 @@
-1. cant press ESC to close nodedetailpanel
-2. When creating a node, if routed via a switch, the connectioline does not come from the switch, but from the gatewau, however this fixes if relaunched.
-3. Label under a added node has different padding / margin to node
-4. When changing host to route via switch, the connection line successfully changes, however it dissapears on relaunch of application
+1. If nodedetailpanel is closed, pressing ESC momentarilty opens the panel, and then closes it.
+2. Some devices show up twice on host node field
+3. 

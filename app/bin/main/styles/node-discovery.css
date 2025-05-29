@@ -76,6 +76,7 @@
     -fx-background-radius: 10px;
     -fx-padding: 8px 0px;
     -fx-pref-width: 240px;
+    -fx-max-width: 240px;
     -fx-cursor: hand;
     -fx-spacing: 8px;
     -fx-alignment: center-left; 
@@ -171,9 +172,9 @@
     -fx-background-color: -icon-container-color;
     -fx-background-radius: 10px;
     -fx-text-fill: white;
-    -fx-pref-width: 170;
-    -fx-max-width: 170;
-    -fx-min-width: 170;
+    -fx-pref-width: 170px !important;
+    -fx-max-width: 170px !important;
+    -fx-min-width: 170px !important;
     -fx-font-size: 12;
     -fx-pref-height: 32px;      /* Match the add node form height */
     -fx-min-height: 32px;       /* Ensure consistent height */
@@ -226,4 +227,11 @@
     -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-padding: 0 0 4 0;  
+}
+
+/* Add this specifically for discovery fields */
+.discovery-field {
+    -fx-pref-width: 170px !important;
+    -fx-max-width: 170px !important;
+    -fx-min-width: 170px !important;
 }

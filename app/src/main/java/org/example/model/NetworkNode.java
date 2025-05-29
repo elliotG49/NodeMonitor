@@ -194,8 +194,6 @@ public class NetworkNode extends StackPane {
             ContextMenu cm = new ContextMenu();
             MenuItem tracerouteItem = new MenuItem("Traceroute");
             MenuItem portscanItem  = new MenuItem("Portscan");
-            tracerouteItem.setOnAction(a -> NetworkMonitorApp.performTraceroute(NetworkNode.this));
-            portscanItem.setOnAction(a -> {/*...*/});
             cm.getItems().addAll(tracerouteItem, portscanItem);
             cm.show(this, e.getScreenX(), e.getScreenY());
             e.consume();

@@ -368,7 +368,7 @@ public class SlideOutForms {
         labelBox.getChildren().addAll(nameLabel, countLabel);
 
         // Create arrow with image on the right
-        ImageView arrow = new ImageView(new Image(SlideOutForms.class.getResourceAsStream("/icons/arrow-right.png")));
+        ImageView arrow = new ImageView(new Image(SlideOutForms.class.getResourceAsStream("/icons/up-arrow.png")));
         arrow.setFitWidth(12);
         arrow.setFitHeight(12);
         arrow.getStyleClass().add("interface-arrow");
@@ -416,7 +416,7 @@ public class SlideOutForms {
         VBox nodeBox = new VBox(4);
         nodeBox.getStyleClass().add("node-entry");
         nodeBox.setPadding(new Insets(8));
-        nodeBox.setMaxWidth(200);
+        nodeBox.setMaxWidth(170);
 
         // Add node number label
         Label numberLabel = new Label("Node " + nodeNumber);
@@ -461,7 +461,8 @@ public class SlideOutForms {
         deviceBox.setPromptText("Device Type");
         deviceBox.getItems().setAll(DeviceType.values());
         deviceBox.setPrefWidth(170); // Adjusted to fit the node entry width
-        deviceBox.getStyleClass().add("node-device-combo");
+        deviceBox.setMaxWidth(170);  // And this
+        deviceBox.getStyleClass().add("discovery-field"); // Add a specific style class
 
         // Form fields container (initially empty)
         VBox formFields = new VBox(8);
@@ -588,11 +589,32 @@ public class SlideOutForms {
                     }
                 }
 
-                // Add the node to the network
+                // Add the node to the application
                 NetworkMonitorApp.addNewNode(newNode);
                 
-                // Close the panel
-                slidePanel.hide();
+                // Instead of closing panel, remove this node from the display
+                VBox parentSection = findParentSection(nodeBox);
+                if (parentSection != null) {
+                    // Get the content area of the interface section
+                    VBox content = findContentArea(parentSection);
+                    if (content != null) {
+                        // Remove this node box from the content
+                        content.getChildren().remove(nodeBox);
+                        
+                        // Update the node count label in the header
+                        updateNodeCount(parentSection, content.getChildren().size());
+                        
+                        // If no nodes left, collapse the section
+                        if (content.getChildren().isEmpty()) {
+                            content.setVisible(false);
+                            content.setManaged(false);
+                            ImageView arrow = findArrowInSection(parentSection);
+                            if (arrow != null) {
+                                arrow.setRotate(0);
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -861,6 +883,81 @@ public class SlideOutForms {
             if (node instanceof Parent) {
                 Node result = getFormFieldByType((Parent)node, type, promptText);
                 if (result != null) return result;
+            }
+        }
+        return null;
+    }
+
+    // New helper methods for node removal and section collapsing
+    private static VBox findParentSection(Node node) {
+        Parent parent = node.getParent();
+        while (parent != null) {
+            if (parent instanceof VBox && parent.getStyleClass().contains("interface-section")) {
+                return (VBox) parent;
+            }
+            parent = parent.getParent();
+        }
+        return null;
+    }
+
+    private static VBox findContentArea(Node section) {
+        if (section instanceof Parent) {
+            Parent parent = (Parent) section;
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                if (child instanceof VBox && child.getStyleClass().contains("interface-content")) {
+                    return (VBox) child;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void updateNodeCount(Node section, int count) {
+        // Make sure section is a Parent
+        if (section instanceof Parent) {
+            Parent parent = (Parent) section;
+            
+            // Find the header (first HBox)
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                if (child instanceof HBox) {
+                    HBox header = (HBox) child;
+                    // Find the VBox containing labels
+                    for (Node headerChild : header.getChildrenUnmodifiable()) {
+                        if (headerChild instanceof VBox) {
+                            VBox labelBox = (VBox) headerChild;
+                            // Find the count label (second label)
+                            if (labelBox.getChildrenUnmodifiable().size() >= 2 && 
+                                labelBox.getChildrenUnmodifiable().get(1) instanceof Label) {
+                                Label countLabel = (Label) labelBox.getChildrenUnmodifiable().get(1);
+                                countLabel.setText(count + " Nodes Found");
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private static ImageView findArrowInSection(Node section) {
+        // Make sure section is a Parent
+        if (section instanceof Parent) {
+            Parent parent = (Parent) section;
+            
+            // Find the header (first HBox)
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                if (child instanceof HBox) {
+                    HBox header = (HBox) child;
+                    // Find the ImageView (last child)
+                    for (Node headerChild : header.getChildrenUnmodifiable()) {
+                        if (headerChild instanceof ImageView && 
+                            headerChild.getStyleClass().contains("interface-arrow")) {
+                            return (ImageView) headerChild;
+                        }
+                    }
+                    break;
+                }
             }
         }
         return null;

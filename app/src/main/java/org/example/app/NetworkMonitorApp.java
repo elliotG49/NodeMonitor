@@ -20,13 +20,13 @@ import org.example.model.ConnectionType;
 import org.example.model.DeviceType;
 import org.example.model.NetworkLocation;
 import org.example.model.NetworkNode;
-import org.example.service.TracerouteTask;
+
 import org.example.ui.components.ConnectionLine;
-import org.example.ui.components.TracerouteLine;
+
 import org.example.ui.forms.SlideOutForms;
 import org.example.ui.panels.NodeDetailPanel;
 import org.example.ui.panels.SlideOutPanel;
-import org.example.ui.panels.TraceroutePanel;
+
 import org.example.util.NetworkUtils;
 
 import com.google.gson.Gson;
@@ -283,6 +283,14 @@ public class NetworkMonitorApp extends Application {
             // This will properly handle all connection types, including route switches
             updateConnectionLineForNode(node);
         }
+        
+        // Add click handler for node detail panel
+        node.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                instance.nodeDetailPanel.showForNode(node);
+                e.consume();
+            }
+        });
     }
 
     public static NetworkNode getUpstreamNode(NetworkNode node) {
@@ -756,83 +764,7 @@ public class NetworkMonitorApp extends Application {
 
     
 
-    public static void performTraceroute(NetworkNode source) {
-        Pane spiderPane = instance.spiderMapPane;
-        StackPane rootStack = (StackPane) ((BorderPane) instance.primaryStage.getScene().getRoot()).getCenter();
-        rootStack.getChildren().removeIf(n -> n instanceof TraceroutePanel);
-        TraceroutePanel panel = new TraceroutePanel();
-        StackPane.setAlignment(panel, Pos.TOP_LEFT);
-        StackPane.setMargin(panel, new Insets(10));
-        rootStack.getChildren().add(panel);
-
-        NetworkNode hostFinal;
-        NetworkNode tempHost = instance.getMainNodeByDisplayName("Host");
-        hostFinal = (tempHost == null) ? source : tempHost;
-
-        class Origin { 
-            NetworkNode node; 
-            double x, y; 
-            boolean isVirtual = false; 
-        }
-        
-        Origin origin = new Origin();
-        origin.node = hostFinal;
-        origin.x = hostFinal.getLayoutX() + hostFinal.getWidth() / 2;
-        origin.y = hostFinal.getLayoutY() + hostFinal.getHeight() / 2;
-
-        java.util.concurrent.atomic.AtomicInteger hopCounter = new java.util.concurrent.atomic.AtomicInteger(0);
-        List<TracerouteLine> tracerouteLines = new ArrayList<>();
-        String target = source.getIpOrHostname();
-        TracerouteTask task = new TracerouteTask(target);
-
-        task.setHopCallback(hop -> {
-            int index = hopCounter.incrementAndGet();
-            panel.addHop("Hop " + index + ": " + hop);
-            NetworkNode targetNode = null;
-            
-            for (NetworkNode node : getPersistentNodesStatic()) {
-                String ip = (node.getResolvedIp() != null && !node.getResolvedIp().isEmpty())
-                    ? node.getResolvedIp() : node.getIpOrHostname();
-                if (ip.equals(hop)) {
-                    targetNode = node;
-                    break;
-                }
-            }
-
-            TracerouteLine tLine;
-            if (targetNode != null) {
-                tLine = origin.isVirtual
-                    ? new TracerouteLine(origin.x, origin.y, targetNode)
-                    : new TracerouteLine(origin.node, targetNode);
-                origin.node = targetNode;
-                origin.x = targetNode.getLayoutX() + targetNode.getWidth() / 2;
-                origin.y = targetNode.getLayoutY() + targetNode.getHeight() / 2;
-                origin.isVirtual = false;
-            } else {
-                tLine = new TracerouteLine(origin.x, origin.y, hop, index - 1);
-                origin.x += TracerouteLine.UNKNOWN_OFFSET;
-                origin.node = null;
-                origin.isVirtual = true;
-            }
-
-            tLine.setLineColor(Color.web("#C9EB78"));
-            tracerouteLines.add(tLine);
-            spiderPane.getChildren().add(0, tLine);
-        });
-
-        task.setOnSucceeded(e -> {
-            panel.addHop("Traceroute complete");
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.seconds(5));
-            pause.setOnFinished(ev -> {
-                tracerouteLines.forEach(TracerouteLine::startFadeOut);
-                panel.startFadeOut();
-            });
-            pause.play();
-        });
-
-        task.setOnFailed(e -> System.err.println("Traceroute failed: " + task.getException()));
-        new Thread(task).start();
-    }
+    
 
     // Add this method to NetworkMonitorApp class
     public List<NetworkNode> getRouteToNode(NetworkNode targetNode) {
