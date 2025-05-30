@@ -259,6 +259,16 @@ public class NetworkMonitorApp extends Application {
         centerStack.getChildren().add(rightSlidePanel);
         // Use CENTER_RIGHT alignment, which will respect the panel's translateX property
         StackPane.setAlignment(rightSlidePanel, Pos.CENTER_RIGHT);
+
+        // Perform ping sweep in background
+        Thread pingSweepThread = new Thread(() -> {
+            System.out.println("Starting network ping sweep...");
+            List<String> activeHosts = NetworkUtils.pingSweep();
+            System.out.println("Found " + activeHosts.size() + " active hosts:");
+            activeHosts.forEach(System.out::println);
+        });
+        pingSweepThread.setDaemon(true);
+        pingSweepThread.start();
     }
 
     public static void updateConnectionLinesVisibility() {
