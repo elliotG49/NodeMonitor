@@ -20,13 +20,13 @@ import org.example.model.ConnectionType;
 import org.example.model.DeviceType;
 import org.example.model.NetworkLocation;
 import org.example.model.NetworkNode;
-
+import org.example.service.TracerouteTask;
 import org.example.ui.components.ConnectionLine;
-
 import org.example.ui.forms.SlideOutForms;
 import org.example.ui.panels.NodeDetailPanel;
+import org.example.ui.panels.RightSlidePanel;
 import org.example.ui.panels.SlideOutPanel;
-
+import org.example.ui.panels.TraceroutePanel;
 import org.example.util.NetworkUtils;
 
 import com.google.gson.Gson;
@@ -39,7 +39,6 @@ import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -67,6 +66,7 @@ public class NetworkMonitorApp extends Application {
     private VBox statusPanel;
     private Label totalLabel, upLabel, downLabel;
     private SlideOutPanel slidePanel;
+    private RightSlidePanel rightSlidePanel; // Add this field declaration
 
     private static final String CONFIG_DIR = System.getProperty("user.home") + File.separator + "NetworkMonitorApp";
     private static final String CONFIG_FILE = CONFIG_DIR + File.separator + "nodes.json";
@@ -188,6 +188,7 @@ public class NetworkMonitorApp extends Application {
         scene.getStylesheets().add(getClass().getResource("/styles/node-styling.css").toExternalForm());
         scene.getStylesheets().add(getClass().getResource("/styles/slide-panel.css").toExternalForm());
         scene.getStylesheets().add(getClass().getResource("/styles/node-detail-panel.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/styles/traceroute.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -248,6 +249,13 @@ public class NetworkMonitorApp extends Application {
                 nodeDetailPanel.setPrefHeight(scene.getHeight());
             }
         });
+
+
+        // Add right slide panel for traceroute results
+        rightSlidePanel = new RightSlidePanel(200); // Use 200px width
+        centerStack.getChildren().add(rightSlidePanel);
+        // Use CENTER_RIGHT alignment, which will respect the panel's translateX property
+        StackPane.setAlignment(rightSlidePanel, Pos.CENTER_RIGHT);
     }
 
     public static void updateConnectionLinesVisibility() {
@@ -284,9 +292,9 @@ public class NetworkMonitorApp extends Application {
             updateConnectionLineForNode(node);
         }
         
-        // Add click handler for node detail panel
+        // Add just the double-click handler for node detail panel
         node.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2) {
+            if (e.getClickCount() == 2 && e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
                 instance.nodeDetailPanel.showForNode(node);
                 e.consume();
             }
@@ -1068,12 +1076,70 @@ public class NetworkMonitorApp extends Application {
         return null;
     }
 
-    // Add this method to the NetworkMonitorApp class
+
+    public void performTraceroute(NetworkNode node) {
+        // Check if node detail panel is open and close it to avoid overlap
+        if (nodeDetailPanel.isShowing()) {
+            nodeDetailPanel.hide();
+        }
+        
+        // Make sure the right slide panel is completely reset before creating a new traceroute panel
+        if (rightSlidePanel.isShowing()) {
+            rightSlidePanel.hide();
+            
+            // Use a small delay to ensure panel is fully hidden before showing again
+            javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(Duration.millis(250));
+            delay.setOnFinished(e -> {
+                createAndShowTraceroutePanel(node);
+            });
+            delay.play();
+        } else {
+            createAndShowTraceroutePanel(node);
+        }
+    }
+
+    private void createAndShowTraceroutePanel(NetworkNode node) {
+        // Create panel with traceroute results using the new design
+        TraceroutePanel resultsPanel = new TraceroutePanel(node);
+        rightSlidePanel.setContent(resultsPanel);
+        rightSlidePanel.show();
+        
+        // Run traceroute in background thread
+        TracerouteTask tracerouteTask = new TracerouteTask(node.getIpOrHostname());
+        
+        // Store task reference in panel so it can be cancelled if needed
+        resultsPanel.setTracerouteTask(tracerouteTask);
+        
+        // Update panel as results come in
+        tracerouteTask.valueProperty().addListener((obs, oldValue, newValue) -> {
+            if (newValue != null && !newValue.isEmpty()) {
+                resultsPanel.setTracerouteData(newValue);
+            }
+        });
+        
+        // Start the task
+        new Thread(tracerouteTask).start();
+    }
+
+    // Modify the NodeDetailPanel.showForNode method
+    // In NetworkMonitorApp.java, add this method:
+    public void showNodeDetails(NetworkNode node) {
+        // Close the traceroute panel if it's open
+        if (rightSlidePanel.isShowing()) {
+            rightSlidePanel.hide();
+        }
+        
+        // Now show the node details
+        nodeDetailPanel.showForNode(node);
+    }
+
+    // Update the double-click handler in addNodeDetailHandlers:
     public void addNodeDetailHandlers() {
         for (NetworkNode node : persistentNodes) {
             node.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2) {
-                    nodeDetailPanel.showForNode(node);
+                if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY && e.getClickCount() == 2) {
+                    // Use the new method that checks for open panels
+                    showNodeDetails(node);
                     e.consume();
                 }
             });

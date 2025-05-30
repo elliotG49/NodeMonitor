@@ -1,0 +1,125 @@
+/* Right slide panel styling */
+.right-slide-panel {
+    -fx-background-color: #1a273b;
+    -fx-background-radius: 10 0 0 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 0);
+}
+
+/* Traceroute hop styling */
+.traceroute-hop {
+    -fx-padding: 5;
+}
+
+.traceroute-hop .circle {
+    -fx-stroke-width: 2;
+}
+
+.traceroute-hop .circle.active {
+    -fx-stroke: #00EBFF;
+    -fx-effect: dropshadow(three-pass-box, #00EBFF, 5, 0, 0, 0);
+}
+
+.traceroute-hop .circle.first-last {
+    -fx-stroke: #00FF00;
+    -fx-effect: dropshadow(three-pass-box, #00FF00, 8, 0, 0, 0);
+}
+
+.traceroute-hop .ip-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+/* No need for inactive styling since we're making all IP labels white */
+.traceroute-hop .ip-label.inactive {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.traceroute-hop .connecting-line {
+    -fx-stroke-width: 2;
+}
+
+.traceroute-hop .connecting-line.active {
+    -fx-stroke: #00EBFF;
+}
+
+/* Traceroute scrollpane styling */
+.traceroute-scrollpane {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+}
+
+.traceroute-scrollpane .viewport {
+    -fx-background-color: transparent;
+}
+
+.traceroute-scrollpane .scroll-bar:vertical {
+    -fx-background-color: #1a273b;
+    -fx-background-radius: 0;
+}
+
+.traceroute-scrollpane .scroll-bar:vertical .thumb {
+    -fx-background-color: #2a374b;
+    -fx-background-radius: 5px;
+}
+
+.traceroute-scrollpane .scroll-bar:vertical .increment-button,
+.traceroute-scrollpane .scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.traceroute-scrollpane .scroll-bar:vertical .increment-arrow,
+.traceroute-scrollpane .scroll-bar:vertical .decrement-arrow {
+    -fx-background-color: #5a677b;
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+/* Add the close button styling */
+.traceroute-close-button {
+    -fx-background-color: #FF5C5C;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px;
+    -fx-background-radius: 10px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);
+    -fx-cursor: hand;
+}
+
+.traceroute-close-button:hover {
+    -fx-background-color: #FF7A7A;
+}
+
+.traceroute-close-button:pressed {
+    -fx-background-color: #FF3C3C;
+}
+
+/* Add the status label styling */
+.traceroute-status-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-padding: 5px;
+    -fx-min-height: 25px;
+    -fx-max-width: infinity;
+    -fx-background-radius: 5px;
+}
+
+.traceroute-status-inprogress {
+    -fx-text-fill: #FFD700; /* Gold */
+    -fx-background-color: rgba(255, 215, 0, 0.15);
+}
+
+.traceroute-status-completed {
+    -fx-text-fill: #00FF00; /* Green */
+    -fx-background-color: rgba(0, 255, 0, 0.15);
+}
+
+.traceroute-status-failed {
+    -fx-text-fill: #FF5C5C; /* Red */
+    -fx-background-color: rgba(255, 92, 92, 0.15);
+}

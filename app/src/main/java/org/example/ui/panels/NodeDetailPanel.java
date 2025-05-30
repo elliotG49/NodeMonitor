@@ -33,21 +33,12 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.scene.layout.HBox;
-import javafx.scene.text.TextAlignment;
-
 /**
  * Panel that displays details about a selected network node.
  * Slides in from the right side of the application when a node is clicked.
  */
 public class NodeDetailPanel extends VBox {
-    private static final double PANEL_WIDTH = 300;
+    private static final double PANEL_WIDTH = 250;
     private final Timeline showTimeline;
     private final Timeline hideTimeline;
     private NetworkNode currentNode;
@@ -62,7 +53,7 @@ public class NodeDetailPanel extends VBox {
     public NodeDetailPanel() {
         // Create a content VBox to hold all panel contents
         contentBox = new VBox(15);
-        contentBox.setPadding(new Insets(20, 15, 15, 15));
+        contentBox.setPadding(new Insets(20, 10, 15, 10));
         contentBox.getStyleClass().add("node-detail-content");
         
         // Create a ScrollPane to make the content scrollable
@@ -81,7 +72,7 @@ public class NodeDetailPanel extends VBox {
         // Set up animations
         showTimeline = new Timeline(
             new KeyFrame(Duration.ZERO, 
-                new KeyValue(translateXProperty(), PANEL_WIDTH)),
+                new KeyValue(translateXProperty(), PANEL_WIDTH)), // Use PANEL_WIDTH directly here
             new KeyFrame(Duration.millis(250), 
                 new KeyValue(translateXProperty(), 0))
         );
@@ -90,11 +81,11 @@ public class NodeDetailPanel extends VBox {
             new KeyFrame(Duration.ZERO, 
                 new KeyValue(translateXProperty(), 0)),
             new KeyFrame(Duration.millis(250), 
-                new KeyValue(translateXProperty(), PANEL_WIDTH))
+                new KeyValue(translateXProperty(), PANEL_WIDTH)) // Use PANEL_WIDTH directly here
         );
         
         // Initially hidden - move the panel completely off-screen
-        setTranslateX(PANEL_WIDTH);
+        setTranslateX(PANEL_WIDTH); // Use PANEL_WIDTH directly here
         
         // Add the ScrollPane to the main panel
         getChildren().add(scrollPane);
@@ -106,12 +97,8 @@ public class NodeDetailPanel extends VBox {
             }
         });
         
-        // Add ESC key handler to close the panel
-        setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ESCAPE) {
-                hide();
-            }
-        });
+        // Initialize ESC key handler
+        initializeEscHandler();
     }
     
     /**
@@ -336,8 +323,8 @@ public class NodeDetailPanel extends VBox {
                 
                 ComboBox<String> comboBox = new ComboBox<>();
                 comboBox.getStyleClass().add("nodedetail-combobox");
-                comboBox.setPrefWidth(215);
-                comboBox.setMaxWidth(215);
+                comboBox.setPrefWidth(200);
+                comboBox.setMaxWidth(200);
                 
                 // Add options based on the field type
                 if (fieldType == DeviceField.CONNECTION_TYPE) {
@@ -371,8 +358,8 @@ public class NodeDetailPanel extends VBox {
                 // Create editable text field for other editable fields
                 TextField textField = new TextField(value);
                 textField.getStyleClass().add("nodedetail-textfield");
-                textField.setPrefWidth(215);  // Match the width used in add node form
-                textField.setMaxWidth(215);   // Match the width used in add node form
+                textField.setPrefWidth(200);  // Match the width used in add node form
+                textField.setMaxWidth(200);   // Match the width used in add node form
                 
                 // Save changes when focus is lost
                 textField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
@@ -721,8 +708,13 @@ public class NodeDetailPanel extends VBox {
         // Set up button handlers
         setupButtonHandlers(updateButton, deleteButton);
         
-        buttonBar.setCenter(updateButton);
-        buttonBar.setRight(deleteButton);
+        // Create an HBox to center the buttons with some spacing between them
+        javafx.scene.layout.HBox buttonBox = new javafx.scene.layout.HBox(10); // 10px spacing
+        buttonBox.setAlignment(javafx.geometry.Pos.CENTER);
+        buttonBox.getChildren().addAll(updateButton, deleteButton);
+        
+        // Place the HBox in the center of the BorderPane
+        buttonBar.setCenter(buttonBox);
         
         return buttonBar;
     }
@@ -821,5 +813,24 @@ public class NodeDetailPanel extends VBox {
         
         // Reset current node reference
         currentNode = null;
+    }
+
+    /**
+     * Check if the panel is currently showing
+     * @return true if the panel is visible and showing
+     */
+    public boolean isShowing() {
+        // The panel is showing if it's visible and fully slid in (translateX = 0)
+        return isVisible() && getTranslateX() == 0;
+    }
+
+    private void initializeEscHandler() {
+        // Add ESC key handler to close the panel, but only when visible
+        setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ESCAPE && isShowing()) {
+                hide();
+                e.consume();
+            }
+        });
     }
 }

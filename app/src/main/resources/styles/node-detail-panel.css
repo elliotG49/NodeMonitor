@@ -12,8 +12,8 @@
   
   -fx-padding: 0 8px 0 12px;
   -fx-pref-height: 32px;
-  -fx-max-width: 250px;
-  -fx-min-width: 250px;
+  -fx-max-width: 225px;
+  -fx-min-width: 225px;
   
   -fx-cursor: hand;
 }
@@ -85,8 +85,8 @@
 
 /* Make sure the node detail panel aligns with other styles */
 .node-detail-panel {
-  -fx-pref-width: 300px;
-  -fx-max-width: 300px;
+  -fx-pref-width: 250px;
+  -fx-max-width: 250px;
   -fx-background-color: -panels-bg-color;
   -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, -5, 0);
   -fx-spacing: 12px;
@@ -94,7 +94,7 @@
 
 .section-header {
   -fx-text-fill: white;
-  -fx-font-size: 16px;
+  -fx-font-size: 14px;
   -fx-font-weight: bold;
   -fx-padding: 0 0 5 0;
 }
@@ -103,7 +103,7 @@
 
 .expandable-section-header {
     -fx-background-color: transparent;
-    -fx-padding: 5px 15px 5px 0px;
+    -fx-padding: 5px 5px 5px 5px;  /* Even 15px padding on both left and right */
     -fx-cursor: hand;
 }
 
