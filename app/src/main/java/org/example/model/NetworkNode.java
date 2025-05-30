@@ -83,24 +83,38 @@ public class NetworkNode extends StackPane {
         this.networkLocation = networkLocation; // Use networkLocation directly
         this.startTime    = System.currentTimeMillis();
 
-        // --- Square background ---
-        square = new Rectangle(SQUARE_SIZE, SQUARE_SIZE);
+        // Define different sizes based on device type
+        double nodeSize = isInfrastructureNode() ? SQUARE_SIZE : SQUARE_SIZE * 0.85;
+
+        // --- Node background shape ---
+        // Create rectangular shape for all nodes, with consistent border radius
+        square = new Rectangle(nodeSize, nodeSize);
         square.setArcWidth(30);  // Border radius
         square.setArcHeight(30);
+        
         square.getStyleClass().add("node-square");
         square.setFill(Color.web("#222E3C")); // Or use your preferred color
         square.setStroke(Color.web("#008b97")); // Optional: border color
-        square.setStyle(
-                "-fx-effect: dropshadow(gaussian, -node-glow-color, 9, 0.5, 0, 0);"
-            );
         square.setStrokeWidth(2);           // Optional: border width
 
-        // --- Icon inside square ---
+        // Replace the current glow effect with a much more pronounced one with larger blur
+        javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
+        glow.setColor(Color.web("#008b97"));
+        glow.setRadius(30.0); // Keep this as it was since you perfected it
+        glow.setSpread(0.05);  // Keep this as it was since you perfected it
+        glow.setOffsetX(0);
+        glow.setOffsetY(0);
+        square.setEffect(glow);
+
+        // --- Icon inside shape ---
         iconView = new ImageView(new Image(
             getClass().getResourceAsStream("/icons/" + getIconFileName())
         ));
-        iconView.setFitWidth(40);
-        iconView.setFitHeight(40);
+        
+        // Adjust icon size based on node size
+        double iconSize = isInfrastructureNode() ? 40 : 35;
+        iconView.setFitWidth(iconSize);
+        iconView.setFitHeight(iconSize);
 
         // Create inner container for square and icon
         StackPane nodeContainer = new StackPane();
@@ -133,10 +147,15 @@ public class NetworkNode extends StackPane {
             hoverScale.setToY(1.05);
             hoverScale.playFromStart();
             
+            // Enhance glow on hover with even larger blur
+            javafx.scene.effect.DropShadow hoverGlow = new javafx.scene.effect.DropShadow();
+            hoverGlow.setColor(Color.web("#C2C2C2"));
+            hoverGlow.setRadius(20.0); // Dramatically larger on hover
+            hoverGlow.setSpread(0.05);
+            hoverGlow.setOffsetX(0);
+            hoverGlow.setOffsetY(0);
+            square.setEffect(hoverGlow);
             square.setStroke(Color.web("#C2C2C2"));
-            square.setStyle(
-                "-fx-effect: dropshadow(gaussian, #C2C2C2, 9, 0.5, 0, 0);"
-            );
 
             setCursor(Cursor.HAND);
 
@@ -158,12 +177,15 @@ public class NetworkNode extends StackPane {
             hoverScale.setToY(1.0);
             hoverScale.playFromStart();
             
-            // Return to original border color and remove glow
-            square.setFill(Color.web("#222E3C")); // Or use your preferred color
-            square.setStroke(Color.web("#008b97")); // Optional: border color
-            square.setStyle(
-                    "-fx-effect: dropshadow(gaussian, -node-glow-color, 9, 0.5, 0, 0);"
-                );
+            // Return to normal glow but with larger blur
+            javafx.scene.effect.DropShadow normalGlow = new javafx.scene.effect.DropShadow();
+            normalGlow.setColor(Color.web("#008b97"));
+            normalGlow.setRadius(30.0); // Match the larger default radius
+            normalGlow.setSpread(0.05);
+            normalGlow.setOffsetX(0);
+            normalGlow.setOffsetY(0);
+            square.setEffect(normalGlow);
+            square.setStroke(Color.web("#008b97"));
 
             setCursor(Cursor.DEFAULT);
 
@@ -249,9 +271,25 @@ public class NetworkNode extends StackPane {
     public DeviceType getDeviceType()           { return deviceType; }
     public void setDeviceType(DeviceType dt) {
         this.deviceType = dt;
+        
+        // Update icon image
         iconView.setImage(new Image(
             getClass().getResourceAsStream("/icons/"+getIconFileName())
         ));
+        
+        // Update shape based on new device type
+        double nodeSize = isInfrastructureNode() ? SQUARE_SIZE : SQUARE_SIZE * 0.85;
+        
+        // Update icon size based on node type
+        double iconSize = isInfrastructureNode() ? 40 : 35;
+        iconView.setFitWidth(iconSize);
+        iconView.setFitHeight(iconSize);
+        
+        // Update shape properties - keep rectangular for all nodes
+        square.setWidth(nodeSize);
+        square.setHeight(nodeSize);
+        square.setArcWidth(30);
+        square.setArcHeight(30);
     }
 
     public boolean isMainNode()                 { return mainNode; }
@@ -425,5 +463,11 @@ public class NetworkNode extends StackPane {
 
     public boolean isHighlighted() {
         return isHighlighted;
+    }
+
+    private boolean isInfrastructureNode() {
+        // Consider a node as infrastructure if it's a router, switch, or gateway
+        return deviceType == DeviceType.ROUTER || deviceType == DeviceType.UNMANAGED_SWITCH ||
+               deviceType == DeviceType.MANAGED_SWITCH || deviceType == DeviceType.GATEWAY;
     }
 }
