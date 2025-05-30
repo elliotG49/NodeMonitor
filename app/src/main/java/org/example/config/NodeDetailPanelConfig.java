@@ -32,6 +32,8 @@ public class NodeDetailPanelConfig {
         configureManagedSwitchFields();
         configureVirtualMachineFields();
         configureGatewayFields();
+        configureLaptopFields();
+        configurePhoneFields();
     }
     
     private static void configureComputerFields() {
@@ -178,6 +180,60 @@ public class NodeDetailPanelConfig {
             FieldSection.CONNECTION_INFORMATION
         ));
     }
+
+    private static void configureLaptopFields() {
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        
+        // Basic Info section
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);   
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        FIELD_CONFIGS.put(DeviceType.LAPTOP, fields);
+        
+        // Define which sections this device type has
+        DEVICE_SECTIONS.put(DeviceType.LAPTOP, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
+    }
+
+    private static void configurePhoneFields() {
+        List<NodeDetailFieldConfig> fields = new ArrayList<>();
+        
+        // Basic Info section
+        addField(fields, DeviceField.DEVICE_TYPE, false, "Device Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.DISPLAY_NAME, true, "Name", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NETWORK_LOCATION, true, "Network Location", FieldSection.NODE_BASIC_INFORMATION);
+
+        addField(fields, DeviceField.CONNECTION_TYPE, true, "Connection Type", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.IP_HOSTNAME, true, "IP/Hostname", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.NODE_ROUTING, true, "Node Routing", FieldSection.NODE_BASIC_INFORMATION);
+        addField(fields, DeviceField.MAC_ADDRESS, false, "MAC Address", FieldSection.NODE_BASIC_INFORMATION);   
+        
+        // Connection Info section
+        addField(fields, DeviceField.TOTAL_CONNECTIONS, false, "Total Connections", FieldSection.CONNECTION_INFORMATION);
+        addField(fields, DeviceField.ONLINE_CONNECTIONS, false, "Online Connections", FieldSection.CONNECTION_INFORMATION);
+        
+        FIELD_CONFIGS.put(DeviceType.PHONE, fields);
+        
+        // Define which sections this device type has
+        DEVICE_SECTIONS.put(DeviceType.PHONE, Arrays.asList(
+            FieldSection.NODE_BASIC_INFORMATION,
+            FieldSection.CONNECTION_INFORMATION
+        ));
+    }
+
+    
     
     private static void addField(List<NodeDetailFieldConfig> list, DeviceField field, 
                             boolean editable, String label, FieldSection section) {

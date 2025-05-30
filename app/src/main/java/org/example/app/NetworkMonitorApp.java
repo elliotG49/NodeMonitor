@@ -1,6 +1,9 @@
 package org.example.app;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -301,12 +304,6 @@ public class NetworkMonitorApp extends Application {
         });
     }
 
-    public static NetworkNode getUpstreamNode(NetworkNode node) {
-        if (node.getConnectionType() == ConnectionType.VIRTUAL)
-            return instance.getMainNodeByDisplayName("Host");
-        return instance.getMainNodeByDisplayName("Gateway");
-    }
-
     private void loadWindowSize() {
         try {
             if (Files.exists(Paths.get(WINDOW_CONFIG_FILE))) {
@@ -348,8 +345,13 @@ public class NetworkMonitorApp extends Application {
         double centerY = primaryStage.getHeight() / 2;
         double spacing = 300;
 
+        String hostname = getSystemHostname();
+        if (hostname == null || hostname.trim().isEmpty()) {
+            hostname = "Host"; // Fallback if unable to get hostname
+        }
+
         // Update the Host node to use LOCAL network location
-        NetworkNode hostNode = new NetworkNode("127.0.0.1", "Host", DeviceType.COMPUTER, NetworkLocation.LOCAL);
+        NetworkNode hostNode = new NetworkNode("127.0.0.1", hostname, DeviceType.COMPUTER, NetworkLocation.LOCAL);
         hostNode.setLayoutX(centerX - hostNode.getPrefWidth() / 2);
         hostNode.setLayoutY(centerY - spacing - hostNode.getPrefHeight() / 2);
         hostNode.setMainNode(true);
@@ -360,7 +362,7 @@ public class NetworkMonitorApp extends Application {
         String gw = NetworkUtils.getDefaultGateway();
         if (gw == null) gw = "192.168.0.1";
         // Update the Gateway node to use PUBLIC network location
-        NetworkNode gatewayNode = new NetworkNode(gw, "Gateway", DeviceType.GATEWAY, NetworkLocation.PUBLIC);
+        NetworkNode gatewayNode = new NetworkNode(gw, "Default Gateway", DeviceType.ROUTER, NetworkLocation.PUBLIC);
         gatewayNode.setLayoutX(centerX - gatewayNode.getPrefWidth() / 2);
         gatewayNode.setLayoutY(centerY - gatewayNode.getPrefHeight() / 2);
         gatewayNode.setMainNode(true);
@@ -373,6 +375,23 @@ public class NetworkMonitorApp extends Application {
         spiderMapPane.getChildren().add(0, line1);
 
         addNodeDetailHandlers(); // Add this line
+    }
+
+        private String getSystemHostname() {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("powershell.exe", "-Command", "hostname");
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+            
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String hostname = reader.readLine();
+                process.waitFor();
+                return hostname;
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private Button createModeRow(String iconPath, String text) {
@@ -529,7 +548,7 @@ public class NetworkMonitorApp extends Application {
         // Only reach here if no specific routing is set
         ConnectionLine connection;
         if (node.getConnectionType() == ConnectionType.VIRTUAL) {
-            NetworkNode host = instance.getMainNodeByDisplayName("Host");
+            NetworkNode host = instance.getHostNode();
             connection = new ConnectionLine(host, node);
             if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
                 connection.setLineColor(Color.web("#0cad03"));
@@ -662,15 +681,30 @@ public class NetworkMonitorApp extends Application {
         else if (!node.isMainNode()) {
             ConnectionLine connection;
             if (node.getConnectionType() == ConnectionType.VIRTUAL) {
-                NetworkNode host = instance.getMainNodeByDisplayName("Host");
+                // Get host node by its identifiable characteristics rather than name
+                NetworkNode host = instance.getHostNode(); // Using the method you already implemented
                 connection = new ConnectionLine(host, node);
                 if (node.getDeviceType() == DeviceType.VIRTUAL_MACHINE) {
                     connection.setLineColor(Color.web("#0cad03"));
                 }
             } else {
-                // All non-virtual nodes route through gateway
-                NetworkNode gw = instance.getMainNodeByDisplayName("Gateway");
-                connection = new ConnectionLine(gw, node);
+                // Get gateway node by its characteristics rather than name
+                NetworkNode gw = instance.findMainNodeByDeviceType(DeviceType.ROUTER);
+                if (gw == null) {
+                    // Fallback in case the gateway node type changed
+                    for (NetworkNode mainNode : instance.persistentNodes) {
+                        if (mainNode.isMainNode() && mainNode.getNetworkLocation() == NetworkLocation.PUBLIC) {
+                            gw = mainNode;
+                            break;
+                        }
+                    }
+                }
+                if (gw != null) {
+                    connection = new ConnectionLine(gw, node);
+                    connection.setViewOrder(1);
+                    instance.spiderMapPane.getChildren().add(0, connection);
+                }
+                return;
             }
             connection.setViewOrder(1);
             instance.spiderMapPane.getChildren().add(0, connection);
@@ -1144,5 +1178,15 @@ public class NetworkMonitorApp extends Application {
                 }
             });
         }
+    }
+
+    // Add this method to get Host node regardless of its actual hostname
+    public NetworkNode getHostNode() {
+        for (NetworkNode node : persistentNodes) {
+            if (node.isMainNode() && node.getIpOrHostname().equals("127.0.0.1")) {
+                return node;
+            }
+        }
+        return null;
     }
 }
