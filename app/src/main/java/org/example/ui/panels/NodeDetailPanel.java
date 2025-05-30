@@ -424,11 +424,17 @@ public class NodeDetailPanel extends VBox {
                 // Handle "Direct" as null or find the node ID based on display name
                 if ("Direct".equals(newValue)) {
                     node.setRouteSwitch(null);
+                    node.setRouteSwitchId(null); // Make sure ID is also null
                 } else {
                     // Find the node ID of the selected node by display name
                     for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
                         if (n.getDisplayName().equals(newValue)) {
-                            node.setRouteSwitch(String.valueOf(n.getNodeId()));
+                            // Store both the display name and ID
+                            node.setRouteSwitch(newValue); // Store display name instead of ID
+                            node.setRouteSwitchId(n.getNodeId()); // Set ID correctly
+                            
+                            // Remove the immediate update - will be done when Update button is clicked
+                            // NetworkMonitorApp.updateConnectionLineForNode(node);
                             break;
                         }
                     }
@@ -473,14 +479,19 @@ public class NodeDetailPanel extends VBox {
                 break;
         }
         
-        // Find the update button and enable it whenever a field changes
+        // Enable the Update button
         for (javafx.scene.Node child : contentBox.getChildren()) {
             if (child instanceof BorderPane) {
                 BorderPane buttonBar = (BorderPane) child;
-                if (buttonBar.getCenter() instanceof Button) {
-                    Button updateButton = (Button) buttonBar.getCenter();
-                    updateButton.setDisable(false); // Enable update button
-                    break;
+                if (buttonBar.getCenter() instanceof javafx.scene.layout.HBox) {
+                    javafx.scene.layout.HBox buttonBox = (javafx.scene.layout.HBox) buttonBar.getCenter();
+                    for (javafx.scene.Node buttonNode : buttonBox.getChildren()) {
+                        if (buttonNode instanceof Button && ((Button) buttonNode).getText().equals("Update")) {
+                            Button updateButton = (Button) buttonNode;
+                            updateButton.setDisable(false); // Enable update button
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -617,10 +628,27 @@ public class NodeDetailPanel extends VBox {
                 return node.getNetworkLocation().toString();
                 
             case NODE_ROUTING:
-                // Display the routing information (stored as display name or null)
+                // Get the route switch by name (which we now store directly)
                 String routeSwitch = node.getRouteSwitch();
-                return (routeSwitch != null && !routeSwitch.isEmpty()) ? routeSwitch : "Direct";
-
+                
+                // If it's null or empty, return "Direct"
+                if (routeSwitch == null || routeSwitch.isEmpty()) {
+                    return "Direct";
+                }
+                
+                // If the stored value looks like a numeric ID (old data)
+                if (routeSwitch.matches("\\d+")) {
+                    // Look up the display name from the ID
+                    Long routeSwitchId = Long.parseLong(routeSwitch);
+                    for (NetworkNode n : NetworkMonitorApp.getPersistentNodesStatic()) {
+                        if (n.getNodeId() == routeSwitchId) {
+                            return n.getDisplayName();
+                        }
+                    }
+                }
+                
+                // Otherwise return the display name we stored
+                return routeSwitch;
             case TOTAL_CONNECTIONS:
                 // Get the number of connections for this node
                 long nodeId = node.getNodeId();
