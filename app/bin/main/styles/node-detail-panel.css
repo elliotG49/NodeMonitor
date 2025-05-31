@@ -88,7 +88,8 @@
   -fx-pref-width: 250px;
   -fx-max-width: 250px;
   -fx-background-color: -panels-bg-color;
-  -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, -5, 0);
+  -fx-background-radius: 10px 0 0 10px;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0, -2, 0);
   -fx-spacing: 12px;
 }
 

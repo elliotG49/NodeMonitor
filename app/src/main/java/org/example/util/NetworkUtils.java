@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 public class NetworkUtils {
     /** 
-     * Returns the system’s default gateway on Windows, 
-     * or null if it can’t be parsed.
+     * Returns the system's default gateway IP on Windows,
+     * or null if it can't be parsed.
      */
     public static String getDefaultGateway() {
         try {
@@ -26,7 +26,7 @@ public class NetworkUtils {
                 String line;
                 while ((line = r.readLine()) != null) {
                     line = line.trim();
-                    // Look for a line starting “0.0.0.0” — columns are:
+                    // Look for a line starting "0.0.0.0" — columns are:
                     // Network Destination | Netmask | Gateway | Interface | Metric
                     if (line.startsWith("0.0.0.0")) {
                         String[] parts = line.split("\\s+");
@@ -40,6 +40,97 @@ public class NetworkUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Returns hostname information for the default gateway.
+     * @return String[] where [0] is IP address and [1] is hostname or "Default Gateway" if hostname not resolvable
+     */
+    public static String[] getDefaultGatewayInfo() {
+        String gatewayIp = getDefaultGateway();
+        if (gatewayIp == null) {
+            return null;
+        }
+        
+        String hostname = "Default Gateway";
+        try {
+            // First try nslookup
+            Process process = new ProcessBuilder("cmd", "/c", "nslookup " + gatewayIp).start();
+            boolean hostnameFound = false;
+            
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                boolean passedAddress = false;
+                
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("[DEBUG] nslookup output: " + line);
+                    
+                    // Look for a line containing "Name:"
+                    if (line.contains("Name:")) {
+                        String[] parts = line.split(":");
+                        if (parts.length >= 2) {
+                            String possibleHostname = parts[1].trim();
+                            // Ensure it's not just the IP address again or empty
+                            if (!possibleHostname.equals(gatewayIp) && !possibleHostname.isEmpty()) {
+                                hostname = possibleHostname;
+                                hostnameFound = true;
+                                System.out.println("[DEBUG] Found hostname via nslookup: " + hostname);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // If nslookup didn't work, try InetAddress as backup
+            if (!hostnameFound) {
+                System.out.println("[DEBUG] nslookup failed, trying InetAddress");
+                InetAddress address = InetAddress.getByName(gatewayIp);
+                String resolvedName = address.getHostName();
+                // Only use if it returned something different than the IP
+                if (!resolvedName.equals(gatewayIp)) {
+                    hostname = resolvedName;
+                    System.out.println("[DEBUG] Found hostname via InetAddress: " + hostname);
+                    hostnameFound = true;
+                }
+            }
+            
+            // If still no hostname, try reverse DNS lookup via 'ping -a'
+            if (!hostnameFound) {
+                System.out.println("[DEBUG] Trying ping -a for reverse DNS lookup");
+                Process pingProcess = new ProcessBuilder("cmd", "/c", "ping -a -n 1 " + gatewayIp).start();
+                
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(pingProcess.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("[DEBUG] ping -a output: " + line);
+                        // First line should contain "Pinging [hostname] ([ip])"
+                        if (line.startsWith("Pinging")) {
+                            int openBracket = line.indexOf('[');
+                            int closeBracket = line.indexOf(']');
+                            if (openBracket > 8 && closeBracket > openBracket) { // "Pinging " is 8 chars
+                                String possibleHostname = line.substring(8, openBracket).trim();
+                                if (!possibleHostname.isEmpty() && !possibleHostname.equals(gatewayIp)) {
+                                    hostname = possibleHostname;
+                                    System.out.println("[DEBUG] Found hostname via ping -a: " + hostname);
+                                    hostnameFound = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (!hostnameFound) {
+                System.out.println("[DEBUG] Could not resolve hostname, using default: " + hostname);
+            }
+        } catch (Exception e) {
+            // If any errors occur during resolution, we'll use the default name
+            System.out.println("[DEBUG] Could not resolve gateway hostname: " + e.getMessage());
+        }
+        
+        return new String[]{gatewayIp, hostname};
     }
 
     /**

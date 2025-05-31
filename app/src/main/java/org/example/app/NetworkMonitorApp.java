@@ -335,7 +335,7 @@ public class NetworkMonitorApp extends Application {
     private void saveWindowSize() {
         try {
             WindowConfig wc = new WindowConfig(primaryStage.getX(), primaryStage.getY(),
-                                              primaryStage.getWidth(), primaryStage.getHeight());
+                                        primaryStage.getWidth(), primaryStage.getHeight());
             Gson gson = new Gson();
             String json = gson.toJson(wc);
             Files.write(Paths.get(WINDOW_CONFIG_FILE), json.getBytes());
@@ -372,17 +372,26 @@ public class NetworkMonitorApp extends Application {
         String gw = NetworkUtils.getDefaultGateway();
         if (gw == null) gw = "192.168.0.1";
         // Update the Gateway node to use PUBLIC network location
-        NetworkNode gatewayNode = new NetworkNode(gw, "Default Gateway", DeviceType.ROUTER, NetworkLocation.PUBLIC);
-        gatewayNode.setLayoutX(centerX - gatewayNode.getPrefWidth() / 2);
-        gatewayNode.setLayoutY(centerY - gatewayNode.getPrefHeight() / 2);
-        gatewayNode.setMainNode(true);
-        persistentNodes.add(gatewayNode);
-        persistentNodesStatic.add(gatewayNode);
-        spiderMapPane.getChildren().add(gatewayNode);
+        String[] gatewayInfo = NetworkUtils.getDefaultGatewayInfo();
+        if (gatewayInfo != null) {
+            NetworkNode gatewayNode = new NetworkNode(
+                gatewayInfo[0], // IP address 
+                gatewayInfo[1], // Hostname (or "Default Gateway" if not resolved)
+                DeviceType.ROUTER,
+                NetworkLocation.PUBLIC
+            );
+            // Add these positioning lines
+            gatewayNode.setLayoutX(centerX - gatewayNode.getPrefWidth() / 2);
+            gatewayNode.setLayoutY(centerY + gatewayNode.getPrefHeight() / 2);
+            gatewayNode.setMainNode(true);
+            persistentNodes.add(gatewayNode);
+            persistentNodesStatic.add(gatewayNode);
+            spiderMapPane.getChildren().add(gatewayNode);
 
-        // Create single connection between host and gateway
-        ConnectionLine line1 = new ConnectionLine(hostNode, gatewayNode);
-        spiderMapPane.getChildren().add(0, line1);
+            // Create single connection between host and gateway
+            ConnectionLine line1 = new ConnectionLine(hostNode, gatewayNode);
+            spiderMapPane.getChildren().add(0, line1);
+        }
 
         addNodeDetailHandlers(); // Add this line
     }
@@ -698,17 +707,8 @@ public class NetworkMonitorApp extends Application {
                     connection.setLineColor(Color.web("#0cad03"));
                 }
             } else {
-                // Get gateway node by its characteristics rather than name
-                NetworkNode gw = instance.findMainNodeByDeviceType(DeviceType.ROUTER);
-                if (gw == null) {
-                    // Fallback in case the gateway node type changed
-                    for (NetworkNode mainNode : instance.persistentNodes) {
-                        if (mainNode.isMainNode() && mainNode.getNetworkLocation() == NetworkLocation.PUBLIC) {
-                            gw = mainNode;
-                            break;
-                        }
-                    }
-                }
+
+                NetworkNode gw = instance.findGatewayNode();
                 if (gw != null) {
                     connection = new ConnectionLine(gw, node);
                     connection.setViewOrder(1);
@@ -849,7 +849,10 @@ public class NetworkMonitorApp extends Application {
             // CASE 3: For PUBLIC nodes (like your proxy servers), route directly to GATEWAY
             else if (currentNode.getNetworkLocation() == NetworkLocation.PUBLIC && !currentNode.isMainNode()) {
                 System.out.println("DEBUG - PUBLIC node routes directly to Gateway");
-                currentNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                // Replace this line:
+                // currentNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                // With:
+                currentNode = findGatewayNode();
                 if (currentNode == null) {
                     System.out.println("DEBUG - Gateway not found, stopping route");
                     break;
@@ -871,7 +874,10 @@ public class NetworkMonitorApp extends Application {
                 // Use default routing based on network location
                 if (currentNode.getNetworkLocation() == NetworkLocation.LOCAL) {
                     System.out.println("DEBUG - LOCAL node routes to Gateway");
-                    NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                    // Replace this line:
+                    // NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                    // With:
+                    NetworkNode gatewayNode = findGatewayNode();
                     if (gatewayNode != null) {
                         currentNode = gatewayNode;
                     } else {
@@ -881,7 +887,10 @@ public class NetworkMonitorApp extends Application {
                 } else {
                     // All other nodes route to the main gateway node
                     System.out.println("DEBUG - Default routing to Gateway");
-                    currentNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                    // Replace this line:
+                    // currentNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+                    // With:
+                    currentNode = findGatewayNode();
                     if (currentNode == null) {
                         System.out.println("DEBUG - Gateway not found, using any main node");
                         currentNode = findAnyMainNode();
@@ -936,7 +945,10 @@ public class NetworkMonitorApp extends Application {
         }
         
         // Find Gateway node - we'll always show it
-        NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+        // Replace this line:
+        // NetworkNode gatewayNode = findMainNodeByDeviceType(DeviceType.GATEWAY);
+        // With:
+        NetworkNode gatewayNode = findGatewayNode();
         System.out.println("Gateway node: " + (gatewayNode != null ? gatewayNode.getDisplayName() : "Not found"));
         
         // Step 2: Create a map of nodes to their routes (from node to Gateway)
@@ -1198,5 +1210,31 @@ public class NetworkMonitorApp extends Application {
             }
         }
         return null;
+    }
+
+    // Add this method to NetworkMonitorApp class
+    public NetworkNode findGatewayNode() {
+        // First try to find by name
+        for (NetworkNode node : persistentNodes) {
+            // Look for both possible names:
+            // 1. "Default Gateway" - the fallback name
+            // 2. The hostname if it could be resolved
+            if (node.isMainNode() && 
+                (node.getDisplayName().equals("Default Gateway") || 
+                 (node.getDeviceType() == DeviceType.ROUTER && 
+                  node.getNetworkLocation() == NetworkLocation.PUBLIC))) {
+                return node;
+            }
+        }
+        
+        // Fall back to finding a main ROUTER node in PUBLIC location
+        for (NetworkNode node : persistentNodes) {
+            if (node.isMainNode() && 
+                node.getDeviceType() == DeviceType.ROUTER && 
+                node.getNetworkLocation() == NetworkLocation.PUBLIC) {
+                return node;
+    }   
+}       // Last resort - find any main router
+        return findMainNodeByDeviceType(DeviceType.ROUTER);
     }
 }

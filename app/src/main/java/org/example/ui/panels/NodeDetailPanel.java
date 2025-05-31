@@ -39,6 +39,9 @@ import javafx.util.Duration;
  */
 public class NodeDetailPanel extends VBox {
     private static final double PANEL_WIDTH = 250;
+    private static final double RIGHT_MARGIN = 15; // Right margin constant
+    private static final double TOP_MARGIN = 15; // Top margin constant
+    private static final double BOTTOM_MARGIN = 15; // Bottom margin constant
     private final Timeline showTimeline;
     private final Timeline hideTimeline;
     private NetworkNode currentNode;
@@ -67,12 +70,11 @@ public class NodeDetailPanel extends VBox {
         setPrefWidth(PANEL_WIDTH);
         setMaxWidth(PANEL_WIDTH); // Force exact width
         getStyleClass().add("node-detail-panel");
-        setStyle("-fx-background-color: -panels-bg-color;");
         
-        // Set up animations
+        // Set up animations - adding RIGHT_MARGIN to move it further offscreen
         showTimeline = new Timeline(
             new KeyFrame(Duration.ZERO, 
-                new KeyValue(translateXProperty(), PANEL_WIDTH)), // Use PANEL_WIDTH directly here
+                new KeyValue(translateXProperty(), PANEL_WIDTH + RIGHT_MARGIN)),
             new KeyFrame(Duration.millis(250), 
                 new KeyValue(translateXProperty(), 0))
         );
@@ -81,19 +83,30 @@ public class NodeDetailPanel extends VBox {
             new KeyFrame(Duration.ZERO, 
                 new KeyValue(translateXProperty(), 0)),
             new KeyFrame(Duration.millis(250), 
-                new KeyValue(translateXProperty(), PANEL_WIDTH)) // Use PANEL_WIDTH directly here
+                new KeyValue(translateXProperty(), PANEL_WIDTH + RIGHT_MARGIN))
         );
         
         // Initially hidden - move the panel completely off-screen
-        setTranslateX(PANEL_WIDTH); // Use PANEL_WIDTH directly here
+        setTranslateX(PANEL_WIDTH + RIGHT_MARGIN);
+        
+        // Set the top margin
+        setLayoutY(TOP_MARGIN);
         
         // Add the ScrollPane to the main panel
         getChildren().add(scrollPane);
         
-        // Make sure the panel takes full height
+        // Make sure the panel takes proper height (minus margins)
         heightProperty().addListener((obs, oldVal, newVal) -> {
             if (getScene() != null) {
-                setPrefHeight(getScene().getHeight());
+                // Set height to scene height minus top and bottom margins
+                setPrefHeight(getScene().getHeight() - TOP_MARGIN - BOTTOM_MARGIN);
+            }
+        });
+        
+        // Set translateX to -RIGHT_MARGIN when fully visible
+        translateXProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal.doubleValue() == 0) {
+                setTranslateX(-RIGHT_MARGIN);
             }
         });
         
@@ -109,8 +122,6 @@ public class NodeDetailPanel extends VBox {
         // Set new node as current
         this.currentNode = node;
         this.previousNode = node;
-        // Remove highlight call
-        // node.setHighlighted(true);
         
         // Check for connections to this node
         checkConnectionStatus(node);
@@ -118,9 +129,9 @@ public class NodeDetailPanel extends VBox {
         // Show detailed fields for this node
         showNodeDetails(node);
         
-        // Make sure we're taking full height of the scene
+        // Make sure we're taking proper height of the scene (minus margins)
         if (getScene() != null) {
-            setPrefHeight(getScene().getHeight());
+            setPrefHeight(getScene().getHeight() - TOP_MARGIN - BOTTOM_MARGIN);
         }
         
         // Play the show animation
